@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rey San Madamba — Full-stack developer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="progress" id="progress"></div>
+
+    <nav>
+        <div class="wrap">
+            <a class="logo" href="#top">reysan<span>.</span>ca</a>
+            <div class="navlinks">
+                <a href="#projects">projects</a>
+                <a href="#skills">skills</a>
+                <a href="#contact">contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero" id="top">
+        <div class="wrap">
+            <p class="prompt"><span id="typePrompt">~/reysan</span><span class="cursor"></span></p>
+            <h1 id="typeHeading">Rey San Madamba — full-stack developer, building things that <em>ship</em>.</h1>
+            <p class="lede">Northern Alberta Institute of Technology (NAIT) Computer Software Development grad. I build
+                practical, working software — from a 10-person capstone system to a live business I run end to end.</p>
+            <div class="founder-line">
+                <span class="badge">Founder</span>
+                <span>ReputationExpert.ca — <a href="https://reputationexpert.ca" target="_blank" rel="noopener">visit
+                        site →</a></span>
+            </div>
+        </div>
+    </header>
+
+    <section id="about">
+        <div class="wrap reveal">
+            <p class="eyebrow">01 — about</p>
+            <h2>Marketing background, developer now.</h2>
+            <div class="about-text">
+                <p>Before code, I spent years in digital marketing and social media management — running campaigns,
+                    growing audiences, and managing online reputation for clients and organizations. That background
+                    shapes how I build: I care less about clever code and more about whether it actually solves a
+                    problem for the person using it.</p>
+                <p>Today I build full-stack web applications — C#, Blazor, React, Node.js — and run ReputationExpert.ca
+                    as a live proof-of-concept that I can ship real, working products end to end, not just school
+                    projects.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="projects">
+        <div class="wrap reveal">
+            <p class="eyebrow">02 — projects</p>
+            <h2>Seven builds, in and out of school.</h2>
+
+            <div class="projects">
+
+                <div class="card reveal" style="--d:0.00s">
+                    <div class="card-top">
+                        <p class="card-title">OOKs Substitution Solution</p>
+                        <span class="tag">NAIT capstone — team of 10</span>
+                    </div>
+                    <div class="stack"><span>C#</span><span>Blazor Server</span><span>MudBlazor</span><span>EF
+                            Core</span><span>SQL Server</span><span>Azure</span></div>
+                    <p class="desc">Replaced NAIT's manual, paper-based instructor substitution process with a full
+                        system. Owned the Super Admin and Chair Override modules.</p>
+                    <details>
+                        <summary>Technical details</summary>
+                        <ul>
+                            <li>Built workload calculation logic to prevent over-assigning instructors</li>
+                            <li>Implemented time-overlap validation to catch scheduling conflicts automatically</li>
+                            <li>Used soft-delete instead of hard-delete, preserving full audit history</li>
+                            <li>Contributed to Azure deployment and resolved Git conflicts across a 10-person team</li>
+                        </ul>
+                    </details>
+                </div>
+
+                <div class="card featured reveal" style="--d:0.08s">
+                    <div class="card-top">
+                        <p class="card-title">ReputationExpert.ca</p>
+                        <span class="tag founder">Founder</span>
+                    </div>
+                    <div class="stack"><span>Digital reputation</span><span>Access resolution</span></div>
+                    <p class="desc">Most people hit a wall when something goes wrong online — a banned account, a
+                        damaging review, content that won't come down. I built ReputationExpert.ca to be the resource
+                        that actually does something about it.</p>
+                    <p class="card-link"><a href="https://reputationexpert.ca" target="_blank" rel="noopener">View live
+                            site →</a></p>
+                    <details>
+                        <summary>How it works</summary>
+                        <p>I operate as the connector between clients and the right solutions — account recovery, review
+                            disputes, search visibility, press-related concerns. Direct relationships and methods built
+                            from years managing large-scale accounts professionally, for cases where standard support
+                            channels already failed.</p>
+                    </details>
+                </div>
+
+                <div class="card reveal" style="--d:0.16s">
+                    <div class="card-top">
+                        <p class="card-title">Tax Write-Off Tracker</p>
+                        <span class="tag">Personal project — mobile app</span>
+                    </div>
+                    <div class="stack"><span>Flutter</span><span>Dart</span></div>
+                    <p class="desc">A mobile app to help users calculate and track tax write-off eligibility across
+                        expense categories, with a simple UI for logging deductible expenses and estimating savings.</p>
+                </div>
+
+                <div class="card reveal" style="--d:0.24s">
+                    <div class="card-top">
+                        <p class="card-title">Cerkal Group Lending Inc.</p>
+                        <span class="tag">Client project — web development</span>
+                    </div>
+                    <div class="stack"><span>JavaScript</span><span>HTML/CSS</span></div>
+                    <p class="desc">Landing page for a Philippine lending business, built around a live interactive loan
+                        calculator instead of just a features list.</p>
+                    <p class="card-link"><a href="https://reysanmadamba.com/cerkal/index.html" target="_blank"
+                            rel="noopener">View live site →</a></p>
+                    <details>
+                        <summary>Technical details</summary>
+                        <ul>
+                            <li>Calculator logic handles principal, term, and rate with live-updating results</li>
+                            <li>Handles invalid and boundary inputs for non-technical users</li>
+                        </ul>
+                    </details>
+                </div>
+
+                <div class="card reveal" style="--d:0.32s">
+                    <div class="card-top">
+                        <p class="card-title">Yours Handyworks</p>
+                        <span class="tag">Client project — web development</span>
+                    </div>
+                    <div class="stack"><span>HTML/CSS</span><span>JavaScript</span><span>Formspree</span></div>
+                    <p class="desc">Business site for a renovation and construction outfit, with a project showcase and
+                        working contact form.</p>
+                    <p class="card-link"><a href="https://reysanmadamba.com/yourshandyworks/index.html" target="_blank"
+                            rel="noopener">View live site →</a></p>
+                    <details>
+                        <summary>Technical details</summary>
+                        <ul>
+                            <li>Built a split-drag before/after slider for renovation comparisons</li>
+                            <li>Integrated Formspree for a working contact form without a backend</li>
+                        </ul>
+                    </details>
+                </div>
+
+                <div class="card reveal" style="--d:0.40s">
+                    <div class="card-top">
+                        <p class="card-title">RhoCreates</p>
+                        <span class="tag">Client project — web development</span>
+                    </div>
+                    <div class="stack"><span>HTML/CSS</span><span>JavaScript</span></div>
+                    <p class="desc">Landing page for a handmade crochet brand, designed to match its personal, handmade
+                        feel.</p>
+                    <p class="card-link"><a href="https://reysanmadamba.com/rhocreates/index.html" target="_blank"
+                            rel="noopener">View live site →</a></p>
+                </div>
+
+                <div class="card reveal" style="--d:0.48s">
+                    <div class="card-top">
+                        <p class="card-title">Highlevel Diner</p>
+                        <span class="tag">Client project — web development</span>
+                    </div>
+                    <div class="stack"><span>HTML/CSS</span><span>JavaScript</span></div>
+                    <p class="desc">Retro Americana-themed restaurant site, built around menu presentation and brand
+                        feel.</p>
+                    <p class="card-link"><a href="https://reysanmadamba.com/highlevel/highlevel-home.html"
+                            target="_blank" rel="noopener">View live site →</a></p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section id="skills">
+        <div class="wrap reveal">
+            <p class="eyebrow">03 — skills</p>
+            <h2>What I build with.</h2>
+            <div class="skill-groups">
+                <div class="skill-group">
+                    <h3>Languages</h3>
+                    <div class="chips">
+                        <span class="chip">C#</span><span class="chip">JavaScript</span><span class="chip">HTML</span>
+                        <span class="chip">CSS</span><span class="chip">Java</span><span class="chip">SQL</span><span
+                            class="chip">Dart</span>
+                    </div>
+                </div>
+                <div class="skill-group">
+                    <h3>Frameworks</h3>
+                    <div class="chips">
+                        <span class="chip">Blazor Server</span><span class="chip">MudBlazor</span><span
+                            class="chip">React</span>
+                        <span class="chip">Node.js</span><span class="chip">Flutter</span><span class="chip">Jakarta
+                            EE</span><span class="chip">EF Core</span>
+                    </div>
+                </div>
+                <div class="skill-group">
+                    <h3>Cloud & tools</h3>
+                    <div class="chips">
+                        <span class="chip">Azure</span><span class="chip">Firebase</span><span
+                            class="chip">Git</span><span class="chip">GitHub</span>
+                        <span class="chip">SQL Server</span><span class="chip">PostgreSQL</span><span
+                            class="chip">MongoDB</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="contact">
+        <div class="wrap reveal">
+            <p class="eyebrow">04 — contact</p>
+            <h2>Let's talk.</h2>
+            <p class="about-text">Open to full-stack developer roles in Edmonton and remote.</p>
+            <div class="contact-row">
+                <a class="btn primary" href="mailto:madambareysan@gmail.com">Email</a>
+                <a class="btn" href="https://linkedin.com/in/reysanmadamba" target="_blank" rel="noopener">LinkedIn</a>
+                <a class="btn" href="https://github.com/reysanmadamba" target="_blank" rel="noopener">GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>reysan.ca — Edmonton, AB</footer>
+
+    <script src="index.js"></script>
+</body>
+
+</html>
