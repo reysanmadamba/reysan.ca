@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dispatch</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="user-greet" href="driver-dashboard.html">Hello, Admin <span class="switch-icon">⇄ switch view</span></a>
+      <nav>
+        <a class="nav-item" href="index.html">Dashboard</a>
+        <a class="nav-item active" href="dispatch.html">Dispatch</a>
+        <a class="nav-item" href="assets.html">Assets</a>
+        <a class="nav-item" href="cry-sheet-form.html">Cry Sheet Requests</a>
+        <a class="nav-item" href="employee-time-sheet.html">Employee<br>Time Sheet</a>
+        <a class="nav-item" href="employees.html">Employees</a>
+        <a class="nav-item" href="certification.html">Certifications</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <h1 class="page-title">Dispatch</h1>
+
+      <section class="panel">
+        <div class="filter-bar">
+          <div class="filter-field">
+            <label>Employee</label>
+            <div class="select-wrap">
+              <select>
+                <option>ALL</option>
+                <option>John Doe</option>
+                <option>James Smith</option>
+                <option>Jane Doe</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-field">
+            <label>From</label>
+            <input class="box-input" type="text" value="July 1, 2026">
+          </div>
+          <div class="filter-field">
+            <label>To</label>
+            <input class="box-input" type="text" value="August 12, 2026">
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Equipment</th>
+              <th>Driver</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>TRUCK - QUAD</td>
+              <td>John Doe</td>
+              <td>8:00 AM</td>
+              <td>9:00 AM</td>
+              <td><span class="status-pill status-pending">Draft</span></td>
+              <td><a class="btn-view" href="dispatch-form.html">View</a></td>
+            </tr>
+            <tr>
+              <td>D41 DOZER</td>
+              <td>John Doe</td>
+              <td>2:00 PM</td>
+              <td>4:00 PM</td>
+              <td><span class="status-pill status-pending">Draft</span></td>
+              <td><a class="btn-view" href="dispatch-form.html">View</a></td>
+            </tr>
+            <tr>
+              <td>WINCH TRUCK</td>
+              <td>James Smith</td>
+              <td>5:00 PM</td>
+              <td>7:00 PM</td>
+              <td><span class="status-pill status-review">Submitted</span></td>
+              <td><a class="btn-view" href="dispatch-form.html">View</a></td>
+            </tr>
+            <tr>
+              <td>TRUCK TANDEM</td>
+              <td>Jane Doe</td>
+              <td>9:00 AM</td>
+              <td>7:00 PM</td>
+              <td><span class="status-pill status-refused">Cancelled</span></td>
+              <td><a class="btn-view" href="dispatch-form.html">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <a href="dispatch-form.html" class="btn" style="max-width:180px; justify-content:center;">Create Dispatch</a>
+    </main>
+  </div>
+
+</body>
+</html>

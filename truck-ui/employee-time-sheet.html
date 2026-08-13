@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Employee Time Sheet</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="user-greet" href="driver-dashboard.html">Hello, Admin <span class="switch-icon">⇄ switch view</span></a>
+      <nav>
+        <a class="nav-item" href="index.html">Dashboard</a>
+        <a class="nav-item" href="dispatch.html">Dispatch</a>
+        <a class="nav-item" href="assets.html">Assets</a>
+        <a class="nav-item" href="cry-sheet-form.html">Cry Sheet Requests</a>
+        <a class="nav-item active" href="employee-time-sheet.html">Employee<br>Time Sheet</a>
+        <a class="nav-item" href="employees.html">Employees</a>
+        <a class="nav-item" href="certification.html">Certifications</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <h1 class="page-title">Employee Time Sheet</h1>
+
+      <section class="panel">
+        <div class="filter-bar">
+          <div class="filter-field">
+            <label>Employee</label>
+            <div class="select-wrap">
+              <select>
+                <option>ALL</option>
+                <option>John Doe</option>
+                <option>James Smith</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-field">
+            <label>From</label>
+            <input class="box-input" type="text" value="July 1, 2026">
+          </div>
+          <div class="filter-field">
+            <label>To</label>
+            <input class="box-input" type="text" value="August 12, 2026">
+          </div>
+          <a href="employee-time-sheet.html" class="btn btn-primary btn-generate">Generate</a>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Hours</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>John Doe</td>
+              <td>85</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-details.html">View</a></td>
+            </tr>
+            <tr>
+              <td>James Smith</td>
+              <td>42</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-details.html">View</a></td>
+            </tr>
+            <tr>
+              <td>Jane Doe</td>
+              <td>42</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-details.html">View</a></td>
+            </tr>
+            <tr>
+              <td>John Michael</td>
+              <td>22</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-details.html">View</a></td>
+            </tr>
+            <tr>
+              <td>Connor McDavid</td>
+              <td>97</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-details.html">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="summary-text">
+          <div class="summary-title">Summary</div>
+          July 1, 2026 to August 12, 2026<br>
+          Total Employee: 10<br>
+          Total Hours: 624
+        </div>
+
+        <a href="employee-time-sheet.html" class="btn" style="max-width:150px; justify-content:center;">Export Report</a>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Refused Time sheet</h2>
+        </div>
+        <div class="filter-bar">
+          <div class="filter-field">
+            <label>From</label>
+            <input class="box-input" type="text" value="July 1, 2026">
+          </div>
+          <div class="filter-field">
+            <label>To</label>
+            <input class="box-input" type="text" value="August 12, 2026">
+          </div>
+          <a href="employee-time-sheet.html" class="btn btn-primary btn-generate">Generate</a>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Date</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>John Doe</td>
+              <td>Aug 12, 2026</td>
+              <td>8:00 AM</td>
+              <td>9:00 AM</td>
+              <td><span class="status-pill status-refused">Refused</span></td>
+              <td><a class="btn-view" href="refused-timesheet-detail.html">View</a></td>
+            </tr>
+            <tr>
+              <td>John Doe</td>
+              <td>Aug 12, 2026</td>
+              <td>2:00 PM</td>
+              <td>4:00 PM</td>
+              <td><span class="status-pill status-refused">Refused</span></td>
+              <td><a class="btn-view" href="refused-timesheet-detail.html">View</a></td>
+            </tr>
+            <tr>
+              <td>John Doe</td>
+              <td>Jul 08, 2026</td>
+              <td>5:00 PM</td>
+              <td>7:00 PM</td>
+              <td><span class="status-pill status-refused">Refused</span></td>
+              <td><a class="btn-view" href="refused-timesheet-detail.html">View</a></td>
+            </tr>
+            <tr>
+              <td>John Doe</td>
+              <td>Jul 22, 2026</td>
+              <td>9:30 AM</td>
+              <td>11:30 PM</td>
+              <td><span class="status-pill status-refused">Refused</span></td>
+              <td><a class="btn-view" href="refused-timesheet-detail.html">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Appeal Time Sheet</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="dispatch-page">
+    <div class="dispatch-card">
+      <h1>Appeal Time sheet</h1>
+
+      <div class="section-label">Refusal Reason</div>
+      <div class="textarea-box" style="margin-bottom: 22px;">not 14 hrs shift</div>
+
+      <div class="profile-row"><span class="label">Driver</span><span class="value">John Doe</span></div>
+      <div class="profile-row" style="border-bottom:none;"><span class="label">Contact number</span><span class="value">587-111-2223</span></div>
+
+      <div class="section-label">Job Information</div>
+      <div class="field-grid">
+        <div class="field-box">
+          <label>Customer Name</label>
+          <div class="value-box">Danielle Smith</div>
+        </div>
+        <div class="field-box">
+          <label>PO #</label>
+          <div class="value-box">123-321</div>
+        </div>
+        <div class="field-box">
+          <label>Date</label>
+          <div class="value-box">August 12, 2026</div>
+        </div>
+        <div class="field-box">
+          <label>Job Address</label>
+          <div class="value-box">1 - 2nd street, AB</div>
+        </div>
+        <div class="field-box">
+          <label>Job Name</label>
+          <div class="value-box">1 Boxelder Sherwood Park, AB</div>
+        </div>
+        <div class="field-box"></div>
+      </div>
+
+      <div class="section-label">Equipment</div>
+      <table class="data-table equip-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Equipment</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Extra Load/Unload Time Explanation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><button class="icon-delete">✕</button></td>
+            <td>
+              <div class="select-wrap">
+                <select><option>TRUCK - QUAD</option></select>
+              </div>
+            </td>
+            <td><input class="box-input" type="text" value="9:30am"></td>
+            <td><input class="box-input" type="text" value="11:30am"></td>
+            <td><input class="box-input" type="text" placeholder="—"></td>
+          </tr>
+        </tbody>
+      </table>
+      <a href="driver-appeal-timesheet.html" class="add-link"><span class="plus">+</span> ADD MORE</a>
+
+      <div class="section-label">Work Summary</div>
+      <div class="textarea-box">You need to start 8:30 because truck need to warm up in winter</div>
+
+      <div class="section-label">Addition Materials &amp; Supplies</div>
+      <table class="data-table materials-table">
+        <thead>
+          <tr>
+            <th>Load Count</th>
+            <th>Material Hauled</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="gas-receipt-row">
+        Gas Receipt
+        <a class="btn-view" href="gas-receipt.html">View</a>
+      </div>
+      <a href="driver-appeal-timesheet.html" class="add-link"><span class="plus">+</span> ADD MORE</a>
+
+      <p style="font-size:11.5px; color:var(--text-muted); line-height:1.6; margin: 20px 0;">
+        After resubmitting the appeal, it will show on the admin dashboard again for approval.
+      </p>
+
+      <div class="dispatch-actions">
+        <a href="driver-dashboard.html" class="btn btn-primary">Resubmit</a>
+        <a href="driver-dashboard.html" class="btn">Draft</a>
+        <a href="driver-dashboard.html" class="btn">Back</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="app-shell">
+
+    <aside class="sidebar">
+      <a class="user-greet" href="driver-dashboard.html">Hello, Admin <span class="switch-icon">⇄ switch view</span></a>
+      <nav>
+        <a class="nav-item active" href="index.html">Dashboard</a>
+        <a class="nav-item" href="dispatch.html">Dispatch</a>
+        <a class="nav-item" href="assets.html">Assets</a>
+        <a class="nav-item" href="cry-sheet-form.html">Cry Sheet Requests</a>
+        <a class="nav-item" href="employee-time-sheet.html">Employee<br>Time Sheet</a>
+        <a class="nav-item" href="employees.html">Employees</a>
+        <a class="nav-item" href="certification.html">Certifications</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <h1 class="page-title">Dashboard</h1>
+
+      <!-- Dispatch -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Dispatch</h2>
+          <div class="date-nav">
+            <button class="arrow-btn">‹</button>
+            August 12, 2026
+            <button class="arrow-btn">›</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Equipment</th>
+              <th>Driver</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Assigned by</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>D41 DOZER</td>
+              <td>John Doe</td>
+              <td>9:30 AM</td>
+              <td>11:30 AM</td>
+              <td>John Doe</td>
+              <td><a class="btn-view" href="dispatch-form.html">View</a></td>
+            </tr>
+            <tr>
+              <td>D41 DOZER</td>
+              <td>John Doe</td>
+              <td>1:30 PM</td>
+              <td>3:30 PM</td>
+              <td>Admin1</td>
+              <td><a class="btn-view" href="dispatch-form.html">View</a></td>
+            </tr>
+            <tr>
+              <td>DECK TRUCK</td>
+              <td>James Smith</td>
+              <td>9:30 AM</td>
+              <td>11:30 AM</td>
+              <td>Admin1</td>
+              <td><a class="btn-view" href="dispatch-form.html">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Cry Sheet Request -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Cry Sheet Request</h2>
+          <div class="panel-header-right">
+            <div class="date-nav">
+              <button class="arrow-btn">‹</button>
+              August 12, 2026
+              <button class="arrow-btn">›</button>
+            </div>
+            <div class="sort-by">
+              Sort by
+              <div class="select-wrap">
+                <select>
+                  <option>Status</option>
+                  <option>Requester</option>
+                  <option>Date</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Requester Name</th>
+              <th>Date</th>
+              <th>Service Criteria</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>John Doe</td>
+              <td>2026-08-12</td>
+              <td class="criteria-out-of-service">Out of Service</td>
+              <td><span class="status-pill status-pending">Pending</span></td>
+              <td><a class="btn-view" href="crysheet-req.html">View</a></td>
+            </tr>
+            <tr>
+              <td>Jane Doe</td>
+              <td>2026-08-12</td>
+              <td class="criteria-major-defect">Major Defect</td>
+              <td><span class="status-pill status-approved">Approved</span></td>
+              <td><a class="btn-view" href="crysheet-req.html">View</a></td>
+            </tr>
+            <tr>
+              <td>James Smith</td>
+              <td>2026-08-12</td>
+              <td class="criteria-minor-defect">Minor Defect</td>
+              <td><span class="status-pill status-refused">Refused</span></td>
+              <td><a class="btn-view" href="crysheet-req.html">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Pending time sheet -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Pending time sheet</h2>
+          <div class="panel-header-right">
+            <div class="date-nav">
+              <button class="arrow-btn">‹</button>
+              August 12, 2026
+              <button class="arrow-btn">›</button>
+            </div>
+            <div class="sort-by">
+              Sort by
+              <div class="select-wrap">
+                <select>
+                  <option>Pending</option>
+                  <option>Name</option>
+                  <option>Date</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>John Doe</td>
+              <td>2026-08-12</td>
+              <td><span class="status-pill status-pending">Pending</span></td>
+              <td><a class="btn-view" href="employee-time-sheet.html">View</a></td>
+            </tr>
+            <tr>
+              <td>Jane Doe</td>
+              <td>2026-08-12</td>
+              <td><span class="status-pill status-pending">Pending</span></td>
+              <td><a class="btn-view" href="employee-time-sheet.html">View</a></td>
+            </tr>
+            <tr>
+              <td>James Smith</td>
+              <td>2026-08-12</td>
+              <td>
+                <span class="status-pill status-pending">
+                  Pending
+                  <span class="status-appealed-note">(appealed)</span>
+                </span>
+              </td>
+              <td><a class="btn-view" href="review-appeal.html">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Expiring Certificate -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Expiring Certificate</h2>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Certificate</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>John Doe</td>
+              <td>Driver License</td>
+              <td>2026-08-30</td>
+            </tr>
+            <tr>
+              <td>D41 DOZER</td>
+              <td>Insurance</td>
+              <td>2026-08-20</td>
+            </tr>
+            <tr>
+              <td>James Smith</td>
+              <td>Driver License</td>
+              <td>2026-08-24</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+    </main>
+  </div>
+
+</body>
+</html>

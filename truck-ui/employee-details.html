@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Employee Details</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="dispatch-page">
+    <div class="dispatch-card">
+      <h1>Employee Details</h1>
+
+      <div class="profile-row"><span class="label">Name</span><span class="value">John Doe</span></div>
+      <div class="profile-row"><span class="label">Phone</span><span class="value">587-123-4567</span></div>
+      <div class="profile-row" style="border-bottom:none;"><span class="label">Status</span><span class="value">Active</span></div>
+
+      <div class="section-label">Time Sheet</div>
+      <div class="filter-bar">
+        <div class="filter-field">
+          <label>From</label>
+          <input class="box-input" type="text" value="July 1, 2026">
+        </div>
+        <div class="filter-field">
+          <label>To</label>
+          <input class="box-input" type="text" value="August 12, 2026">
+        </div>
+        <a href="employee-details.html" class="btn btn-primary btn-generate">Generate</a>
+      </div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Equipment</th>
+            <th>Hours</th>
+            <th>Date</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Status</th>
+            <th>Assigned by</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>TRUCK - QUAD</td>
+            <td>1</td>
+            <td>Aug 12, 2026</td>
+            <td>8:00am</td>
+            <td>9:00am</td>
+            <td><span class="status-pill status-approved">Confirmed</span></td>
+            <td>John Doe</td>
+            <td><a class="btn-view" href="timesheet-detail.html">View</a></td>
+          </tr>
+          <tr>
+            <td>D41 DOZER</td>
+            <td>2</td>
+            <td>Aug 12, 2026</td>
+            <td>2:00pm</td>
+            <td>4:00pm</td>
+            <td><span class="status-pill status-approved">Confirmed</span></td>
+            <td>Admin1</td>
+            <td><a class="btn-view" href="timesheet-detail.html">View</a></td>
+          </tr>
+          <tr>
+            <td>WINCH TRUCK</td>
+            <td>2</td>
+            <td>Jul 08, 2026</td>
+            <td>5:00PM</td>
+            <td>7:00PM</td>
+            <td><span class="status-pill status-approved">Confirmed</span></td>
+            <td>Admin1</td>
+            <td><a class="btn-view" href="timesheet-detail.html">View</a></td>
+          </tr>
+          <tr>
+            <td>TRUCK TANDEM</td>
+            <td>10</td>
+            <td>Jul 22, 2026</td>
+            <td>9:00AM</td>
+            <td>7:00PM</td>
+            <td><span class="status-pill status-approved">Confirmed</span></td>
+            <td>Admin1</td>
+            <td><a class="btn-view" href="timesheet-detail.html">View</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="summary-text">
+        <div class="summary-title">Summary</div>
+        July 1, 2026 to August 12, 2026<br>
+        Total Hours: 15
+      </div>
+
+      <a href="employee-details.html" class="btn" style="max-width:150px; justify-content:center;">Export Report</a>
+    </div>
+  </div>
+
+</body>
+</html>

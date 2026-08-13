@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Employees</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="user-greet" href="driver-dashboard.html">Hello, Admin <span class="switch-icon">⇄ switch view</span></a>
+      <nav>
+        <a class="nav-item" href="index.html">Dashboard</a>
+        <a class="nav-item" href="dispatch.html">Dispatch</a>
+        <a class="nav-item" href="assets.html">Assets</a>
+        <a class="nav-item" href="cry-sheet-form.html">Cry Sheet Requests</a>
+        <a class="nav-item" href="employee-time-sheet.html">Employee<br>Time Sheet</a>
+        <a class="nav-item active" href="employees.html">Employees</a>
+        <a class="nav-item" href="certification.html">Certifications</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <h1 class="page-title">Employees</h1>
+
+      <section class="panel">
+        <div class="filter-bar">
+          <div class="filter-field">
+            <label>Employee</label>
+            <div class="select-wrap">
+              <select>
+                <option>ALL</option>
+                <option>John Doe</option>
+                <option>James Smith</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-field">
+            <label>From</label>
+            <input class="box-input" type="text" value="July 1, 2026">
+          </div>
+          <div class="filter-field">
+            <label>To</label>
+            <input class="box-input" type="text" value="August 12, 2026">
+          </div>
+          <a href="employees.html" class="btn btn-primary btn-generate">Generate</a>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>John Doe</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-profile.html">View</a></td>
+            </tr>
+            <tr>
+              <td>James Smith</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-profile.html">View</a></td>
+            </tr>
+            <tr>
+              <td>Jane Doe</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-profile.html">View</a></td>
+            </tr>
+            <tr>
+              <td>John Michael</td>
+              <td><span class="status-pill status-pending">Inactive</span></td>
+              <td><a class="btn-view" href="employee-profile.html">View</a></td>
+            </tr>
+            <tr>
+              <td>Connor McDavid</td>
+              <td><span class="status-pill status-approved">Active</span></td>
+              <td><a class="btn-view" href="employee-profile.html">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <a href="employee-profile-edit.html" class="add-link">
+          <span class="plus">+</span> ADD EMPLOYEE
+        </a>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

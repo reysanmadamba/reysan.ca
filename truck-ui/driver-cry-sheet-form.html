@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cry Sheet Form — Driver View</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="user-greet" href="index.html">Hi, John Doe <span class="switch-icon">⇄ switch view</span></a>
+      <nav>
+        <a class="nav-item" href="driver-dashboard.html">Dashboard</a>
+        <a class="nav-item" href="driver-dispatch.html">Dispatch</a>
+        <a class="nav-item" href="driver-timesheet.html">Time sheet</a>
+        <a class="nav-item active" href="driver-cry-sheet-form.html">Cry Sheet Form</a>
+        <a class="nav-item" href="driver-certification.html">Certifications</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <div class="form-page" style="padding:0;">
+        <div class="form-card" style="max-width: 100%;">
+          <h1>Cry Sheet Form</h1>
+
+          <div class="field-grid">
+            <div class="field-box">
+              <label>Requester Name</label>
+              <div class="value-box">John Doe</div>
+            </div>
+            <div class="field-box">
+              <label>Date</label>
+              <div class="value-box">August 12, 2026</div>
+            </div>
+
+            <div class="field-box">
+              <label>Equipment of Concern</label>
+              <div class="select-wrap">
+                <select><option>D41 DOZER</option><option>TRUCK - QUAD</option><option>DECK TRUCK</option></select>
+              </div>
+            </div>
+            <div class="field-box"></div>
+
+            <div class="field-box">
+              <label>Mileage at time of request</label>
+              <div class="value-box">
+                499,123
+                <span class="unit">km</span>
+              </div>
+            </div>
+            <div class="field-box"></div>
+
+            <div class="field-box">
+              <label>Model #</label>
+              <div class="value-box">2015</div>
+            </div>
+            <div class="field-box">
+              <label>Serial Number</label>
+              <div class="value-box">123-123-321</div>
+            </div>
+          </div>
+
+          <div class="field-box span-2" style="margin-bottom: 14px;">
+            <label>Additional photos</label>
+            <div class="history-row" style="border:1px solid var(--border-strong); border-radius:6px; background:#fff;">
+              <span style="color:var(--danger); font-weight:700;">*</span>
+              <span style="flex:1;">tire.jpeg</span>
+              <a class="btn-view" href="driver-cry-sheet-form.html">View</a>
+            </div>
+          </div>
+          <a href="driver-cry-sheet-form.html" class="add-link" style="margin-bottom:22px;"><span class="plus">+</span> ADD MORE PHOTOS</a>
+
+          <div class="field-box span-2" style="margin-bottom: 22px;">
+            <label>Description of service requested</label>
+            <div class="textarea-box">&nbsp;</div>
+          </div>
+
+          <div class="criteria-label">Service Criteria</div>
+          <div class="criteria-row" style="margin-bottom: 30px;">
+            <label class="criteria-option">
+              <input type="radio" name="criteria">
+              Minor Defect
+            </label>
+            <label class="criteria-option">
+              <input type="radio" name="criteria">
+              Major Defect
+            </label>
+            <label class="criteria-option">
+              <input type="radio" name="criteria">
+              Out of Service
+            </label>
+          </div>
+
+          <div class="decision-row">
+            <a href="driver-dashboard.html" class="btn btn-primary">Send</a>
+            <a href="driver-cry-sheet-form.html" class="btn">Clear</a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+</body>
+</html>

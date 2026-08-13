@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Deck Truck</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="asset-page">
+    <div class="asset-card">
+      <h1>Deck Truck</h1>
+
+      <div class="asset-photo">
+        <svg width="100%" height="100%" viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg">
+          <rect width="400" height="250" fill="#dfe4e1"/>
+          <text x="200" y="130" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#8a938e">Deck Truck photo</text>
+        </svg>
+      </div>
+
+      <div class="asset-field">
+        <label>Mileage</label>
+        <div class="value-box">222,123</div>
+        <span class="unit-suffix">km</span>
+      </div>
+      <div class="asset-field">
+        <label>Availability</label>
+        <div class="select-wrap" style="flex:1;">
+          <select style="width:100%; color:#e0464c; font-weight:700; border-radius:6px; border:1px solid var(--border-strong); padding:9px 26px 9px 12px; appearance:none; -webkit-appearance:none;">
+            <option>available</option>
+            <option>out of service</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="maintenance-title">Certificate / Registration</div>
+      <div class="cert-row">
+        <label>Registration</label>
+        <a class="btn-view" href="deck-truck.html">Click to view</a>
+      </div>
+      <div class="cert-row">
+        <label>Insurance</label>
+        <a class="btn-view" href="deck-truck.html">Click to view</a>
+      </div>
+      <div class="cert-row">
+        <button class="icon-delete">✕</button>
+        <label style="width:auto;">Air brake certificate</label>
+        <a class="btn-view" href="deck-truck.html">Click to upload</a>
+      </div>
+      <a href="deck-truck.html" class="add-link"><span class="plus">+</span> ADD CERTIFICATION</a>
+
+      <div class="maintenance-title">Maintenance History</div>
+      <div class="history-row">
+        <button class="icon-delete">✕</button>
+        <a href="deck-truck-history-view.html">broken pressure readings</a>
+        <span class="history-date">2026-08-11</span>
+        <a class="btn-view" href="deck-truck-history-view.html">View</a>
+      </div>
+      <div class="history-row">
+        <button class="icon-delete">✕</button>
+        <a href="deck-truck-history-view.html">flat left front tire</a>
+        <span class="history-date">2025-12-11</span>
+        <a class="btn-view" href="deck-truck-history-view.html">View</a>
+      </div>
+      <a href="deck-truck-history.html" class="add-link"><span class="plus">+</span> ADD MAINTENANCE HISTORY</a>
+
+      <div class="decision-row" style="margin-top:24px;">
+        <a href="deck-truck-updated.html" class="btn btn-primary">Update</a>
+        <a href="deck-truck-delete-confirm.html" class="btn btn-refuse">Delete</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

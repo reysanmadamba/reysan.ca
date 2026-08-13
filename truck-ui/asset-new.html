@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>New Asset</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="asset-page">
+    <div class="asset-card">
+      <div class="field-box" style="margin-bottom: 14px;">
+        <label>Name of Asset</label>
+        <div class="value-box"><input type="text" placeholder="e.g. Winch Truck" style="border:none; outline:none; width:100%; font-size:13.5px; font-family:inherit;"></div>
+      </div>
+
+      <a href="asset-new.html" class="upload-box">Upload Image</a>
+
+      <div class="asset-field">
+        <label>Mileage</label>
+        <div class="value-box empty"><input type="text" placeholder="0" style="border:none; outline:none; width:100%; font-size:13.5px; font-family:inherit;"></div>
+        <span class="unit-suffix">km</span>
+      </div>
+      <div class="asset-field">
+        <label>Availability</label>
+        <div class="select-wrap" style="flex:1;">
+          <select style="width:100%; color:var(--success-dark); font-weight:700; border-radius:6px; border:1px solid var(--border-strong); padding:9px 26px 9px 12px; appearance:none; -webkit-appearance:none;">
+            <option>available</option>
+            <option>out of service</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="maintenance-title">Certificate / Registration</div>
+      <div class="cert-row">
+        <label>Registration</label>
+        <a class="btn-view" href="asset-new.html">Click to upload</a>
+      </div>
+      <div class="cert-row">
+        <label>Insurance</label>
+        <a class="btn-view" href="asset-new.html">Click to upload</a>
+      </div>
+      <div class="cert-row">
+        <button class="icon-delete">✕</button>
+        <label style="width:auto;">Air brake certificate</label>
+        <a class="btn-view" href="asset-new.html">Click to upload</a>
+      </div>
+      <a href="asset-new.html" class="add-link"><span class="plus">+</span> ADD CERTIFICATION</a>
+
+      <div class="maintenance-title">Maintenance History</div>
+      <div class="history-row">
+        <button class="icon-delete">✕</button>
+        <span style="flex:1;">broken pressure readings</span>
+        <span class="history-date">2026-08-11</span>
+      </div>
+      <div class="history-row">
+        <button class="icon-delete">✕</button>
+        <span style="flex:1;">flat left front tire</span>
+        <span class="history-date">2025-12-11</span>
+      </div>
+      <a href="asset-new.html" class="add-link"><span class="plus">+</span> ADD MAINTENANCE HISTORY</a>
+
+      <div class="decision-row" style="margin-top:24px;">
+        <a href="assets.html" class="btn btn-primary">Save</a>
+        <a href="assets.html" class="btn">Cancel</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

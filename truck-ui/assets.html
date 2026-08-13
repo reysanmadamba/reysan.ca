@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Assets</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="user-greet" href="driver-dashboard.html">Hello, Admin <span class="switch-icon">⇄ switch view</span></a>
+      <nav>
+        <a class="nav-item" href="index.html">Dashboard</a>
+        <a class="nav-item" href="dispatch.html">Dispatch</a>
+        <a class="nav-item active" href="assets.html">Assets</a>
+        <a class="nav-item" href="cry-sheet-form.html">Cry Sheet Requests</a>
+        <a class="nav-item" href="employee-time-sheet.html">Employee<br>Time Sheet</a>
+        <a class="nav-item" href="employees.html">Employees</a>
+        <a class="nav-item" href="certification.html">Certifications</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <h1 class="page-title">Assets</h1>
+
+      <section class="panel">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Asset Name</th>
+              <th>Details</th>
+              <th>Availability</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1. CAT 289 SKIDSTEER</td>
+              <td><a class="btn-view" href="deck-truck.html">View Details</a></td>
+              <td class="avail-out">Out of Service</td>
+            </tr>
+            <tr>
+              <td>2. PC 138 EXCAVATOR</td>
+              <td><a class="btn-view" href="deck-truck.html">View Details</a></td>
+              <td class="avail-available">Available</td>
+            </tr>
+            <tr>
+              <td>3. DECK TRUCK</td>
+              <td><a class="btn-view" href="deck-truck.html">View Details</a></td>
+              <td class="avail-available">Available</td>
+            </tr>
+            <tr>
+              <td>4. WINCH TRUCK</td>
+              <td><a class="btn-view" href="deck-truck.html">View Details</a></td>
+              <td class="avail-available">Available</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <a href="asset-new.html" class="add-link">
+          <span class="plus">+</span> ADD ASSET
+        </a>
+
+        <div class="filter-bar" style="justify-content:flex-end; margin-top:22px; margin-bottom:0;">
+          <div class="filter-field">
+            <label>Sort by</label>
+            <div class="select-wrap">
+              <select>
+                <option>Availability</option>
+                <option>Asset Name</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Refused Time Sheet</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="dispatch-page">
+    <div class="dispatch-card">
+      <h1>Refused Time sheet</h1>
+
+      <div class="section-label">Refusal Reason</div>
+      <div class="textarea-box" style="margin-bottom: 22px;">not 14 hrs shift</div>
+
+      <div class="driver-row">
+        <label>Driver:</label>
+        <div class="value-box" style="width:200px;">John Doe</div>
+      </div>
+      <div class="contact-line">Contact number: 587-111-2223</div>
+
+      <div class="section-label">Job Information</div>
+      <div class="field-grid">
+        <div class="field-box">
+          <label>Customer Name</label>
+          <div class="value-box">Danielle Smith</div>
+        </div>
+        <div class="field-box">
+          <label>PO #</label>
+          <div class="value-box">222-123</div>
+        </div>
+        <div class="field-box">
+          <label>Date</label>
+          <div class="value-box">July 22, 2026</div>
+        </div>
+        <div class="field-box">
+          <label>Job Address</label>
+          <div class="value-box">1 - 2nd street, AB</div>
+        </div>
+        <div class="field-box">
+          <label>Job Name</label>
+          <div class="value-box">1 Doctor Alexand Park, AB</div>
+        </div>
+        <div class="field-box"></div>
+      </div>
+
+      <div class="section-label">Equipment</div>
+      <table class="data-table equip-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Equipment</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Extra Load/Unload Time Explanation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><button class="icon-delete">✕</button></td>
+            <td>
+              <div class="select-wrap">
+                <select><option>TRUCK - QUAD</option></select>
+              </div>
+            </td>
+            <td><input class="box-input" type="text" value="9:30am"></td>
+            <td><input class="box-input" type="text" value="11:30pm"></td>
+            <td><input class="box-input" type="text" placeholder="—"></td>
+          </tr>
+        </tbody>
+      </table>
+      <a href="refused-timesheet-detail.html" class="add-link"><span class="plus">+</span> ADD MORE</a>
+
+      <div class="section-label">Work Summary</div>
+      <div class="textarea-box">You need to start 8:30 because truck need to warm up in winter</div>
+
+      <div class="section-label">Addition Materials &amp; Supplies</div>
+      <table class="data-table materials-table">
+        <thead>
+          <tr>
+            <th>Load Count</th>
+            <th>Material Hauled</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <div class="gas-receipt-row">
+        Gas Receipt
+        <a class="btn-view" href="gas-receipt.html">View</a>
+      </div>
+      <a href="refused-timesheet-detail.html" class="add-link"><span class="plus">+</span> ADD MORE</a>
+
+      <p style="font-size:11.5px; color:var(--text-muted); line-height:1.6; margin: 20px 0;">
+        Admin can override the timesheet if the driver is unable to edit it themselves. A note explaining the reason is required, for tracking/audit purposes.
+      </p>
+
+      <div class="dispatch-actions">
+        <a href="override-reason.html" class="btn btn-primary">Override</a>
+        <a href="employee-time-sheet.html" class="btn">Back</a>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

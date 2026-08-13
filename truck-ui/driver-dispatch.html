@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dispatch — Driver View</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="demo-banner"><span class="demo-tag">Demo — no data is saved (Property of Planetcom)</span></div>
+
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="user-greet" href="index.html">Hi, John Doe <span class="switch-icon">⇄ switch view</span></a>
+      <nav>
+        <a class="nav-item" href="driver-dashboard.html">Dashboard</a>
+        <a class="nav-item active" href="driver-dispatch.html">Dispatch</a>
+        <a class="nav-item" href="driver-timesheet.html">Time sheet</a>
+        <a class="nav-item" href="driver-cry-sheet-form.html">Cry Sheet Form</a>
+        <a class="nav-item" href="driver-certification.html">Certifications</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <h1 class="page-title">Dispatch</h1>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Timesheet History</h2>
+          <div class="panel-header-right">
+            <div class="filter-bar" style="margin-bottom:0;">
+              <div class="filter-field">
+                <label>From</label>
+                <input class="box-input" type="text" value="July 1, 2026">
+              </div>
+              <div class="filter-field">
+                <label>To</label>
+                <input class="box-input" type="text" value="August 12, 2026">
+              </div>
+              <a href="driver-dispatch.html" class="btn btn-primary btn-generate">Generate</a>
+            </div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Equipment</th>
+              <th>Date</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Status</th>
+              <th>Assigned by</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>TRUCK - QUAD</td>
+              <td>August 12, 2026</td>
+              <td>9:00am</td>
+              <td>4:00pm</td>
+              <td><span class="status-pill status-review">On going</span></td>
+              <td>Admin1</td>
+              <td><a class="btn-view" href="driver-dispatch-details.html">View</a></td>
+            </tr>
+            <tr>
+              <td>D41 DOZER</td>
+              <td>August 12, 2026</td>
+              <td>2:00pm</td>
+              <td>4:00pm</td>
+              <td><span class="status-pill status-review">On going</span></td>
+              <td>John Doe</td>
+              <td><a class="btn-view" href="driver-dispatch-details.html">View</a></td>
+            </tr>
+            <tr>
+              <td>WINCH TRUCK</td>
+              <td>July 08, 2026</td>
+              <td>5:00PM</td>
+              <td>7:00PM</td>
+              <td><span class="status-pill status-approved">Finished</span></td>
+              <td>Admin1</td>
+              <td><a class="btn-view" href="driver-dispatch-details.html">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>
