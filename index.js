@@ -137,6 +137,10 @@
         chatSend.disabled = true;
     }
 
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
     if (startChat) {
         startChat.addEventListener('click', function () {
             var name = visitorName.value.trim();
@@ -144,6 +148,11 @@
 
             if (!name || !email) {
                 alert('Please enter your name and email to continue.');
+                return;
+            }
+
+            if (!isValidEmail(email)) {
+                alert('Please enter a valid email address (e.g. name@example.com).');
                 return;
             }
 
@@ -158,7 +167,6 @@
             //     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             //     body: JSON.stringify({ name: name, email: email, source: 'reysan.ca chat widget' })
             // }).catch(function () { /* fail silently, don't block chat */ });
-
 
             //END OF COMMENT
 
