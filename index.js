@@ -150,11 +150,17 @@
             currentName = name;
 
             // send lead record to Formspree
-            fetch(FORMSPREE_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ name: name, email: email, source: 'reysan.ca chat widget' })
-            }).catch(function () { /* fail silently, don't block chat */ });
+
+            //FORMSPREE COMMENT
+
+            // fetch(FORMSPREE_ENDPOINT, {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            //     body: JSON.stringify({ name: name, email: email, source: 'reysan.ca chat widget' })
+            // }).catch(function () { /* fail silently, don't block chat */ });
+
+
+            //END OF COMMENT
 
             chatIntake.style.display = 'none';
             chatLog.style.display = 'block';
