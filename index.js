@@ -130,7 +130,7 @@
     }
 
     function endChat() {
-        addMsg('Conversation ended due to inappropriate content.', 'assistant');
+        addMsg('Conversation ended due to inappropriate content. Please ask questions related to my work only.', 'assistant');
         chatEnded = true;
         chatInput.disabled = true;
         chatInput.placeholder = 'Chat closed';

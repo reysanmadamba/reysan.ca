@@ -247,33 +247,35 @@
 
     <footer>reysan.ca — Edmonton, AB</footer>
 
-<button id="chatToggle" class="chat-fab" aria-label="Open chat">
-    <span>chat AI</span>
-</button>
+    <button id="chatToggle" class="chat-fab" aria-label="Open chat">
+        <span>chat AI</span>
+    </button>
 
-<div id="chatPanel" class="chat-panel">
-    <div class="chat-panel-header">
-        <span>Ask about Rey</span>
-        <button id="chatClose" aria-label="Close chat">×</button>
+    <div id="chatPanel" class="chat-panel">
+        <div class="chat-panel-header">
+            <span>Ask about Rey</span>
+            <button id="chatClose" aria-label="Close chat">×</button>
+        </div>
+
+        <div id="chatIntake" class="chat-intake">
+            <p class="chat-intake-label">Quick intro before we chat:</p>
+            <p class="chat-intake-notice">You'll be chatting with an AI assistant trained on Rey's info — not Rey
+                directly. Please ask only about topics related to my work.</p>
+            <input id="visitorName" type="text" placeholder="Your name" />
+            <input id="visitorEmail" type="email" placeholder="Your email" />
+            <button id="startChat" class="btn primary">Start chat</button>
+        </div>
+
+        <div id="chatLog" class="chat-log" style="display:none;"></div>
+        <div class="chat-input-row" id="chatInputRow" style="display:none;">
+            <input id="chatInput" type="text" placeholder="Ask about skills, projects, availability..." />
+            <button id="chatSend" class="btn primary">Send</button>
+        </div>
+        <p class="chat-disclaimer">
+            <a href="https://www.twilio.com/en-us/legal/privacy" target="_blank" rel="noopener">This chat may be
+                recorded for quality assurance purposes.</a>
+        </p>
     </div>
-
-    <div id="chatIntake" class="chat-intake">
-    <p class="chat-intake-label">Quick intro before we chat:</p>
-    <p class="chat-intake-notice">You'll be chatting with an AI assistant trained on Rey's info — not Rey directly.</p>
-    <input id="visitorName" type="text" placeholder="Your name" />
-    <input id="visitorEmail" type="email" placeholder="Your email" />
-    <button id="startChat" class="btn primary">Start chat</button>
-</div>
-
-    <div id="chatLog" class="chat-log" style="display:none;"></div>
-    <div class="chat-input-row" id="chatInputRow" style="display:none;">
-        <input id="chatInput" type="text" placeholder="Ask about skills, projects, availability..." />
-        <button id="chatSend" class="btn primary">Send</button>
-    </div>
-    <p class="chat-disclaimer">
-        <a href="https://www.twilio.com/en-us/legal/privacy" target="_blank" rel="noopener">This chat may be recorded for quality assurance purposes.</a>
-    </p>
-</div>
 
 
     <script src="index.js"></script>
