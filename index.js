@@ -99,7 +99,7 @@
     var chatLog = document.getElementById('chatLog');
     var chatInput = document.getElementById('chatInput');
     var chatSend = document.getElementById('chatSend');
-    var CHAT_ENDPOINT = 'https://reysan-ca-backend-77ah-n0mn47ayv-reysanmadambas-projects.vercel.app/api/chat';
+    var CHAT_ENDPOINT = 'https://reysan-ca-backend-77ah.vercel.app/api/chat';
     var chatEnded = false;
 
     if (chatToggle && chatPanel) {
