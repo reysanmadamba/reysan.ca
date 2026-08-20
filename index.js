@@ -92,4 +92,71 @@
             });
         });
     }
+    // chat widget
+    var chatToggle = document.getElementById('chatToggle');
+    var chatPanel = document.getElementById('chatPanel');
+    var chatClose = document.getElementById('chatClose');
+    var chatLog = document.getElementById('chatLog');
+    var chatInput = document.getElementById('chatInput');
+    var chatSend = document.getElementById('chatSend');
+    var CHAT_ENDPOINT = 'https://reysan-ca-backend-77ah-n0mn47ayv-reysanmadambas-projects.vercel.app/api/chat';
+    var chatEnded = false;
+
+    if (chatToggle && chatPanel) {
+        chatToggle.addEventListener('click', function () {
+            chatPanel.classList.toggle('open');
+            if (chatPanel.classList.contains('open')) chatInput.focus();
+        });
+        chatClose.addEventListener('click', function () {
+            chatPanel.classList.remove('open');
+        });
+    }
+
+    function addMsg(text, who) {
+        var div = document.createElement('div');
+        div.className = 'msg ' + who;
+        div.innerHTML = '<span class="who">' + (who === 'user' ? 'you' : 'assistant') + '</span>' + text;
+        chatLog.appendChild(div);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    async function sendChat() {
+        if (chatEnded) return;
+        var message = chatInput.value.trim();
+        if (!message) return;
+        addMsg(message, 'user');
+        chatInput.value = '';
+        chatSend.disabled = true;
+
+        try {
+            var res = await fetch(CHAT_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+            var data = await res.json();
+
+            if (data.flagged) {
+                addMsg('Conversation ended due to inappropriate content.', 'assistant');
+                chatEnded = true;
+                chatInput.disabled = true;
+                chatInput.placeholder = 'Chat closed';
+                chatSend.disabled = true;
+                return;
+            }
+
+            addMsg(data.answer || "Sorry, I couldn't get an answer.", 'assistant');
+        } catch (err) {
+            addMsg("Sorry, something went wrong. Try emailing madambareysan@gmail.com instead.", 'assistant');
+        } finally {
+            if (!chatEnded) chatSend.disabled = false;
+        }
+    }
+
+    if (chatSend) {
+        chatSend.addEventListener('click', sendChat);
+        chatInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendChat();
+        });
+    }
 })();
