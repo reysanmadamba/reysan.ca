@@ -507,6 +507,8 @@ footer {
     right: 24px;
     z-index: 30;
     width: min(340px, calc(100vw - 48px));
+    min-height: 320px;
+    max-height: min(560px, calc(100vh - 140px));
     background: var(--paper-2);
     border: 1px solid var(--line);
     border-radius: 12px;
@@ -518,6 +520,14 @@ footer {
 
 .chat-panel.open {
     display: flex;
+}
+
+.chat-log {
+    padding: 14px 16px 0;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    font-size: 14px;
 }
 
 .chat-panel-header {
@@ -541,13 +551,6 @@ footer {
     padding: 0;
 }
 
-.chat-log {
-    padding: 14px 16px 0;
-    min-height: 60px;
-    max-height: 280px;
-    overflow-y: auto;
-    font-size: 14px;
-}
 
 .chat-log:empty::before {
     content: "Ask me anything about Rey's skills, projects, or availability.";
@@ -627,6 +630,35 @@ footer {
     text-decoration: underline;
 }
 
+.chat-intake {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+}
+
+.chat-intake-label {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0;
+}
+
+.chat-intake input {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 14px;
+    background: #fff;
+}
+
+.chat-intake input:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 1px;
+}
+
 @media (max-width:640px) {
     .navlinks {
         display: none;
@@ -650,5 +682,32 @@ footer {
         opacity: 1;
         transform: none;
         transition: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-fab {
+        bottom: 16px;
+        right: 16px;
+        width: 52px;
+        height: 52px;
+    }
+
+    .chat-panel {
+        bottom: 0;
+        right: 0;
+        left: 0;
+        width: 100%;
+        min-height: 55vh;
+        max-height: 85vh;
+        border-radius: 16px 16px 0 0;
+    }
+
+    .chat-log {
+        font-size: 15px;
+    }
+
+    .chat-input-row input {
+        font-size: 16px;
     }
 }

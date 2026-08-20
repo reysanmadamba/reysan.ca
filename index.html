@@ -256,12 +256,22 @@
         <span>Ask about Rey</span>
         <button id="chatClose" aria-label="Close chat">×</button>
     </div>
-    <div id="chatLog" class="chat-log"></div>
-    <div class="chat-input-row">
+
+    <div id="chatIntake" class="chat-intake">
+        <p class="chat-intake-label">Quick intro before we chat:</p>
+        <input id="visitorName" type="text" placeholder="Your name" />
+        <input id="visitorEmail" type="email" placeholder="Your email" />
+        <button id="startChat" class="btn primary">Start chat</button>
+    </div>
+
+    <div id="chatLog" class="chat-log" style="display:none;"></div>
+    <div class="chat-input-row" id="chatInputRow" style="display:none;">
         <input id="chatInput" type="text" placeholder="Ask about skills, projects, availability..." />
         <button id="chatSend" class="btn primary">Send</button>
     </div>
-    <p class="chat-disclaimer">This chat may be recorded for quality assurance purposes.</p>
+    <p class="chat-disclaimer">
+        <a href="https://www.twilio.com/en-us/legal/privacy" target="_blank" rel="noopener">This chat may be recorded for quality assurance purposes.</a>
+    </p>
 </div>
 
 

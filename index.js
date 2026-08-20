@@ -92,6 +92,7 @@
             });
         });
     }
+
     // chat widget
     var chatToggle = document.getElementById('chatToggle');
     var chatPanel = document.getElementById('chatPanel');
@@ -99,13 +100,21 @@
     var chatLog = document.getElementById('chatLog');
     var chatInput = document.getElementById('chatInput');
     var chatSend = document.getElementById('chatSend');
+    var chatInputRow = document.getElementById('chatInputRow');
+    var chatIntake = document.getElementById('chatIntake');
+    var startChat = document.getElementById('startChat');
+    var visitorName = document.getElementById('visitorName');
+    var visitorEmail = document.getElementById('visitorEmail');
     var CHAT_ENDPOINT = 'https://reysan-ca-backend-77ah.vercel.app/api/chat';
+    var FORMSPREE_ENDPOINT = 'https://formspree.io/f/myegowql';
     var chatEnded = false;
+    var messageCount = 0;
+    var MAX_MESSAGES = 10;
+    var currentName = '';
 
     if (chatToggle && chatPanel) {
         chatToggle.addEventListener('click', function () {
             chatPanel.classList.toggle('open');
-            if (chatPanel.classList.contains('open')) chatInput.focus();
         });
         chatClose.addEventListener('click', function () {
             chatPanel.classList.remove('open');
@@ -120,10 +129,52 @@
         chatLog.scrollTop = chatLog.scrollHeight;
     }
 
+    function endChat() {
+        addMsg('Conversation ended due to inappropriate content.', 'assistant');
+        chatEnded = true;
+        chatInput.disabled = true;
+        chatInput.placeholder = 'Chat closed';
+        chatSend.disabled = true;
+    }
+
+    if (startChat) {
+        startChat.addEventListener('click', function () {
+            var name = visitorName.value.trim();
+            var email = visitorEmail.value.trim();
+
+            if (!name || !email) {
+                alert('Please enter your name and email to continue.');
+                return;
+            }
+
+            currentName = name;
+
+            // send lead record to Formspree
+            fetch(FORMSPREE_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ name: name, email: email, source: 'reysan.ca chat widget' })
+            }).catch(function () { /* fail silently, don't block chat */ });
+
+            chatIntake.style.display = 'none';
+            chatLog.style.display = 'block';
+            chatInputRow.style.display = 'flex';
+            addMsg('Hi ' + name + '! Ask me anything about Rey\'s skills, projects, or availability.', 'assistant');
+            chatInput.focus();
+        });
+    }
+
     async function sendChat() {
         if (chatEnded) return;
         var message = chatInput.value.trim();
         if (!message) return;
+
+        messageCount++;
+        if (messageCount > MAX_MESSAGES) {
+            endChat();
+            return;
+        }
+
         addMsg(message, 'user');
         chatInput.value = '';
         chatSend.disabled = true;
@@ -132,16 +183,12 @@
             var res = await fetch(CHAT_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ message: message, name: currentName })
             });
             var data = await res.json();
 
             if (data.flagged) {
-                addMsg('Conversation ended due to inappropriate content.', 'assistant');
-                chatEnded = true;
-                chatInput.disabled = true;
-                chatInput.placeholder = 'Chat closed';
-                chatSend.disabled = true;
+                endChat();
                 return;
             }
 
