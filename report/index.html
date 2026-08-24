@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chat Log Viewer</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #2ea043;
+    --accent-hover: #3fb950;
+    --danger: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 24px;
+  }
+  h1 {
+    font-size: 20px;
+    margin: 0 0 4px 0;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  input, select {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  input:focus, select:focus {
+    outline: 1px solid var(--accent);
+  }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  button:hover { background: var(--accent-hover); }
+  button.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  button.secondary:hover { border-color: var(--muted); }
+  .status {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .status.error { color: var(--danger); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 8px 10px;
+    background: #0d1117;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th:hover { color: var(--text); }
+  th.sorted::after { content: " ▾"; }
+  th.sorted-asc::after { content: " ▴"; }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  td.wrap {
+    max-width: 320px;
+    white-space: normal;
+    word-break: break-word;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .flag-true { color: var(--danger); font-weight: 600; }
+  .flag-false { color: var(--muted); }
+  .empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+  }
+  .count {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div id="lockScreen" style="max-width:340px; margin:120px auto; text-align:center;">
+  <h1 style="font-size:18px; margin-bottom:16px;">Enter password</h1>
+  <input type="password" id="passwordInput" placeholder="Password" style="width:100%; margin-bottom:10px;">
+  <button id="unlockBtn" style="width:100%;">Unlock</button>
+  <div class="status error" id="lockStatus" style="margin-top:10px;"></div>
+</div>
+
+<div id="app" style="display:none;">
+
+<h1>Chat Log Viewer</h1>
+<div class="subtitle">Read-only view of reysan.ca chat conversations — filter, sort, and export</div>
+
+<div class="panel">
+  <div class="controls">
+    <div class="field">
+      <label>From date</label>
+      <input type="date" id="fromDate">
+    </div>
+    <div class="field">
+      <label>To date</label>
+      <input type="date" id="toDate">
+    </div>
+    <div class="field">
+      <label>Visitor email contains</label>
+      <input type="text" id="emailFilter" placeholder="e.g. gmail.com">
+    </div>
+    <div class="field">
+      <label>Flagged only</label>
+      <select id="flaggedFilter">
+        <option value="">All</option>
+        <option value="true">Flagged only</option>
+        <option value="false">Not flagged</option>
+      </select>
+    </div>
+    <button id="applyBtn">Apply filters</button>
+    <button class="secondary" id="resetBtn">Reset</button>
+    <button class="secondary" id="viewReportBtn">View report</button>
+    <button class="secondary" id="exportBtn">Download CSV</button>
+  </div>
+  <div class="status" id="status">Loading...</div>
+</div>
+
+<div class="panel" id="reportPanel" style="display:none;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="count" id="reportCount"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="secondary" id="printBtn">Print / Save as PDF</button>
+      <button class="secondary" id="closeReportBtn">Close report</button>
+    </div>
+  </div>
+  <div id="reportWrap"></div>
+</div>
+
+<div class="panel">
+  <div class="count" id="count"></div>
+  <div id="tableWrap"></div>
+</div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://kuxukkknasjlfpahcled.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_-fVzlBpMI2AoynUYjOyvwA_0FkivXts';
+
+let allRows = [];
+let filteredRows = [];
+let sortField = 'created_at';
+let sortDir = 'desc';
+
+async function fetchLogs() {
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = 'Loading...';
+  statusEl.className = 'status';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/chat_logs?select=*&order=created_at.desc`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      }
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`${res.status}: ${errText}`);
+    }
+    allRows = await res.json();
+    statusEl.textContent = `Loaded ${allRows.length} rows.`;
+    applyFilters();
+  } catch (err) {
+    statusEl.textContent = 'Error loading data: ' + err.message;
+    statusEl.className = 'status error';
+    console.error(err);
+  }
+}
+
+function applyFilters() {
+  const from = document.getElementById('fromDate').value;
+  const to = document.getElementById('toDate').value;
+  const emailQ = document.getElementById('emailFilter').value.trim().toLowerCase();
+  const flaggedQ = document.getElementById('flaggedFilter').value;
+
+  filteredRows = allRows.filter(row => {
+    const created = row.created_at ? row.created_at.slice(0, 10) : '';
+    if (from && created < from) return false;
+    if (to && created > to) return false;
+    if (emailQ && !(row.visitor_email || '').toLowerCase().includes(emailQ)) return false;
+    if (flaggedQ === 'true' && row.flagged !== true) return false;
+    if (flaggedQ === 'false' && row.flagged !== false) return false;
+    return true;
+  });
+
+  sortRows();
+  render();
+}
+
+function sortRows() {
+  filteredRows.sort((a, b) => {
+    let av = a[sortField] ?? '';
+    let bv = b[sortField] ?? '';
+    if (sortField === 'flagged') { av = av ? 1 : 0; bv = bv ? 1 : 0; }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function render() {
+  const wrap = document.getElementById('tableWrap');
+  document.getElementById('count').textContent = `${filteredRows.length} conversation${filteredRows.length === 1 ? '' : 's'}`;
+
+  if (filteredRows.length === 0) {
+    wrap.innerHTML = '<div class="empty">No results match your filters.</div>';
+    return;
+  }
+
+  const cols = [
+    { key: 'created_at', label: 'Date' },
+    { key: 'visitor_name', label: 'Name' },
+    { key: 'visitor_email', label: 'Email' },
+    { key: 'question', label: 'Question' },
+    { key: 'answer', label: 'Answer' },
+    { key: 'flagged', label: 'Flagged' }
+  ];
+
+  let html = '<table><thead><tr>';
+  cols.forEach(c => {
+    let cls = '';
+    if (c.key === sortField) cls = sortDir === 'asc' ? 'sorted-asc' : 'sorted';
+    html += `<th class="${cls}" data-key="${c.key}">${c.label}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  filteredRows.forEach(row => {
+    const dt = row.created_at ? new Date(row.created_at).toLocaleString() : '';
+    html += '<tr>';
+    html += `<td>${dt}</td>`;
+    html += `<td>${escapeHtml(row.visitor_name || '')}</td>`;
+    html += `<td>${escapeHtml(row.visitor_email || '')}</td>`;
+    html += `<td class="wrap">${escapeHtml(row.question || '')}</td>`;
+    html += `<td class="wrap">${escapeHtml(row.answer || '')}</td>`;
+    html += `<td class="${row.flagged ? 'flag-true' : 'flag-false'}">${row.flagged ? 'Yes' : 'No'}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('th').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (sortField === key) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortField = key;
+        sortDir = 'desc';
+      }
+      sortRows();
+      render();
+    });
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function exportCSV() {
+  if (filteredRows.length === 0) {
+    alert('No rows to export with current filters.');
+    return;
+  }
+  const cols = ['created_at', 'visitor_name', 'visitor_email', 'question', 'answer', 'flagged', 'session_id'];
+  const header = cols.join(',');
+  const rows = filteredRows.map(row =>
+    cols.map(c => {
+      let v = row[c] ?? '';
+      v = String(v).replace(/"/g, '""');
+      return `"${v}"`;
+    }).join(',')
+  );
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `chat-logs-${stamp}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderReport() {
+  const reportPanel = document.getElementById('reportPanel');
+  const reportWrap = document.getElementById('reportWrap');
+  const reportCount = document.getElementById('reportCount');
+
+  reportCount.textContent = `${filteredRows.length} conversation${filteredRows.length === 1 ? '' : 's'} — generated ${new Date().toLocaleString()}`;
+
+  if (filteredRows.length === 0) {
+    reportWrap.innerHTML = '<div class="empty">No results match your current filters.</div>';
+  } else {
+    let html = '';
+    filteredRows.forEach(row => {
+      const dt = row.created_at ? new Date(row.created_at).toLocaleString() : '';
+      html += `
+        <div style="border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:12px; background:#0d1117;">
+          <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:12px; margin-bottom:8px;">
+            <span>${escapeHtml(row.visitor_name || 'Unknown')} — ${escapeHtml(row.visitor_email || 'no email')}</span>
+            <span>${dt}${row.flagged ? ' · <span class="flag-true">FLAGGED</span>' : ''}</span>
+          </div>
+          <div style="margin-bottom:6px;"><strong>Q:</strong> ${escapeHtml(row.question || '')}</div>
+          <div><strong>A:</strong> ${escapeHtml(row.answer || '(no answer stored)')}</div>
+        </div>`;
+    });
+    reportWrap.innerHTML = html;
+  }
+
+  reportPanel.style.display = 'block';
+  reportPanel.scrollIntoView({ behavior: 'smooth' });
+}
+
+document.getElementById('applyBtn').addEventListener('click', () => {
+  applyFilters();
+  document.getElementById('reportPanel').style.display = 'none';
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('fromDate').value = '';
+  document.getElementById('toDate').value = '';
+  document.getElementById('emailFilter').value = '';
+  document.getElementById('flaggedFilter').value = '';
+  applyFilters();
+  document.getElementById('reportPanel').style.display = 'none';
+});
+document.getElementById('exportBtn').addEventListener('click', exportCSV);
+document.getElementById('viewReportBtn').addEventListener('click', renderReport);
+document.getElementById('closeReportBtn').addEventListener('click', () => {
+  document.getElementById('reportPanel').style.display = 'none';
+});
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+const REPORT_PASSWORD = 'reysan2026'; // change this to whatever you want
+
+function tryUnlock() {
+  const input = document.getElementById('passwordInput').value;
+  const lockStatus = document.getElementById('lockStatus');
+  if (input === REPORT_PASSWORD) {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    fetchLogs();
+  } else {
+    lockStatus.textContent = 'Incorrect password.';
+  }
+}
+
+document.getElementById('unlockBtn').addEventListener('click', tryUnlock);
+document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') tryUnlock();
+});
+</script>
+
+</body>
+</html>
