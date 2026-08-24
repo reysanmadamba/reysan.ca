@@ -111,6 +111,9 @@
     var messageCount = 0;
     var MAX_MESSAGES = 10;
     var currentName = '';
+    var currentName = '';
+    var currentEmail = '';
+    var sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 
     if (chatToggle && chatPanel) {
         chatToggle.addEventListener('click', function () {
@@ -157,6 +160,7 @@
             }
 
             currentName = name;
+            currentEmail = email;
 
             // send lead record to Formspree
 
@@ -197,7 +201,7 @@
             var res = await fetch(CHAT_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message, name: currentName })
+                body: JSON.stringify({ message: message, name: currentName, email: currentEmail, sessionId: sessionId })
             });
             var data = await res.json();
 
