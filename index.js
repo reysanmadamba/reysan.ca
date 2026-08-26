@@ -105,19 +105,51 @@
     var startChat = document.getElementById('startChat');
     var visitorName = document.getElementById('visitorName');
     var visitorEmail = document.getElementById('visitorEmail');
+    var captchaQuestion = document.getElementById('captchaQuestion');
+    var captchaAnswer = document.getElementById('captchaAnswer');
+
     var CHAT_ENDPOINT = 'https://reysan-ca-backend-77ah.vercel.app/api/chat';
-    var FORMSPREE_ENDPOINT = 'https://formspree.io/f/myegowql';
+    var CAPTCHA_ENDPOINT = 'https://reysan-ca-backend-77ah.vercel.app/api/captcha';
+
     var chatEnded = false;
     var messageCount = 0;
     var MAX_MESSAGES = 10;
     var currentName = '';
-    var currentName = '';
     var currentEmail = '';
     var sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 
+    var currentChallengeToken = '';
+    var sessionToken = '';
+    var captchaLoaded = false;
+
+    async function loadCaptcha() {
+        if (!startChat || !captchaQuestion) return;
+        startChat.disabled = true;
+        captchaQuestion.textContent = 'Loading verification...';
+        try {
+            var res = await fetch(CAPTCHA_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: sessionId })
+            });
+            var data = await res.json();
+            currentChallengeToken = data.challengeToken;
+            captchaQuestion.textContent = data.question + ' =';
+            captchaAnswer.value = '';
+            startChat.disabled = false;
+            captchaLoaded = true;
+        } catch (err) {
+            captchaQuestion.textContent = 'Verification failed to load. Refresh the page.';
+        }
+    }
+
     if (chatToggle && chatPanel) {
         chatToggle.addEventListener('click', function () {
+            var opening = !chatPanel.classList.contains('open');
             chatPanel.classList.toggle('open');
+            if (opening && !captchaLoaded) {
+                loadCaptcha();
+            }
         });
         chatClose.addEventListener('click', function () {
             chatPanel.classList.remove('open');
@@ -145,9 +177,10 @@
     }
 
     if (startChat) {
-        startChat.addEventListener('click', function () {
+        startChat.addEventListener('click', async function () {
             var name = visitorName.value.trim();
             var email = visitorEmail.value.trim();
+            var answer = captchaAnswer.value.trim();
 
             if (!name || !email) {
                 alert('Please enter your name and email to continue.');
@@ -159,26 +192,44 @@
                 return;
             }
 
-            currentName = name;
-            currentEmail = email;
+            if (!answer) {
+                alert('Please answer the verification question.');
+                return;
+            }
 
-            // send lead record to Formspree
+            startChat.disabled = true;
+            startChat.textContent = 'Verifying...';
 
-            //FORMSPREE COMMENT
+            try {
+                var res = await fetch(CAPTCHA_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: sessionId, challengeToken: currentChallengeToken, answer: answer })
+                });
+                var data = await res.json();
 
-            // fetch(FORMSPREE_ENDPOINT, {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            //     body: JSON.stringify({ name: name, email: email, source: 'reysan.ca chat widget' })
-            // }).catch(function () { /* fail silently, don't block chat */ });
+                if (!data.correct) {
+                    alert('Incorrect answer, try again.');
+                    startChat.textContent = 'Start chat';
+                    startChat.disabled = false;
+                    loadCaptcha();
+                    return;
+                }
 
-            //END OF COMMENT
+                sessionToken = data.sessionToken;
+                currentName = name;
+                currentEmail = email;
 
-            chatIntake.style.display = 'none';
-            chatLog.style.display = 'block';
-            chatInputRow.style.display = 'flex';
-            addMsg('Hi ' + name + '! Ask me anything about Rey\'s skills, projects, or availability.', 'assistant');
-            chatInput.focus();
+                chatIntake.style.display = 'none';
+                chatLog.style.display = 'block';
+                chatInputRow.style.display = 'flex';
+                addMsg('Hi ' + name + '! Ask me anything about Rey\'s skills, projects, or availability.', 'assistant');
+                chatInput.focus();
+            } catch (err) {
+                alert('Something went wrong verifying. Try again.');
+                startChat.textContent = 'Start chat';
+                startChat.disabled = false;
+            }
         });
     }
 
@@ -201,9 +252,36 @@
             var res = await fetch(CHAT_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message, name: currentName, email: currentEmail, sessionId: sessionId })
+                body: JSON.stringify({
+                    message: message,
+                    name: currentName,
+                    email: currentEmail,
+                    sessionId: sessionId,
+                    sessionToken: sessionToken
+                })
             });
             var data = await res.json();
+
+            if (data.needsCaptcha) {
+                addMsg('Quick re-verification needed — please solve this and try again.', 'assistant');
+                chatLog.style.display = 'none';
+                chatInputRow.style.display = 'none';
+                chatIntake.style.display = 'flex';
+                loadCaptcha();
+                return;
+            }
+
+            if (res.status === 429) {
+                addMsg(data.error || "You've hit the message limit for now.", 'assistant');
+                return;
+            }
+
+            if (res.status === 403) {
+                addMsg(data.error || "Access temporarily restricted.", 'assistant');
+                chatInput.disabled = true;
+                chatSend.disabled = true;
+                return;
+            }
 
             if (data.flagged) {
                 endChat();
