@@ -134,7 +134,7 @@
             });
             var data = await res.json();
             currentChallengeToken = data.challengeToken;
-            captchaQuestion.textContent = data.question + ' =';
+            captchaQuestion.textContent = data.question + ' ';
             captchaAnswer.value = '';
             startChat.disabled = false;
             captchaLoaded = true;
