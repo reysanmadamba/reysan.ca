@@ -290,7 +290,7 @@
 
             addMsg(data.answer || "Sorry, I couldn't get an answer.", 'assistant');
         } catch (err) {
-            addMsg("Sorry, something went wrong. Try emailing madambareysan@gmail.com instead.", 'assistant');
+            addMsg("Sorry, something went wrong. Try emailing contact@reysan.ca instead.", 'assistant');
         } finally {
             if (!chatEnded) chatSend.disabled = false;
         }
