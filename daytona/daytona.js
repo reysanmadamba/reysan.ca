@@ -33,7 +33,7 @@
     var BASE_URL = 'https://reysan-ca-backend-77ah.vercel.app';
     var CHAT_ENDPOINT = BASE_URL + '/api/daytona-chat';
     var CAPTCHA_ENDPOINT = BASE_URL + '/api/daytona-captcha';
-    var MAX_MESSAGES = 10;
+    var MAX_MESSAGES = 20; // keep in sync with MAX_MESSAGES_PER_SESSION in daytona-chat.js
 
     var chatToggle = document.getElementById('chatToggle');
     var chatPanel = document.getElementById('chatPanel');
