@@ -1,0 +1,57 @@
+/* Daytona Homes demo — brand overrides on top of /style.css */
+:root {
+    --dt-orange: #F2661F;
+    --dt-orange-dark: #C94F14;
+    --dt-orange-tint: #FFF0E6;
+}
+
+.dt-accent {
+    color: var(--dt-orange);
+}
+
+.dt-eyebrow {
+    color: var(--dt-orange);
+}
+
+.dt-badge {
+    background: var(--dt-orange);
+}
+
+/* Chat FAB */
+.dt-fab {
+    background: var(--dt-orange);
+    box-shadow: 0 4px 14px rgba(242, 102, 31, 0.35);
+}
+
+.dt-fab:hover {
+    background: var(--dt-orange-dark);
+}
+
+/* Chat panel */
+.dt-panel-header {
+    background: var(--dt-orange);
+}
+
+.dt-btn.primary {
+    background: var(--dt-orange);
+    border-color: var(--dt-orange);
+}
+
+.dt-btn.primary:hover {
+    background: var(--dt-orange-dark);
+    border-color: var(--dt-orange-dark);
+}
+
+.dt-panel .chat-log .msg.assistant {
+    background: var(--dt-orange-tint);
+    border-color: var(--dt-orange);
+}
+
+.dt-panel .chat-log .msg.assistant .who {
+    color: var(--dt-orange-dark);
+}
+
+.dt-panel .chat-input-row input:focus-visible,
+.dt-panel .chat-intake input:focus-visible {
+    outline: 2px solid var(--dt-orange);
+}

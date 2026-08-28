@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daytona Homes — AI Concierge Demo | Built by Rey San Madamba</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="daytona.css">
+</head>
+
+<body class="daytona-page">
+
+    <div class="progress" id="progress"></div>
+
+    <nav>
+        <div class="wrap">
+            <a class="logo" href="/#top">reysan<span>.</span>ca</a>
+            <div class="navlinks">
+                <a href="/#projects">projects</a>
+                <a href="/#contact">contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero" id="top">
+        <div class="wrap">
+            <p class="prompt"><span>~/reysan/daytona</span><span class="cursor"></span></p>
+            <h1>An AI concierge for <em class="dt-accent">Daytona Homes</em>, built as a working demo.</h1>
+            <p class="lede">This page shows what an AI assistant embedded on daytonahomes.ca could do — answer
+                building-process questions and recommend move-in-ready homes from a sample listing set, in real time.
+                Try it with the orange button in the corner.</p>
+            <div class="founder-line">
+                <span class="badge dt-badge">Prototype</span>
+                <span>Built by Rey San Madamba — <a href="/#contact">get in touch →</a></span>
+            </div>
+        </div>
+    </header>
+
+    <section id="about">
+        <div class="wrap reveal">
+            <p class="eyebrow dt-eyebrow">What this demo shows</p>
+            <h2>Ask it about the building process, or describe your dream home.</h2>
+            <div class="about-text">
+                <p>The assistant knows Daytona's real building process, community list, and warranty contact —
+                    pulled from daytonahomes.ca — plus a sample set of current Edmonton-area listings. Ask something
+                    like <em>"3 bedroom under $550k near a school"</em> and it'll recommend matching homes from that
+                    sample.</p>
+                <p>Proximity flags (near a school, grocery store, park) are illustrative placeholders in this demo —
+                    a production version would pull real geodata instead.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>reysan.ca — Edmonton, AB</footer>
+
+    <button id="chatToggle" class="chat-fab dt-fab" aria-label="Open chat">
+        <svg width="20" height="20" viewBox="0 0 200 200" aria-hidden="true">
+            <path
+                d="M100 20 C50 20 20 50 20 90 C20 120 38 145 65 158 L60 185 L95 160 C97 160 98.5 160 100 160 C150 160 180 130 180 90 C180 50 150 20 100 20 Z"
+                fill="#FFF6EE" />
+            <circle cx="70" cy="90" r="10" fill="#F2661F" />
+            <circle cx="100" cy="90" r="10" fill="#F2661F" />
+            <circle cx="130" cy="90" r="10" fill="#F2661F" />
+        </svg>
+        <span>Chat with Daytona AI</span>
+    </button>
+
+    <div id="chatPanel" class="chat-panel dt-panel">
+        <div class="chat-panel-header dt-panel-header">
+            <span>Daytona Homes — AI demo</span>
+            <button id="chatClose" aria-label="Close chat">×</button>
+        </div>
+
+        <div id="chatIntake" class="chat-intake">
+            <p class="chat-intake-label">Quick check before we start:</p>
+            <p class="chat-intake-notice">This is an AI demo assistant, not a Daytona Homes employee — a prototype
+                built to show what's possible. Ask about the building process, communities, or a home you're looking
+                for.</p>
+            <p id="captchaQuestion" class="chat-intake-label">Loading verification...</p>
+            <input id="captchaAnswer" type="number" placeholder="Answer" />
+            <button id="startChat" class="btn primary dt-btn">Start chat</button>
+        </div>
+
+        <div id="chatLog" class="chat-log" style="display:none;"></div>
+        <div class="chat-input-row" id="chatInputRow" style="display:none;">
+            <input id="chatInput" type="text" placeholder="e.g. 3 bed under $550k near a school..." />
+            <button id="chatSend" class="btn primary dt-btn">Send</button>
+        </div>
+    </div>
+
+    <script src="daytona.js"></script>
+</body>
+
+</html>
