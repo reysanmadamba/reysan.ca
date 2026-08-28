@@ -183,6 +183,14 @@
             addMsg(reply, 'assistant');
             conversation.push({ role: 'assistant', content: reply });
 
+            if (data.disconnected) {
+                chatEnded = true;
+                chatInput.disabled = true;
+                chatInput.placeholder = 'Chat closed';
+                chatSend.disabled = true;
+                return;
+            }
+
             if (data.limitReached) {
                 lockChat("That's the message limit for this demo session — thanks for chatting!");
             }
