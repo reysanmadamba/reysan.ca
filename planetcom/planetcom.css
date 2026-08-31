@@ -1,0 +1,26 @@
+/* PlanetCom brand color, pulled from their logo swatch. */
+:root {
+    --accent: #15BEF0;
+    --accent-light: #4ED0FA;
+    --accent-dark: #0E8FB8;
+}
+
+.planetcom-demo .chat-fab {
+    background: var(--accent);
+}
+
+.planetcom-demo .chat-panel-header {
+    background: var(--accent);
+}
+
+.planetcom-demo .btn.primary {
+    background: var(--accent);
+}
+
+.planetcom-demo .btn.primary:hover {
+    background: var(--accent-dark);
+}
+
+.planetcom-demo .msg.assistant .who {
+    color: var(--accent);
+}

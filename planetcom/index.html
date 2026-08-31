@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlanetCom AI Demo — built by Rey San Madamba</title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="planetcom.css">
+</head>
+
+<body class="planetcom-demo">
+
+    <nav>
+        <div class="wrap">
+            <a class="logo" href="/">reysan<span>.</span>ca</a>
+            <div class="navlinks">
+                <a href="/">home</a>
+                <a href="https://planetcom.ca" target="_blank" rel="noopener">planetcom.ca</a>
+                <a href="https://planetcomcreative.ca" target="_blank" rel="noopener">planetcomcreative.ca</a>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero" id="top">
+        <div class="wrap">
+            <p class="prompt">~/planetcom-demo</p>
+            <h1>An AI FAQ assistant, prototyped for PlanetCom.</h1>
+            <p class="lede">This is a working demo built by Rey San Madamba, Software Developer at
+                PlanetCom, showing what an AI chat assistant could look like on planetcom.ca and
+                planetcomcreative.ca — answering questions about Managed IT and Creative services, pulled
+                straight from the real sites. Open the chat in the bottom corner to try it.</p>
+        </div>
+    </header>
+
+    <section class="about-demo">
+        <div class="wrap">
+            <p class="eyebrow">about this demo</p>
+            <h2>What it knows.</h2>
+            <p class="about-text">The assistant is scoped to PlanetCom's real company info — services, history,
+                certifications, and contact details for both the Managed IT side and PlanetCom Creative. It
+                won't guess at pricing or make up details it wasn't given; it routes those straight to
+                PlanetCom's real helpdesk instead.</p>
+            <p class="about-text">This is a limited prototype right now, built on what's publicly available on
+                the two sites. Feed it real internal info like pricing tiers, typical turnaround times for a
+                job, or service plan details, and it can answer those questions directly instead of pointing
+                people to the helpdesk every time.</p>
+        </div>
+    </section>
+
+    <footer>reysan.ca/planetcom — a prototype by Rey San Madamba</footer>
+
+    <button id="chatToggle" class="chat-fab" aria-label="Open chat">
+        <svg width="20" height="20" viewBox="0 0 200 200" aria-hidden="true">
+            <path d="M100 20 C50 20 20 50 20 90 C20 120 38 145 65 158 L60 185 L95 160 C97 160 98.5 160 100 160 C150 160 180 130 180 90 C180 50 150 20 100 20 Z" fill="#F8F7F3"/>
+            <circle cx="70" cy="90" r="10" fill="#15BEF0"/>
+            <circle cx="100" cy="90" r="10" fill="#15BEF0"/>
+            <circle cx="130" cy="90" r="10" fill="#15BEF0"/>
+        </svg>
+        <span>Chat with PlanetCom AI</span>
+    </button>
+
+    <div id="chatPanel" class="chat-panel">
+        <div class="chat-panel-header">
+            <span>Ask about PlanetCom</span>
+            <button id="chatClose" aria-label="Close chat">×</button>
+        </div>
+
+        <div id="chatIntake" class="chat-intake">
+            <p class="chat-intake-label">Quick note before we start:</p>
+            <p class="chat-intake-notice">You'll be chatting with an AI demo assistant, not a real PlanetCom
+                employee. It's a prototype built to show what this could look like on the real site.</p>
+            <p id="captchaQuestion" class="chat-intake-label">Loading verification...</p>
+            <input id="captchaAnswer" type="number" placeholder="Answer" />
+            <button id="startChat" class="btn primary">Start chat</button>
+        </div>
+
+        <div id="chatLog" class="chat-log" style="display:none;"></div>
+        <div class="chat-input-row" id="chatInputRow" style="display:none;">
+            <input id="chatInput" type="text" placeholder="Ask about IT services, Creative services..." />
+            <button id="chatSend" class="btn primary">Send</button>
+        </div>
+        <p class="chat-disclaimer">Demo prototype — not an official PlanetCom product.</p>
+    </div>
+
+    <script src="planetcom.js"></script>
+</body>
+
+</html>
