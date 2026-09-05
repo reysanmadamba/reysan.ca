@@ -379,21 +379,10 @@
                 return DEFAULT_HEIGHT_M;
             }
 
-            // ---- Overpass fetch (tries multiple mirrors before giving up) ----
-            function fetchFromOverpass(query, endpointIndex) {
-                endpointIndex = endpointIndex || 0;
-
-                if (endpointIndex >= OVERPASS_ENDPOINTS.length) {
-                    return Promise.reject(new Error('All Overpass mirrors failed'));
-                }
-
-                var url = OVERPASS_ENDPOINTS[endpointIndex] + '?data=' + encodeURIComponent(query);
+            // ---- Overpass fetch (races multiple mirrors in parallel — first success wins) ----
+            function fetchWithTimeout(url) {
                 var controller = new AbortController();
                 var timeoutId = setTimeout(function () { controller.abort(); }, OVERPASS_TIMEOUT_MS);
-
-                if (endpointIndex > 0) {
-                    setStatus('Loading nearby buildings… (trying an alternate server)');
-                }
 
                 return fetch(url, { signal: controller.signal })
                     .then(function (res) {
@@ -403,9 +392,33 @@
                     })
                     .catch(function (err) {
                         clearTimeout(timeoutId);
-                        console.warn('Overpass mirror failed (' + OVERPASS_ENDPOINTS[endpointIndex] + '):', err.message || err);
-                        return fetchFromOverpass(query, endpointIndex + 1); // try the next mirror
+                        throw err;
                     });
+            }
+
+            // Fires a request at every mirror simultaneously and resolves with
+            // whichever one succeeds first — much faster than trying them one at a
+            // time, since total wait is bounded by the fastest working server, not
+            // the sum of every server's individual timeout.
+            function fetchFromOverpass(query) {
+                var urls = OVERPASS_ENDPOINTS.map(function (base) {
+                    return base + '?data=' + encodeURIComponent(query);
+                });
+
+                var attempts = urls.map(fetchWithTimeout);
+                var failures = 0;
+
+                return new Promise(function (resolve, reject) {
+                    attempts.forEach(function (attempt) {
+                        attempt.then(resolve).catch(function (err) {
+                            failures++;
+                            console.warn('An Overpass mirror failed:', err.message || err);
+                            if (failures === attempts.length) {
+                                reject(new Error('All Overpass mirrors failed'));
+                            }
+                        });
+                    });
+                });
             }
 
             function fetchBuildings(lat, lng) {
