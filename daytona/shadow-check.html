@@ -99,8 +99,31 @@
             margin-left: auto;
         }
 
-        .snow-toggle input {
-            accent-color: var(--daytona-orange);
+        #sunIcon {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            margin-left: -15px;
+            margin-top: -15px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #FFD98A, var(--daytona-orange) 70%);
+            border: 2px solid #C85A1E;
+            box-shadow: 0 0 12px rgba(232, 113, 44, 0.7);
+            cursor: grab;
+            touch-action: none;
+            z-index: 480;
+            display: none;
+        }
+
+        #sunIcon.dragging {
+            cursor: grabbing;
+        }
+
+        #sunIcon.below-horizon {
+            background: radial-gradient(circle at 35% 35%, #DCD3C4, #B8AFA2 70%);
+            border-color: #9A8B78;
+            box-shadow: none;
+            opacity: 0.6;
         }
 
         #controls {
@@ -222,6 +245,7 @@
             </svg>
 
             <canvas id="snowCanvas"></canvas>
+            <div id="sunIcon" title="Drag me around the house to see the shadow change"></div>
         </div>
 
         <div id="controls">
@@ -243,9 +267,9 @@
             <div id="disclaimer">
                 Shadows are estimated from OpenStreetMap building data. Building heights are often missing or
                 approximate in residential areas, so treat shadow shapes as a general guide rather than an exact
-                measurement. The compass shows true north (this map doesn't rotate), and the orange dot tracks the sun's
-                actual direction and height in the sky as you move the time slider. Snow effect is a seasonal visual
-                only — it isn't tied to any real snowfall data or forecast.
+                measurement. Drag the orange sun icon around the property to move through the day — the time slider and
+                shadows update to match automatically. The compass in the corner shows true north (this map doesn't
+                rotate). Snow effect is a seasonal visual only — it isn't tied to any real snowfall data or forecast.
             </div>
         </div>
     </div>
@@ -292,6 +316,17 @@
             var snowToggle = document.getElementById('snowToggle');
             var snowCanvas = document.getElementById('snowCanvas');
             var mapWrap = document.getElementById('mapWrap');
+            var sunIcon = document.getElementById('sunIcon');
+
+            // Cache of {altitude, azimuth} for every minute of the currently selected
+            // date at the currently selected location — rebuilt only when the date or
+            // location changes, so dragging the sun icon doesn't recompute 1440
+            // SunCalc calls on every pointermove, just look up the nearest match.
+            var dayTable = null;
+            var dayTableKey = null;
+            var isDraggingSun = false;
+            var lastAltitudeDeg = null;
+            var lastAzimuthDeg = null;
 
             var today = new Date();
             dateInput.value = today.toISOString().slice(0, 10);
@@ -441,7 +476,126 @@
                 return lower.concat(upper);
             }
 
-            // ---- Compass + sun position indicator ----
+            // ---- Day position table (for sun-icon dragging) ----
+            // Precomputes every minute's {altitude, azimuth} for the current date and
+            // location once, so dragging the sun icon is just a fast lookup instead
+            // of recalculating solar position on every pointermove.
+            function getDayTable() {
+                var key = dateInput.value + '|' + currentCenter.lat.toFixed(4) + ',' + currentCenter.lng.toFixed(4);
+                if (dayTableKey === key && dayTable) return dayTable;
+
+                var parts = dateInput.value.split('-').map(Number);
+                var table = [];
+                for (var m = 0; m < 1440; m++) {
+                    var d = new Date(parts[0], parts[1] - 1, parts[2]);
+                    d.setHours(Math.floor(m / 60), m % 60, 0, 0);
+                    var p = SunCalc.getPosition(d, currentCenter.lat, currentCenter.lng);
+                    table.push({
+                        altitude: p.altitude * 180 / Math.PI,
+                        azimuth: (p.azimuth * 180 / Math.PI + 180) % 360
+                    });
+                }
+
+                dayTable = table;
+                dayTableKey = key;
+                return dayTable;
+            }
+
+            function angularDiff(a, b) {
+                var diff = Math.abs(a - b) % 360;
+                return diff > 180 ? 360 - diff : diff;
+            }
+
+            // Given a compass direction the user dragged the sun toward, find the
+            // minute of the current day whose real sun azimuth is closest to it.
+            function findNearestMinuteForAzimuth(targetAzimuthDeg) {
+                var table = getDayTable();
+                var bestIndex = 0;
+                var bestDiff = Infinity;
+                for (var i = 0; i < table.length; i++) {
+                    var diff = angularDiff(table[i].azimuth, targetAzimuthDeg);
+                    if (diff < bestDiff) {
+                        bestDiff = diff;
+                        bestIndex = i;
+                    }
+                }
+                return { minute: bestIndex, altitude: table[bestIndex].altitude, azimuth: table[bestIndex].azimuth };
+            }
+
+            // ---- On-map sun icon ----
+            function repositionSunIcon(altitudeDeg, azimuthDeg) {
+                if (!currentCenter) {
+                    sunIcon.style.display = 'none';
+                    return;
+                }
+                sunIcon.style.display = 'block';
+
+                var centerPx = map.latLngToContainerPoint([currentCenter.lat, currentCenter.lng]);
+                var maxR = Math.min(mapWrap.clientWidth, mapWrap.clientHeight) * 0.36;
+                var minR = 55;
+                var altClamped = Math.max(0, Math.min(90, altitudeDeg));
+                var r = minR + (maxR - minR) * (1 - altClamped / 90);
+                var azRad = azimuthDeg * Math.PI / 180;
+                var dx = Math.sin(azRad) * r;
+                var dy = -Math.cos(azRad) * r; // screen y grows downward; north (0°) is up
+
+                sunIcon.style.left = (centerPx.x + dx) + 'px';
+                sunIcon.style.top = (centerPx.y + dy) + 'px';
+                sunIcon.classList.toggle('below-horizon', altitudeDeg <= 0);
+            }
+
+            // Reposition (but don't recompute sun math) on pan/zoom — cheap, keeps
+            // the icon glued to the correct spot relative to the house as the map moves.
+            map.on('move zoom', function () {
+                if (currentCenter && lastAltitudeDeg !== null) {
+                    repositionSunIcon(lastAltitudeDeg, lastAzimuthDeg);
+                }
+            });
+
+            function startSunDrag(e) {
+                if (!currentCenter) return;
+                e.preventDefault();
+                isDraggingSun = true;
+                sunIcon.classList.add('dragging');
+                map.dragging.disable(); // prevent the map itself from panning while dragging the sun
+                getDayTable(); // warm the cache before the first move event
+                try { sunIcon.setPointerCapture(e.pointerId); } catch (err) { }
+            }
+
+            function moveSunDrag(e) {
+                if (!isDraggingSun || !currentCenter) return;
+
+                var mapRect = map.getContainer().getBoundingClientRect();
+                var centerPx = map.latLngToContainerPoint([currentCenter.lat, currentCenter.lng]);
+                var mouseX = e.clientX - mapRect.left;
+                var mouseY = e.clientY - mapRect.top;
+                var dx = mouseX - centerPx.x;
+                var dy = mouseY - centerPx.y;
+
+                if (dx === 0 && dy === 0) return; // avoid atan2(0,0) at the exact center
+
+                var targetAzimuthDeg = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+                var match = findNearestMinuteForAzimuth(targetAzimuthDeg);
+
+                timeInput.value = match.minute;
+                timeLabel.textContent = minutesToLabel(match.minute);
+                drawShadows(); // recomputes exact sun math, redraws shadows, repositions both the compass dot and this icon
+            }
+
+            function endSunDrag(e) {
+                if (!isDraggingSun) return;
+                isDraggingSun = false;
+                sunIcon.classList.remove('dragging');
+                map.dragging.enable();
+                try { sunIcon.releasePointerCapture(e.pointerId); } catch (err) { }
+            }
+
+            sunIcon.addEventListener('pointerdown', startSunDrag);
+            sunIcon.addEventListener('pointermove', moveSunDrag);
+            sunIcon.addEventListener('pointerup', endSunDrag);
+            sunIcon.addEventListener('pointercancel', endSunDrag);
+
+
             // The map never rotates (Leaflet is north-up by default), so N/E/S/W are
             // fixed. The orange dot's angle around the ring = compass direction the
             // sun is in (azimuth); its distance from center = how high it is in the
@@ -467,15 +621,19 @@
             function drawShadows() {
                 shadowLayer.clearLayers();
 
-                if (!currentCenter) return;
-
-                var dt = getSelectedDateTime();
+                if (!currentCenter) {
+                    sunIcon.style.display = 'none';
+                    return;
+                }
                 var sunPos = SunCalc.getPosition(dt, currentCenter.lat, currentCenter.lng);
                 var altitudeDeg = sunPos.altitude * 180 / Math.PI;
                 var azimuthDeg = sunPos.azimuth * 180 / Math.PI + 180; // SunCalc azimuth: 0=south; convert to 0=north compass bearing
 
                 sunLabel.textContent = 'Sun altitude ' + altitudeDeg.toFixed(1) + '°, azimuth ' + azimuthDeg.toFixed(0) + '°';
                 updateSkyCompass(altitudeDeg, azimuthDeg);
+                lastAltitudeDeg = altitudeDeg;
+                lastAzimuthDeg = azimuthDeg;
+                repositionSunIcon(altitudeDeg, azimuthDeg);
 
                 if (currentBuildings.length === 0) return;
 
