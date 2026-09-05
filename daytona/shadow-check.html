@@ -284,6 +284,17 @@
             var MAX_SHADOW_LENGTH_M = 60; // realistic cap — keeps shadows tied to their building even when zoomed in
             var MIN_SUN_ALTITUDE_DEG = 5; // below this, shadows are mathematically valid but too long to be a useful visual
 
+            // Overpass is a free, shared community service that occasionally gets
+            // overloaded or rate-limits a given server. Trying a couple of alternate
+            // mirrors before giving up makes this far more reliable than relying on
+            // a single endpoint.
+            var OVERPASS_ENDPOINTS = [
+                'https://overpass-api.de/api/interpreter',
+                'https://overpass.kumi.systems/api/interpreter',
+                'https://overpass.openstreetmap.fr/api/interpreter'
+            ];
+            var OVERPASS_TIMEOUT_MS = 15000; // per-endpoint timeout before moving to the next mirror
+
             var params = new URLSearchParams(window.location.search);
             var startLat = parseFloat(params.get('lat'));
             var startLng = parseFloat(params.get('lng'));
@@ -368,7 +379,35 @@
                 return DEFAULT_HEIGHT_M;
             }
 
-            // ---- Overpass fetch ----
+            // ---- Overpass fetch (tries multiple mirrors before giving up) ----
+            function fetchFromOverpass(query, endpointIndex) {
+                endpointIndex = endpointIndex || 0;
+
+                if (endpointIndex >= OVERPASS_ENDPOINTS.length) {
+                    return Promise.reject(new Error('All Overpass mirrors failed'));
+                }
+
+                var url = OVERPASS_ENDPOINTS[endpointIndex] + '?data=' + encodeURIComponent(query);
+                var controller = new AbortController();
+                var timeoutId = setTimeout(function () { controller.abort(); }, OVERPASS_TIMEOUT_MS);
+
+                if (endpointIndex > 0) {
+                    setStatus('Loading nearby buildings… (trying an alternate server)');
+                }
+
+                return fetch(url, { signal: controller.signal })
+                    .then(function (res) {
+                        clearTimeout(timeoutId);
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return res.json();
+                    })
+                    .catch(function (err) {
+                        clearTimeout(timeoutId);
+                        console.warn('Overpass mirror failed (' + OVERPASS_ENDPOINTS[endpointIndex] + '):', err.message || err);
+                        return fetchFromOverpass(query, endpointIndex + 1); // try the next mirror
+                    });
+            }
+
             function fetchBuildings(lat, lng) {
                 setStatus('Loading nearby buildings…');
                 reloadBtn.disabled = true;
@@ -379,13 +418,7 @@
                     'relation["building"](around:' + SEARCH_RADIUS_M + ',' + lat + ',' + lng + '););' +
                     'out body geom;';
 
-                var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
-
-                fetch(url)
-                    .then(function (res) {
-                        if (!res.ok) throw new Error('Overpass returned ' + res.status);
-                        return res.json();
-                    })
+                fetchFromOverpass(query)
                     .then(function (data) {
                         currentBuildings = [];
                         buildingLayer.clearLayers();
@@ -411,7 +444,7 @@
                     })
                     .catch(function (err) {
                         console.error(err);
-                        setStatus('Could not load building data (Overpass may be busy). Try Recalculate.', true);
+                        setStatus('All map data servers are busy right now. Wait a moment and try Recalculate.', true);
                         reloadBtn.disabled = false;
                     });
             }
