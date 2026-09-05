@@ -101,14 +101,14 @@
 
         #sunIcon {
             position: absolute;
-            width: 30px;
-            height: 30px;
-            margin-left: -15px;
-            margin-top: -15px;
+            width: 52px;
+            height: 52px;
+            margin-left: -26px;
+            margin-top: -26px;
             border-radius: 50%;
             background: radial-gradient(circle at 35% 35%, #FFD98A, var(--daytona-orange) 70%);
-            border: 2px solid #C85A1E;
-            box-shadow: 0 0 12px rgba(232, 113, 44, 0.7);
+            border: 3px solid #C85A1E;
+            box-shadow: 0 0 18px rgba(232, 113, 44, 0.75);
             cursor: grab;
             touch-action: none;
             z-index: 480;
@@ -124,6 +124,44 @@
             border-color: #9A8B78;
             box-shadow: none;
             opacity: 0.6;
+        }
+
+        .sun-hint {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 8px;
+            background: #2B2118;
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #sunIcon.dismiss-hint .sun-hint {
+            display: none;
+        }
+
+        #bigTimeDisplay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 500;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--daytona-border);
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--daytona-text);
+            font-variant-numeric: tabular-nums;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            pointer-events: none;
         }
 
         #controls {
@@ -245,16 +283,21 @@
             </svg>
 
             <canvas id="snowCanvas"></canvas>
-            <div id="sunIcon" title="Drag me around the house to see the shadow change"></div>
+            <div id="sunIcon" title="Drag me around the house to see the shadow change">
+                <span class="sun-hint">Drag me</span>
+            </div>
+            <div id="bigTimeDisplay">12:00 PM</div>
         </div>
 
         <div id="controls">
             <div class="row">
                 <label for="dateInput">Date</label>
                 <input type="date" id="dateInput">
-                <label for="timeInput" style="margin-left:8px;">Time</label>
-                <input type="range" id="timeInput" min="0" max="1439" value="720">
-                <span id="timeLabel">12:00</span>
+                <span style="display:none;">
+                    <label for="timeInput">Time</label>
+                    <input type="range" id="timeInput" min="0" max="1439" value="720" tabindex="-1">
+                    <span id="timeLabel">12:00</span>
+                </span>
             </div>
             <div class="row">
                 <span id="sunLabel"></span>
@@ -267,9 +310,9 @@
             <div id="disclaimer">
                 Shadows are estimated from OpenStreetMap building data. Building heights are often missing or
                 approximate in residential areas, so treat shadow shapes as a general guide rather than an exact
-                measurement. Drag the orange sun icon around the property to move through the day — the time slider and
-                shadows update to match automatically. The compass in the corner shows true north (this map doesn't
-                rotate). Snow effect is a seasonal visual only — it isn't tied to any real snowfall data or forecast.
+                measurement. Drag the orange sun icon around the property to move through the day — the time and shadows
+                update to match automatically. The compass in the corner shows true north (this map doesn't rotate).
+                Snow effect is a seasonal visual only — it isn't tied to any real snowfall data or forecast.
             </div>
         </div>
     </div>
@@ -328,6 +371,13 @@
             var snowCanvas = document.getElementById('snowCanvas');
             var mapWrap = document.getElementById('mapWrap');
             var sunIcon = document.getElementById('sunIcon');
+            var bigTimeDisplay = document.getElementById('bigTimeDisplay');
+
+            function updateTimeDisplays(mins) {
+                var label = minutesToLabel(mins);
+                timeLabel.textContent = label; // kept in sync even though hidden, in case it's ever shown again
+                bigTimeDisplay.textContent = label;
+            }
 
             // Cache of {altitude, azimuth} for every minute of the currently selected
             // date at the currently selected location — rebuilt only when the date or
@@ -585,7 +635,7 @@
 
                 var centerPx = map.latLngToContainerPoint([currentCenter.lat, currentCenter.lng]);
                 var maxR = Math.min(mapWrap.clientWidth, mapWrap.clientHeight) * 0.36;
-                var minR = 55;
+                var minR = 65;
                 var altClamped = Math.max(0, Math.min(90, altitudeDeg));
                 var r = minR + (maxR - minR) * (1 - altClamped / 90);
                 var azRad = azimuthDeg * Math.PI / 180;
@@ -610,6 +660,7 @@
                 e.preventDefault();
                 isDraggingSun = true;
                 sunIcon.classList.add('dragging');
+                sunIcon.classList.add('dismiss-hint'); // they've figured it out, no need to keep showing the hint
                 map.dragging.disable(); // prevent the map itself from panning while dragging the sun
                 getDayTable(); // warm the cache before the first move event
                 try { sunIcon.setPointerCapture(e.pointerId); } catch (err) { }
@@ -631,7 +682,7 @@
                 var match = findNearestMinuteForAzimuth(targetAzimuthDeg);
 
                 timeInput.value = match.minute;
-                timeLabel.textContent = minutesToLabel(match.minute);
+                updateTimeDisplays(match.minute);
                 drawShadows(); // recomputes exact sun math, redraws shadows, repositions both the compass dot and this icon
             }
 
@@ -829,7 +880,7 @@
             }
 
             timeInput.addEventListener('input', function () {
-                timeLabel.textContent = minutesToLabel(parseInt(timeInput.value, 10));
+                updateTimeDisplays(parseInt(timeInput.value, 10));
                 drawShadows();
             });
 
@@ -843,7 +894,7 @@
                 }
             });
 
-            timeLabel.textContent = minutesToLabel(parseInt(timeInput.value, 10));
+            updateTimeDisplays(parseInt(timeInput.value, 10));
 
             // ---- Init ----
             if (hasStartPoint) {
