@@ -150,7 +150,7 @@
         #bigTimeDisplay {
             position: absolute;
             top: 10px;
-            left: 10px;
+            left: 60px;
             z-index: 500;
             background: rgba(255, 255, 255, 0.92);
             border: 1px solid var(--daytona-border);
@@ -162,6 +162,16 @@
             font-variant-numeric: tabular-nums;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             pointer-events: none;
+            max-width: calc(100% - 130px);
+        }
+
+        @media (max-width: 480px) {
+            #bigTimeDisplay {
+                top: 54px;
+                left: 10px;
+                font-size: 20px;
+                padding: 6px 12px;
+            }
         }
 
         #controls {
@@ -634,8 +644,10 @@
                 sunIcon.style.display = 'block';
 
                 var centerPx = map.latLngToContainerPoint([currentCenter.lat, currentCenter.lng]);
-                var maxR = Math.min(mapWrap.clientWidth, mapWrap.clientHeight) * 0.36;
-                var minR = 65;
+                var smallestDim = Math.min(mapWrap.clientWidth, mapWrap.clientHeight);
+                var maxR = smallestDim * 0.36;
+                var minR = Math.max(30, Math.min(65, smallestDim * 0.14)); // scales down on small screens instead of a fixed 65px
+                if (minR > maxR) minR = maxR * 0.5; // safety net for very small map areas so min never exceeds max
                 var altClamped = Math.max(0, Math.min(90, altitudeDeg));
                 var r = minR + (maxR - minR) * (1 - altClamped / 90);
                 var azRad = azimuthDeg * Math.PI / 180;
