@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Check — Daytona Homes</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js"></script>
+
+    <style>
+        :root {
+            --daytona-orange: #E8712C;
+            --daytona-orange-dark: #C85A1E;
+            --daytona-cream: #FBF3E9;
+            --daytona-text: #2B2118;
+            --daytona-border: #E3D3C0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--daytona-cream);
+            color: var(--daytona-text);
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        header {
+            background: var(--daytona-orange);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        header h1 {
+            font-size: 16px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        header .sub {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        #map {
+            flex: 1;
+            min-height: 300px;
+        }
+
+        #controls {
+            background: white;
+            border-top: 1px solid var(--daytona-border);
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .row label {
+            font-size: 13px;
+            font-weight: 600;
+            min-width: 60px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            min-width: 150px;
+            accent-color: var(--daytona-orange);
+        }
+
+        input[type="date"] {
+            border: 1px solid var(--daytona-border);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 13px;
+        }
+
+        #timeLabel,
+        #sunLabel {
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+            min-width: 70px;
+        }
+
+        #status {
+            font-size: 12px;
+            color: #7A6A57;
+        }
+
+        #status.error {
+            color: #B3261E;
+        }
+
+        #disclaimer {
+            font-size: 11px;
+            color: #9A8B78;
+            line-height: 1.4;
+        }
+
+        .leaflet-container {
+            background: #EFE7DA;
+        }
+
+        .hint-pin {
+            background: var(--daytona-orange);
+            color: white;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+
+        #reload-btn {
+            background: var(--daytona-orange);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        #reload-btn:hover {
+            background: var(--daytona-orange-dark);
+        }
+
+        #reload-btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <div>
+                <h1>Shadow Check</h1>
+                <div class="sub">See how sunlight moves across this property</div>
+            </div>
+            <button id="reload-btn">Recalculate</button>
+        </header>
+
+        <div id="map"></div>
+
+        <div id="controls">
+            <div class="row">
+                <label for="dateInput">Date</label>
+                <input type="date" id="dateInput">
+                <label for="timeInput" style="margin-left:8px;">Time</label>
+                <input type="range" id="timeInput" min="0" max="1439" value="720">
+                <span id="timeLabel">12:00</span>
+            </div>
+            <div class="row">
+                <span id="sunLabel"></span>
+                <span id="status">Click anywhere on the map to load nearby buildings.</span>
+            </div>
+            <div id="disclaimer">
+                Shadows are estimated from OpenStreetMap building data. Building heights are often missing or
+                approximate in residential areas, so treat shadow shapes as a general guide rather than an exact
+                measurement.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var DEFAULT_LAT = 53.5461;
+            var DEFAULT_LNG = -113.4938; // Edmonton area fallback
+            var DEFAULT_ZOOM = 18;
+            var SEARCH_RADIUS_M = 350;
+            var DEFAULT_HEIGHT_M = 6;
+
+            var params = new URLSearchParams(window.location.search);
+            var startLat = parseFloat(params.get('lat'));
+            var startLng = parseFloat(params.get('lng'));
+            var hasStartPoint = !isNaN(startLat) && !isNaN(startLng);
+
+            var map = L.map('map', { zoomControl: true }).setView(
+                [hasStartPoint ? startLat : DEFAULT_LAT, hasStartPoint ? startLng : DEFAULT_LNG],
+                DEFAULT_ZOOM
+            );
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            var buildingLayer = L.layerGroup().addTo(map);
+            var shadowLayer = L.layerGroup().addTo(map);
+            var siteMarker = null;
+
+            var currentBuildings = []; // {lat, lng, heightM, footprint: [[lat,lng],...]}
+            var currentCenter = hasStartPoint ? { lat: startLat, lng: startLng } : null;
+
+            var dateInput = document.getElementById('dateInput');
+            var timeInput = document.getElementById('timeInput');
+            var timeLabel = document.getElementById('timeLabel');
+            var sunLabel = document.getElementById('sunLabel');
+            var statusEl = document.getElementById('status');
+            var reloadBtn = document.getElementById('reload-btn');
+
+            var today = new Date();
+            dateInput.value = today.toISOString().slice(0, 10);
+
+            function setStatus(msg, isError) {
+                statusEl.textContent = msg;
+                statusEl.className = isError ? 'error' : '';
+            }
+
+            function minutesToLabel(mins) {
+                var h = Math.floor(mins / 60);
+                var m = mins % 60;
+                var ampm = h >= 12 ? 'PM' : 'AM';
+                var h12 = h % 12;
+                if (h12 === 0) h12 = 12;
+                return h12 + ':' + (m < 10 ? '0' : '') + m + ' ' + ampm;
+            }
+
+            function getSelectedDateTime() {
+                var dateVal = dateInput.value; // YYYY-MM-DD
+                var mins = parseInt(timeInput.value, 10);
+                var parts = dateVal.split('-').map(Number);
+                var d = new Date(parts[0], parts[1] - 1, parts[2]);
+                d.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
+                return d;
+            }
+
+            // ---- OSM height parsing ----
+            function estimateHeightMeters(tags) {
+                if (!tags) return DEFAULT_HEIGHT_M;
+                if (tags.height) {
+                    var h = parseFloat(tags.height);
+                    if (!isNaN(h)) return h;
+                }
+                if (tags['building:levels']) {
+                    var levels = parseFloat(tags['building:levels']);
+                    if (!isNaN(levels)) return levels * 3; // ~3m per storey
+                }
+                return DEFAULT_HEIGHT_M;
+            }
+
+            // ---- Overpass fetch ----
+            function fetchBuildings(lat, lng) {
+                setStatus('Loading nearby buildings…');
+                reloadBtn.disabled = true;
+
+                var query =
+                    '[out:json][timeout:25];' +
+                    '(way["building"](around:' + SEARCH_RADIUS_M + ',' + lat + ',' + lng + ');' +
+                    'relation["building"](around:' + SEARCH_RADIUS_M + ',' + lat + ',' + lng + '););' +
+                    'out body geom;';
+
+                var url = 'https://overpass-api.de/api/interpreter?data=' + encodeURIComponent(query);
+
+                fetch(url)
+                    .then(function (res) {
+                        if (!res.ok) throw new Error('Overpass returned ' + res.status);
+                        return res.json();
+                    })
+                    .then(function (data) {
+                        currentBuildings = [];
+                        buildingLayer.clearLayers();
+
+                        (data.elements || []).forEach(function (el) {
+                            if (!el.geometry || el.geometry.length < 3) return;
+                            var footprint = el.geometry.map(function (pt) { return [pt.lat, pt.lon]; });
+                            var heightM = estimateHeightMeters(el.tags);
+
+                            currentBuildings.push({ footprint: footprint, heightM: heightM });
+
+                            L.polygon(footprint, {
+                                color: '#8A7A66',
+                                weight: 1,
+                                fillColor: '#C9BBA8',
+                                fillOpacity: 0.6
+                            }).addTo(buildingLayer);
+                        });
+
+                        setStatus(currentBuildings.length + ' building(s) loaded within ' + SEARCH_RADIUS_M + 'm.');
+                        reloadBtn.disabled = false;
+                        drawShadows();
+                    })
+                    .catch(function (err) {
+                        console.error(err);
+                        setStatus('Could not load building data (Overpass may be busy). Try Recalculate.', true);
+                        reloadBtn.disabled = false;
+                    });
+            }
+
+            // ---- Geometry helpers ----
+            function destinationPoint(lat, lng, distanceM, bearingDeg) {
+                var R = 6371000;
+                var brng = bearingDeg * Math.PI / 180;
+                var lat1 = lat * Math.PI / 180;
+                var lng1 = lng * Math.PI / 180;
+
+                var lat2 = Math.asin(
+                    Math.sin(lat1) * Math.cos(distanceM / R) +
+                    Math.cos(lat1) * Math.sin(distanceM / R) * Math.cos(brng)
+                );
+                var lng2 = lng1 + Math.atan2(
+                    Math.sin(brng) * Math.sin(distanceM / R) * Math.cos(lat1),
+                    Math.cos(distanceM / R) - Math.sin(lat1) * Math.sin(lat2)
+                );
+
+                return [lat2 * 180 / Math.PI, lng2 * 180 / Math.PI];
+            }
+
+            function polygonCentroid(footprint) {
+                var latSum = 0, lngSum = 0;
+                footprint.forEach(function (p) { latSum += p[0]; lngSum += p[1]; });
+                return [latSum / footprint.length, lngSum / footprint.length];
+            }
+
+            // ---- Shadow drawing ----
+            function drawShadows() {
+                shadowLayer.clearLayers();
+
+                if (!currentCenter) return;
+                if (currentBuildings.length === 0) return;
+
+                var dt = getSelectedDateTime();
+                var sunPos = SunCalc.getPosition(dt, currentCenter.lat, currentCenter.lng);
+                var altitudeDeg = sunPos.altitude * 180 / Math.PI;
+                var azimuthDeg = sunPos.azimuth * 180 / Math.PI + 180; // SunCalc azimuth: 0=south; convert to 0=north compass bearing
+
+                sunLabel.textContent = 'Sun altitude ' + altitudeDeg.toFixed(1) + '°, azimuth ' + azimuthDeg.toFixed(0) + '°';
+
+                if (altitudeDeg <= 0) {
+                    setStatus('Sun is below the horizon at this time — no shadows to show.', false);
+                    return;
+                }
+
+                var shadowBearing = (azimuthDeg + 180) % 360; // shadow falls opposite the sun
+
+                currentBuildings.forEach(function (b) {
+                    var shadowLengthM = b.heightM / Math.tan(altitudeDeg * Math.PI / 180);
+                    if (!isFinite(shadowLengthM) || shadowLengthM <= 0) return;
+                    shadowLengthM = Math.min(shadowLengthM, 500); // sanity cap
+
+                    var shadowPolygon = b.footprint.map(function (pt) {
+                        return destinationPoint(pt[0], pt[1], shadowLengthM, shadowBearing);
+                    });
+
+                    var combined = b.footprint.concat(shadowPolygon.reverse());
+
+                    L.polygon(combined, {
+                        stroke: false,
+                        fillColor: '#3A322A',
+                        fillOpacity: 0.35
+                    }).addTo(shadowLayer);
+                });
+            }
+
+            // ---- Map interaction ----
+            map.on('click', function (e) {
+                currentCenter = { lat: e.latlng.lat, lng: e.latlng.lng };
+                setSiteMarker(e.latlng.lat, e.latlng.lng);
+                fetchBuildings(e.latlng.lat, e.latlng.lng);
+            });
+
+            function setSiteMarker(lat, lng) {
+                if (siteMarker) map.removeLayer(siteMarker);
+                siteMarker = L.marker([lat, lng]).addTo(map);
+            }
+
+            timeInput.addEventListener('input', function () {
+                timeLabel.textContent = minutesToLabel(parseInt(timeInput.value, 10));
+                drawShadows();
+            });
+
+            dateInput.addEventListener('change', drawShadows);
+
+            reloadBtn.addEventListener('click', function () {
+                if (currentCenter) {
+                    fetchBuildings(currentCenter.lat, currentCenter.lng);
+                } else {
+                    setStatus('Click a location on the map first.', true);
+                }
+            });
+
+            timeLabel.textContent = minutesToLabel(parseInt(timeInput.value, 10));
+
+            // ---- Init ----
+            if (hasStartPoint) {
+                setSiteMarker(startLat, startLng);
+                fetchBuildings(startLat, startLng);
+            }
+        })();
+    </script>
+</body>
+
+</html>
