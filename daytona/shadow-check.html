@@ -293,7 +293,7 @@
                 'https://overpass.kumi.systems/api/interpreter',
                 'https://overpass.openstreetmap.fr/api/interpreter'
             ];
-            var OVERPASS_TIMEOUT_MS = 15000; // per-endpoint timeout before moving to the next mirror
+            var OVERPASS_TIMEOUT_MS = 15000; // absolute worst-case wait now — all mirrors are tried in parallel, not one after another
 
             var params = new URLSearchParams(window.location.search);
             var startLat = parseFloat(params.get('lat'));
@@ -457,7 +457,14 @@
                     })
                     .catch(function (err) {
                         console.error(err);
-                        setStatus('All map data servers are busy right now. Wait a moment and try Recalculate.', true);
+                        if (currentBuildings.length > 0) {
+                            // A refresh failed, but we still have buildings from an earlier
+                            // successful load — shadows are still valid, so don't alarm the
+                            // user with a hard error over what's actually a minor hiccup.
+                            setStatus('Could not refresh building data just now — still showing ' + currentBuildings.length + ' previously loaded building(s).', false);
+                        } else {
+                            setStatus('All map data servers are busy right now. Wait a moment and try Recalculate.', true);
+                        }
                         reloadBtn.disabled = false;
                     });
             }
