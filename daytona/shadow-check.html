@@ -678,6 +678,8 @@
                     sunIcon.style.display = 'none';
                     return;
                 }
+
+                var dt = getSelectedDateTime();
                 var sunPos = SunCalc.getPosition(dt, currentCenter.lat, currentCenter.lng);
                 var altitudeDeg = sunPos.altitude * 180 / Math.PI;
                 var azimuthDeg = sunPos.azimuth * 180 / Math.PI + 180; // SunCalc azimuth: 0=south; convert to 0=north compass bearing
