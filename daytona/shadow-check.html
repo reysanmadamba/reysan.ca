@@ -196,6 +196,8 @@
             var DEFAULT_ZOOM = 18;
             var SEARCH_RADIUS_M = 350;
             var DEFAULT_HEIGHT_M = 6;
+            var MAX_SHADOW_LENGTH_M = 60; // realistic cap — keeps shadows tied to their building even when zoomed in
+            var MIN_SUN_ALTITUDE_DEG = 5; // below this, shadows are mathematically valid but too long to be a useful visual
 
             var params = new URLSearchParams(window.location.search);
             var startLat = parseFloat(params.get('lat'));
@@ -339,6 +341,41 @@
                 return [latSum / footprint.length, lngSum / footprint.length];
             }
 
+            // Convex hull (monotone chain) — used so a building's shadow always comes
+            // out as one clean, non-self-intersecting shape, even for L-shaped or
+            // complex OSM footprints where naively pairing up corners can produce a
+            // shape that looks like it's flying off away from the building.
+            function convexHull(points) {
+                var pts = points.slice().sort(function (a, b) {
+                    return a[0] - b[0] || a[1] - b[1];
+                });
+                if (pts.length <= 2) return pts;
+
+                function cross(o, a, b) {
+                    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+                }
+
+                var lower = [];
+                for (var i = 0; i < pts.length; i++) {
+                    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], pts[i]) <= 0) {
+                        lower.pop();
+                    }
+                    lower.push(pts[i]);
+                }
+
+                var upper = [];
+                for (var j = pts.length - 1; j >= 0; j--) {
+                    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], pts[j]) <= 0) {
+                        upper.pop();
+                    }
+                    upper.push(pts[j]);
+                }
+
+                upper.pop();
+                lower.pop();
+                return lower.concat(upper);
+            }
+
             // ---- Shadow drawing ----
             function drawShadows() {
                 shadowLayer.clearLayers();
@@ -358,20 +395,28 @@
                     return;
                 }
 
+                if (altitudeDeg < MIN_SUN_ALTITUDE_DEG) {
+                    setStatus('Sun is very low near the horizon — real shadows here would stretch far beyond what a map view can usefully show, so they\'re hidden at this time.', false);
+                    return;
+                }
+
                 var shadowBearing = (azimuthDeg + 180) % 360; // shadow falls opposite the sun
 
                 currentBuildings.forEach(function (b) {
-                    var shadowLengthM = b.heightM / Math.tan(altitudeDeg * Math.PI / 180);
-                    if (!isFinite(shadowLengthM) || shadowLengthM <= 0) return;
-                    shadowLengthM = Math.min(shadowLengthM, 500); // sanity cap
+                    var rawShadowLengthM = b.heightM / Math.tan(altitudeDeg * Math.PI / 180);
+                    if (!isFinite(rawShadowLengthM) || rawShadowLengthM <= 0) return;
+
+                    // Cap to a realistic, screen-sane length rather than the raw trig
+                    // value, which explodes toward infinity as the sun nears the horizon.
+                    var shadowLengthM = Math.min(rawShadowLengthM, MAX_SHADOW_LENGTH_M);
 
                     var shadowPolygon = b.footprint.map(function (pt) {
                         return destinationPoint(pt[0], pt[1], shadowLengthM, shadowBearing);
                     });
 
-                    var combined = b.footprint.concat(shadowPolygon.reverse());
+                    var hull = convexHull(b.footprint.concat(shadowPolygon));
 
-                    L.polygon(combined, {
+                    L.polygon(hull, {
                         stroke: false,
                         fillColor: '#3A322A',
                         fillOpacity: 0.35

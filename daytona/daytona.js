@@ -54,6 +54,35 @@
     var chatEnded = false;
     var conversation = []; // [{role:'user'|'assistant', content: string}, ...]
 
+    // ============================================================
+    // escapeHtml + linkify — messages are inserted with innerHTML so we can
+    // turn URLs into real clickable links. escapeHtml runs FIRST on the raw
+    // text (so any literal <, >, & from either the visitor or the AI can't
+    // be interpreted as HTML/script), then linkify wraps plain http(s) URLs
+    // in <a> tags afterward. Order matters — never linkify before escaping.
+    // ============================================================
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function linkify(rawText) {
+        var safe = escapeHtml(rawText);
+        var urlPattern = /(https?:\/\/[^\s<]+)/g;
+        return safe.replace(urlPattern, function (url) {
+            // trim trailing punctuation a sentence might leave stuck to the URL
+            var trailing = '';
+            var match = url.match(/[).,!?]+$/);
+            if (match) {
+                trailing = match[0];
+                url = url.slice(0, url.length - trailing.length);
+            }
+            return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>' + trailing;
+        });
+    }
+
     async function loadCaptcha() {
         if (!startChat || !captchaQuestion) return;
         startChat.disabled = true;
@@ -91,7 +120,8 @@
     function addMsg(text, who) {
         var div = document.createElement('div');
         div.className = 'msg ' + who;
-        div.innerHTML = '<span class="who">' + (who === 'user' ? 'you' : 'daytona ai') + '</span>' + text;
+        var label = (who === 'user' ? 'you' : 'dakota');
+        div.innerHTML = '<span class="who">' + label + '</span>' + linkify(text);
         chatLog.appendChild(div);
         chatLog.scrollTop = chatLog.scrollHeight;
     }
@@ -136,7 +166,7 @@
                 chatIntake.style.display = 'none';
                 chatLog.style.display = 'block';
                 chatInputRow.style.display = 'flex';
-                addMsg("Hi! I'm an AI demo assistant for Daytona Homes — not a real employee, just a prototype. Ask me about the building process, communities, or describe the home you're looking for.", 'assistant');
+                addMsg("Hi, I'm Dakota, an AI demo assistant for Daytona Homes — not a real employee, just a prototype. Ask me about the building process, communities, or describe the home you're looking for.", 'assistant');
                 chatInput.focus();
             } catch (err) {
                 alert('Something went wrong verifying. Try again.');
