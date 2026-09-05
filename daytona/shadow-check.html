@@ -61,9 +61,46 @@
             opacity: 0.9;
         }
 
-        #map {
+        #mapWrap {
+            position: relative;
             flex: 1;
             min-height: 300px;
+        }
+
+        #map {
+            position: absolute;
+            inset: 0;
+        }
+
+        #skyCompass {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 92px;
+            height: 92px;
+            z-index: 500;
+            pointer-events: none;
+            filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25));
+        }
+
+        #snowCanvas {
+            position: absolute;
+            inset: 0;
+            z-index: 450;
+            pointer-events: none;
+        }
+
+        .snow-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #7A6A57;
+            margin-left: auto;
+        }
+
+        .snow-toggle input {
+            accent-color: var(--daytona-orange);
         }
 
         #controls {
@@ -167,7 +204,25 @@
             <button id="reload-btn">Recalculate</button>
         </header>
 
-        <div id="map"></div>
+        <div id="mapWrap">
+            <div id="map"></div>
+
+            <svg id="skyCompass" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="70" cy="70" r="55" fill="rgba(255,255,255,0.88)" stroke="#8A7A66" stroke-width="1" />
+                <circle cx="70" cy="70" r="1.5" fill="#8A7A66" />
+                <text x="70" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#2B2118"
+                    font-family="-apple-system,sans-serif">N</text>
+                <text x="121" y="74" text-anchor="middle" font-size="11" fill="#7A6A57"
+                    font-family="-apple-system,sans-serif">E</text>
+                <text x="70" y="129" text-anchor="middle" font-size="11" fill="#7A6A57"
+                    font-family="-apple-system,sans-serif">S</text>
+                <text x="19" y="74" text-anchor="middle" font-size="11" fill="#7A6A57"
+                    font-family="-apple-system,sans-serif">W</text>
+                <circle id="sunDot" cx="70" cy="20" r="7" fill="#E8712C" stroke="#C85A1E" stroke-width="1.5" />
+            </svg>
+
+            <canvas id="snowCanvas"></canvas>
+        </div>
 
         <div id="controls">
             <div class="row">
@@ -180,11 +235,17 @@
             <div class="row">
                 <span id="sunLabel"></span>
                 <span id="status">Click anywhere on the map to load nearby buildings.</span>
+                <label class="snow-toggle">
+                    <input type="checkbox" id="snowToggle">
+                    Snow effect
+                </label>
             </div>
             <div id="disclaimer">
                 Shadows are estimated from OpenStreetMap building data. Building heights are often missing or
                 approximate in residential areas, so treat shadow shapes as a general guide rather than an exact
-                measurement.
+                measurement. The compass shows true north (this map doesn't rotate), and the orange dot tracks the sun's
+                actual direction and height in the sky as you move the time slider. Snow effect is a seasonal visual
+                only — it isn't tied to any real snowfall data or forecast.
             </div>
         </div>
     </div>
@@ -227,6 +288,10 @@
             var sunLabel = document.getElementById('sunLabel');
             var statusEl = document.getElementById('status');
             var reloadBtn = document.getElementById('reload-btn');
+            var sunDot = document.getElementById('sunDot');
+            var snowToggle = document.getElementById('snowToggle');
+            var snowCanvas = document.getElementById('snowCanvas');
+            var mapWrap = document.getElementById('mapWrap');
 
             var today = new Date();
             dateInput.value = today.toISOString().slice(0, 10);
@@ -376,12 +441,33 @@
                 return lower.concat(upper);
             }
 
+            // ---- Compass + sun position indicator ----
+            // The map never rotates (Leaflet is north-up by default), so N/E/S/W are
+            // fixed. The orange dot's angle around the ring = compass direction the
+            // sun is in (azimuth); its distance from center = how high it is in the
+            // sky (near center = overhead, near the ring edge = near the horizon).
+            function updateSkyCompass(altitudeDeg, azimuthDeg) {
+                var center = 70;
+                var maxR = 48; // keep the dot inside the ring, clear of the N/E/S/W labels
+                var belowHorizon = altitudeDeg <= 0;
+                var altClamped = Math.max(0, Math.min(90, altitudeDeg));
+                var r = maxR * (1 - altClamped / 90);
+                var azRad = azimuthDeg * Math.PI / 180;
+                var x = center + r * Math.sin(azRad);
+                var y = center - r * Math.cos(azRad);
+
+                sunDot.setAttribute('cx', x.toFixed(1));
+                sunDot.setAttribute('cy', y.toFixed(1));
+                sunDot.setAttribute('fill', belowHorizon ? '#B8AFA2' : '#E8712C');
+                sunDot.setAttribute('stroke', belowHorizon ? '#9A8B78' : '#C85A1E');
+                sunDot.setAttribute('opacity', belowHorizon ? '0.55' : '1');
+            }
+
             // ---- Shadow drawing ----
             function drawShadows() {
                 shadowLayer.clearLayers();
 
                 if (!currentCenter) return;
-                if (currentBuildings.length === 0) return;
 
                 var dt = getSelectedDateTime();
                 var sunPos = SunCalc.getPosition(dt, currentCenter.lat, currentCenter.lng);
@@ -389,6 +475,9 @@
                 var azimuthDeg = sunPos.azimuth * 180 / Math.PI + 180; // SunCalc azimuth: 0=south; convert to 0=north compass bearing
 
                 sunLabel.textContent = 'Sun altitude ' + altitudeDeg.toFixed(1) + '°, azimuth ' + azimuthDeg.toFixed(0) + '°';
+                updateSkyCompass(altitudeDeg, azimuthDeg);
+
+                if (currentBuildings.length === 0) return;
 
                 if (altitudeDeg <= 0) {
                     setStatus('Sun is below the horizon at this time — no shadows to show.', false);
@@ -423,6 +512,96 @@
                     }).addTo(shadowLayer);
                 });
             }
+
+            // ---- Snow effect (decorative only — not tied to any real snowfall data) ----
+            var snowCtx = snowCanvas.getContext('2d');
+            var snowflakes = [];
+            var snowAnimId = null;
+
+            function resizeSnowCanvas() {
+                snowCanvas.width = mapWrap.clientWidth;
+                snowCanvas.height = mapWrap.clientHeight;
+            }
+
+            function spawnSnowflakes() {
+                var count = Math.floor((snowCanvas.width * snowCanvas.height) / 9000); // density scales with map size
+                snowflakes = [];
+                for (var i = 0; i < count; i++) {
+                    snowflakes.push({
+                        x: Math.random() * snowCanvas.width,
+                        y: Math.random() * snowCanvas.height,
+                        r: 1.5 + Math.random() * 2.5,
+                        speedY: 0.4 + Math.random() * 1.1,
+                        driftPhase: Math.random() * Math.PI * 2,
+                        driftSpeed: 0.005 + Math.random() * 0.01
+                    });
+                }
+            }
+
+            function stepSnow() {
+                snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+                snowCtx.fillStyle = 'rgba(255,255,255,0.85)';
+
+                snowflakes.forEach(function (f) {
+                    f.y += f.speedY;
+                    f.driftPhase += f.driftSpeed;
+                    f.x += Math.sin(f.driftPhase) * 0.6;
+
+                    if (f.y > snowCanvas.height + 5) {
+                        f.y = -5;
+                        f.x = Math.random() * snowCanvas.width;
+                    }
+                    if (f.x > snowCanvas.width + 5) f.x = -5;
+                    if (f.x < -5) f.x = snowCanvas.width + 5;
+
+                    snowCtx.beginPath();
+                    snowCtx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+                    snowCtx.fill();
+                });
+
+                snowAnimId = requestAnimationFrame(stepSnow);
+            }
+
+            function startSnow() {
+                if (snowAnimId) return;
+                resizeSnowCanvas();
+                spawnSnowflakes();
+                stepSnow();
+            }
+
+            function stopSnow() {
+                if (snowAnimId) {
+                    cancelAnimationFrame(snowAnimId);
+                    snowAnimId = null;
+                }
+                snowCtx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+            }
+
+            snowToggle.addEventListener('change', function () {
+                if (snowToggle.checked) {
+                    startSnow();
+                } else {
+                    stopSnow();
+                }
+            });
+
+            window.addEventListener('resize', function () {
+                if (snowAnimId) {
+                    resizeSnowCanvas();
+                    spawnSnowflakes();
+                }
+            });
+
+            // Default the toggle on for winter months (Nov–Mar) based on today's date,
+            // purely as a seasonal nicety — purely cosmetic, not a forecast.
+            (function setSnowDefault() {
+                var month = new Date().getMonth() + 1; // 1-12
+                var isWinterMonth = (month === 11 || month === 12 || month <= 3);
+                if (isWinterMonth) {
+                    snowToggle.checked = true;
+                    startSnow();
+                }
+            })();
 
             // ---- Map interaction ----
             map.on('click', function (e) {
