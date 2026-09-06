@@ -7,8 +7,10 @@ let history = [];
 let customerId = null;
 let phoneVerified = false;
 let orderId = null;
+let offTopicCount = 0;
 let lastKnownStatus = null;
 let pollTimer = null;
+let conversationStarted = false; // guards against Turnstile silently re-verifying mid-session
 
 const gateEl = document.getElementById('gate');
 const gateErrorEl = document.getElementById('gate-error');
@@ -37,12 +39,20 @@ window.onTurnstileSuccess = async function (turnstileToken) {
     }
 
     sessionToken = data.token;
-    gateEl.style.display = 'none';
-    chatViewEl.style.display = 'flex';
-    addMessage("Hi! I'm your Jollibee ordering assistant. What's your name and phone number so we can get started?", 'bot');
-    inputEl.focus();
+
+    // Turnstile can re-verify silently in the background during a long
+    // session and call this callback again — only greet/show the chat the
+    // FIRST time. Later calls just refresh sessionToken without disrupting
+    // the conversation already in progress.
+    if (!conversationStarted) {
+      conversationStarted = true;
+      gateEl.style.display = 'none';
+      chatViewEl.style.display = 'flex';
+      addMessage("Hi! I'm your Jollibee ordering assistant. What's your name and phone number so we can get started?", 'bot');
+      inputEl.focus();
+    }
   } catch (err) {
-    gateErrorEl.textContent = "Couldn't verify — check your connection and refresh.";
+    if (!conversationStarted) gateErrorEl.textContent = "Couldn't verify — check your connection and refresh.";
   }
 };
 
@@ -81,7 +91,8 @@ async function sendMessage(text) {
         token: sessionToken,
         customerId,
         phoneVerified,
-        orderId
+        orderId,
+        offTopicCount
       })
     });
     const data = await res.json();
@@ -93,6 +104,12 @@ async function sendMessage(text) {
       history = data.history || history;
       customerId = data.customerId ?? customerId;
       phoneVerified = data.phoneVerified ?? phoneVerified;
+      offTopicCount = data.offTopicCount ?? offTopicCount;
+
+      if (data.conversationEnded) {
+        closeChat('Conversation ended');
+        return;
+      }
 
       if (data.orderId && data.orderId !== orderId) {
         orderId = data.orderId;
@@ -159,8 +176,8 @@ async function checkOrderStatus() {
   }
 }
 
-function closeChat() {
+function closeChat(placeholderText = 'Order complete') {
   inputEl.disabled = true;
   sendBtn.disabled = true;
-  inputEl.placeholder = 'Order complete';
+  inputEl.placeholder = placeholderText;
 }
