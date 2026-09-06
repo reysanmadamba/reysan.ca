@@ -9,6 +9,8 @@ let phoneVerified = false;
 let orderId = null;
 let offTopicCount = 0;
 let lastKnownStatus = null;
+let lastMessageCheckTime = null;
+let inTakeover = false;
 let pollTimer = null;
 let conversationStarted = false; // guards against Turnstile silently re-verifying mid-session
 
@@ -99,6 +101,18 @@ async function sendMessage(text) {
 
     if (!res.ok || data.error) {
       addMessage(data.error || 'Something went wrong, please try again.', 'error');
+    } else if (data.takeoverActive) {
+      // AI is paused — a staff member is handling this conversation. No
+      // auto-reply; their message will arrive via polling instead.
+      customerId = data.customerId ?? customerId;
+      phoneVerified = data.phoneVerified ?? phoneVerified;
+      orderId = data.orderId ?? orderId;
+      if (!inTakeover) {
+        inTakeover = true;
+        addMessage("Connecting you with our team — they'll reply here shortly.", 'staff');
+      }
+      if (!lastMessageCheckTime) lastMessageCheckTime = new Date().toISOString();
+      startPolling();
     } else {
       addMessage(data.reply, 'bot');
       history = data.history || history;
@@ -114,6 +128,7 @@ async function sendMessage(text) {
       if (data.orderId && data.orderId !== orderId) {
         orderId = data.orderId;
         lastKnownStatus = 'new';
+        lastMessageCheckTime = new Date().toISOString();
         startPolling();
       }
     }
@@ -149,10 +164,26 @@ async function checkOrderStatus() {
     const res = await fetch(CHAT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ checkStatus: true, orderId, token: sessionToken })
+      body: JSON.stringify({
+        checkStatus: true,
+        orderId,
+        token: sessionToken,
+        messagesSince: lastMessageCheckTime
+      })
     });
     const data = await res.json();
     if (!res.ok || data.error) return; // fail silently, this is a background check
+
+    if (data.newMessages && data.newMessages.length > 0) {
+      data.newMessages.forEach((m) => addMessage(m.message, m.sender === 'staff' ? 'staff' : 'bot'));
+      lastMessageCheckTime = data.newMessages[data.newMessages.length - 1].created_at;
+    }
+
+    // Staff handed control back to the AI — resume normal chat on the
+    // customer's next message.
+    if (inTakeover && !data.takeoverActive) {
+      inTakeover = false;
+    }
 
     if (data.status !== lastKnownStatus) {
       if (data.status === 'accepted') {
