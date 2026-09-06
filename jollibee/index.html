@@ -20,8 +20,15 @@
             box-sizing: border-box;
         }
 
+        html,
         body {
+            height: 100%;
             margin: 0;
+            overflow: hidden;
+            /* only #messages should scroll, not the whole page */
+        }
+
+        body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: var(--jb-cream);
             color: var(--jb-ink);
@@ -31,6 +38,9 @@
             max-width: 480px;
             margin: 0 auto;
             height: 100vh;
+            /* fallback for older browsers */
+            height: 100dvh;
+            /* actual visible viewport on mobile, updates with address bar/keyboard */
             display: flex;
             flex-direction: column;
             background: #fff;
@@ -103,6 +113,8 @@
 
         #messages {
             flex: 1;
+            min-height: 0;
+            /* without this, flex children won't shrink and #messages pushes the input off-screen instead of scrolling internally */
             overflow-y: auto;
             padding: 16px;
             display: flex;
