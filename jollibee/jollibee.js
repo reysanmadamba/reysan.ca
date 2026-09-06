@@ -6,6 +6,8 @@ let history = [];
 let customerId = null;
 let phoneVerified = false;
 let orderId = null;
+let lastKnownStatus = null;
+let pollTimer = null;
 
 const gateEl = document.getElementById('gate');
 const gateErrorEl = document.getElementById('gate-error');
@@ -79,7 +81,12 @@ async function sendMessage(text) {
             history = data.history || history;
             customerId = data.customerId ?? customerId;
             phoneVerified = data.phoneVerified ?? phoneVerified;
-            orderId = data.orderId ?? orderId;
+
+            if (data.orderId && data.orderId !== orderId) {
+                orderId = data.orderId;
+                lastKnownStatus = 'new';
+                startPolling();
+            }
         }
     } catch (err) {
         addMessage("Couldn't reach the kitchen — check your connection and try again.", 'error');
@@ -93,3 +100,45 @@ formEl.addEventListener('submit', (e) => {
     e.preventDefault();
     sendMessage(inputEl.value);
 });
+
+const POLL_INTERVAL_MS = 15000;
+
+function startPolling() {
+    if (pollTimer) return; // already running
+    pollTimer = setInterval(checkOrderStatus, POLL_INTERVAL_MS);
+}
+
+function stopPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = null;
+}
+
+async function checkOrderStatus() {
+    if (!orderId || !sessionToken) return;
+
+    try {
+        const res = await fetch(CHAT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ checkStatus: true, orderId, token: sessionToken })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) return; // fail silently, this is a background check
+
+        if (data.status !== lastKnownStatus) {
+            if (data.status === 'accepted') {
+                addMessage(
+                    `🎉 Good news — your order's been accepted and is being prepared! It should be ready in about ${data.eta_minutes} minutes.`,
+                    'bot'
+                );
+            } else if (data.status === 'ready') {
+                addMessage("Your order's ready for pickup! 🎉", 'bot');
+            }
+            lastKnownStatus = data.status;
+        }
+
+        if (data.status === 'ready' || data.status === 'completed') stopPolling();
+    } catch (err) {
+        // silent — this is a background poll, not worth surfacing a network error for
+    }
+}
