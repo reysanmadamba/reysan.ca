@@ -2,225 +2,225 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jollibee Canada — Order Assistant</title>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <style>
-        :root {
-            --jb-red: #C8102E;
-            --jb-red-dark: #970C22;
-            --jb-yellow: #FFC72C;
-            --jb-cream: #FFF8EC;
-            --jb-ink: #2B1A12;
-            --jb-line: #EADFC9;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jollibee Canada — Order Assistant</title>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <style>
+    :root {
+      --jb-red: #C8102E;
+      --jb-red-dark: #970C22;
+      --jb-yellow: #FFC72C;
+      --jb-cream: #FFF8EC;
+      --jb-ink: #2B1A12;
+      --jb-line: #EADFC9;
+    }
 
-        * {
-            box-sizing: border-box;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-            /* only #messages should scroll, not the whole page */
-        }
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      /* only #messages should scroll, not the whole page */
+    }
 
-        body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--jb-cream);
-            color: var(--jb-ink);
-        }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--jb-cream);
+      color: var(--jb-ink);
+    }
 
-        .wrap {
-            max-width: 480px;
-            margin: 0 auto;
-            height: 100vh;
-            /* fallback for older browsers */
-            height: 100dvh;
-            /* actual visible viewport on mobile, updates with address bar/keyboard */
-            display: flex;
-            flex-direction: column;
-            background: #fff;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
-        }
+    .wrap {
+      max-width: 480px;
+      margin: 0 auto;
+      height: 100vh;
+      /* fallback for older browsers */
+      height: 100dvh;
+      /* actual visible viewport on mobile, updates with address bar/keyboard */
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
+    }
 
-        header {
-            background: var(--jb-red);
-            color: #fff;
-            padding: 18px 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    header {
+      background: var(--jb-red);
+      color: #fff;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        header .badge {
-            width: 36px;
-            height: 36px;
-            background: var(--jb-yellow);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: var(--jb-red-dark);
-        }
+    header .badge {
+      width: 36px;
+      height: 36px;
+      background: var(--jb-yellow);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: var(--jb-red-dark);
+    }
 
-        header h1 {
-            font-size: 16px;
-            margin: 0;
-            line-height: 1.2;
-        }
+    header h1 {
+      font-size: 16px;
+      margin: 0;
+      line-height: 1.2;
+    }
 
-        header p {
-            font-size: 12px;
-            margin: 2px 0 0;
-            opacity: 0.85;
-        }
+    header p {
+      font-size: 12px;
+      margin: 2px 0 0;
+      opacity: 0.85;
+    }
 
-        #gate {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            padding: 24px;
-            text-align: center;
-        }
+    #gate {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px;
+      text-align: center;
+    }
 
-        #gate p {
-            font-size: 14px;
-            color: #6b5c4c;
-            margin: 0;
-            max-width: 320px;
-        }
+    #gate p {
+      font-size: 14px;
+      color: #6b5c4c;
+      margin: 0;
+      max-width: 320px;
+    }
 
-        #gate-error {
-            color: var(--jb-red);
-            font-size: 13px;
-            min-height: 18px;
-        }
+    #gate-error {
+      color: var(--jb-red);
+      font-size: 13px;
+      min-height: 18px;
+    }
 
-        #chat-view {
-            display: none;
-            flex: 1;
-            flex-direction: column;
-            min-height: 0;
-        }
+    #chat-view {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      min-height: 0;
+    }
 
-        #messages {
-            flex: 1;
-            min-height: 0;
-            /* without this, flex children won't shrink and #messages pushes the input off-screen instead of scrolling internally */
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+    #messages {
+      flex: 1;
+      min-height: 0;
+      /* without this, flex children won't shrink and #messages pushes the input off-screen instead of scrolling internally */
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
 
-        .msg {
-            max-width: 82%;
-            padding: 10px 14px;
-            border-radius: 14px;
-            font-size: 14px;
-            line-height: 1.45;
-            white-space: pre-wrap;
-        }
+    .msg {
+      max-width: 82%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
 
-        .msg.user {
-            align-self: flex-end;
-            background: var(--jb-yellow);
-            color: var(--jb-ink);
-            border-bottom-right-radius: 4px;
-        }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--jb-yellow);
+      color: var(--jb-ink);
+      border-bottom-right-radius: 4px;
+    }
 
-        .msg.bot {
-            align-self: flex-start;
-            background: var(--jb-cream);
-            border: 1px solid var(--jb-line);
-            border-bottom-left-radius: 4px;
-        }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--jb-cream);
+      border: 1px solid var(--jb-line);
+      border-bottom-left-radius: 4px;
+    }
 
-        .msg.error {
-            align-self: center;
-            background: #fdecec;
-            color: var(--jb-red-dark);
-            border: 1px solid #f3c9c9;
-            font-size: 13px;
-        }
+    .msg.error {
+      align-self: center;
+      background: #fdecec;
+      color: var(--jb-red-dark);
+      border: 1px solid #f3c9c9;
+      font-size: 13px;
+    }
 
-        form {
-            display: flex;
-            gap: 8px;
-            padding: 14px 16px;
-            border-top: 1px solid var(--jb-line);
-        }
+    form {
+      display: flex;
+      gap: 8px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--jb-line);
+    }
 
-        input[type=text] {
-            flex: 1;
-            padding: 12px 14px;
-            border-radius: 22px;
-            border: 1px solid var(--jb-line);
-            font-size: 14px;
-            outline: none;
-        }
+    input[type=text] {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 22px;
+      border: 1px solid var(--jb-line);
+      font-size: 14px;
+      outline: none;
+    }
 
-        input[type=text]:focus {
-            border-color: var(--jb-red);
-        }
+    input[type=text]:focus {
+      border-color: var(--jb-red);
+    }
 
-        button.send {
-            background: var(--jb-red);
-            color: #fff;
-            border: none;
-            padding: 0 20px;
-            border-radius: 22px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+    button.send {
+      background: var(--jb-red);
+      color: #fff;
+      border: none;
+      padding: 0 20px;
+      border-radius: 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
 
-        button.send:hover {
-            background: var(--jb-red-dark);
-        }
+    button.send:hover {
+      background: var(--jb-red-dark);
+    }
 
-        button.send:disabled {
-            opacity: 0.5;
-            cursor: default;
-        }
-    </style>
+    button.send:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="wrap">
-        <header>
-            <div class="badge">JB</div>
-            <div>
-                <h1>Jollibee Canada</h1>
-                <p>Ask about the menu or place an order</p>
-            </div>
-        </header>
+  <div class="wrap">
+    <header>
+      <div class="badge">JB</div>
+      <div>
+        <h1>Jollibee Canada</h1>
+        <p>Ask about the menu or place an order</p>
+      </div>
+    </header>
 
-        <div id="gate">
-            <p>Quick check before we start — this helps keep the demo running smoothly for everyone.</p>
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAAEp3iBget7hpTH-x" data-callback="onTurnstileSuccess"></div>
-            <div id="gate-error"></div>
-        </div>
-
-        <div id="chat-view">
-            <div id="messages"></div>
-            <form id="chat-form">
-                <input type="text" id="chat-input" placeholder="Type your order..." autocomplete="off" />
-                <button type="submit" class="send">Send</button>
-            </form>
-        </div>
+    <div id="gate">
+      <p>Quick check before we start — this helps keep the demo running smoothly for everyone.</p>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAAEp3iBget7hpTH-x" data-callback="onTurnstileSuccess"></div>
+      <div id="gate-error"></div>
     </div>
 
-    <script src="jollibee.js"></script>
+    <div id="chat-view">
+      <div id="messages"></div>
+      <form id="chat-form">
+        <input type="text" id="chat-input" placeholder="Type your order..." autocomplete="off" />
+        <button type="submit" class="send">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="jollibee.js"></script>
 </body>
 
 </html>
