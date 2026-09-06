@@ -128,6 +128,11 @@ async function sendMessage(text) {
       if (data.orderId && data.orderId !== orderId) {
         orderId = data.orderId;
         lastKnownStatus = 'new';
+      }
+
+      // Poll from the moment identity is known — a customer can be flagged
+      // for staff attention before ever placing an order.
+      if (customerId && !lastMessageCheckTime) {
         lastMessageCheckTime = new Date().toISOString();
         startPolling();
       }
@@ -158,7 +163,7 @@ function stopPolling() {
 }
 
 async function checkOrderStatus() {
-  if (!orderId || !sessionToken) return;
+  if (!customerId || !sessionToken) return;
 
   try {
     const res = await fetch(CHAT_URL, {
@@ -167,6 +172,7 @@ async function checkOrderStatus() {
       body: JSON.stringify({
         checkStatus: true,
         orderId,
+        customerId,
         token: sessionToken,
         messagesSince: lastMessageCheckTime
       })
@@ -185,7 +191,7 @@ async function checkOrderStatus() {
       inTakeover = false;
     }
 
-    if (data.status !== lastKnownStatus) {
+    if (data.status && data.status !== lastKnownStatus) {
       if (data.status === 'accepted') {
         addMessage(
           `🎉 Good news — your order's been accepted and is being prepared! It should be ready in about ${data.eta_minutes} minutes. Crew might call you at your phone number if they have any clarification about your order.`,
