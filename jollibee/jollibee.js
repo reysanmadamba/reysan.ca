@@ -49,9 +49,20 @@ window.onTurnstileSuccess = async function (turnstileToken) {
 function addMessage(text, who) {
     const div = document.createElement('div');
     div.className = 'msg ' + who;
-    div.textContent = text;
+    div.textContent = who === 'bot' ? stripMarkdown(text) : text;
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// Safety net — the system prompt tells the model not to use markdown, but
+// that's a request, not a guarantee. Strip common markdown symbols so they
+// never render as literal asterisks/hashes in a plain-text chat bubble.
+function stripMarkdown(text) {
+    return text
+        .replace(/\*\*(.*?)\*\*/g, '$1') // **bold**
+        .replace(/__(.*?)__/g, '$1')     // __bold__
+        .replace(/^#{1,6}\s+/gm, '')     // # headers
+        .replace(/^[-*]\s+/gm, '• ');    // bullet markers -> a plain bullet
 }
 
 async function sendMessage(text) {
