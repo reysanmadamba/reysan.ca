@@ -71,7 +71,7 @@
     function linkify(rawText) {
         var safe = escapeHtml(rawText);
         var urlPattern = /(https?:\/\/[^\s<]+)/g;
-        return safe.replace(urlPattern, function (url) {
+        var withLinks = safe.replace(urlPattern, function (url) {
             // trim trailing punctuation a sentence might leave stuck to the URL
             var trailing = '';
             var match = url.match(/[).,!?]+$/);
@@ -81,6 +81,11 @@
             }
             return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>' + trailing;
         });
+        // Plain-text newlines get collapsed by default HTML rendering, so
+        // convert them to real line breaks — this is what makes a blank
+        // line in the AI's reply (e.g. before the shadow-check question)
+        // actually show up as visible spacing instead of running together.
+        return withLinks.replace(/\n/g, '<br>');
     }
 
     async function loadCaptcha() {
