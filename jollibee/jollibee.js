@@ -1,5 +1,6 @@
 const CAPTCHA_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/jollibee-captcha';
 const CHAT_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/jollibee-chat';
+const STORE_PHONE = '780-000-0000'; // TODO: replace with the real store contact number
 
 let sessionToken = null;
 let history = [];
@@ -128,11 +129,15 @@ async function checkOrderStatus() {
         if (data.status !== lastKnownStatus) {
             if (data.status === 'accepted') {
                 addMessage(
-                    `🎉 Good news — your order's been accepted and is being prepared! It should be ready in about ${data.eta_minutes} minutes.`,
+                    `🎉 Good news — your order's been accepted and is being prepared! It should be ready in about ${data.eta_minutes} minutes. Crew might call you at your phone number if they have any clarification about your order.`,
                     'bot'
                 );
             } else if (data.status === 'ready') {
-                addMessage("Your order's ready for pickup! 🎉", 'bot');
+                addMessage(
+                    `Transaction complete. Please pick up your order now. If you have any questions, call ${STORE_PHONE}.`,
+                    'bot'
+                );
+                closeChat();
             }
             lastKnownStatus = data.status;
         }
@@ -141,4 +146,10 @@ async function checkOrderStatus() {
     } catch (err) {
         // silent — this is a background poll, not worth surfacing a network error for
     }
+}
+
+function closeChat() {
+    inputEl.disabled = true;
+    sendBtn.disabled = true;
+    inputEl.placeholder = 'Order complete';
 }
