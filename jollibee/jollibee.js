@@ -5,6 +5,7 @@ let sessionToken = null;
 let history = [];
 let customerId = null;
 let phoneVerified = false;
+let orderId = null;
 
 const gateEl = document.getElementById('gate');
 const gateErrorEl = document.getElementById('gate-error');
@@ -65,7 +66,8 @@ async function sendMessage(text) {
                 history,
                 token: sessionToken,
                 customerId,
-                phoneVerified
+                phoneVerified,
+                orderId
             })
         });
         const data = await res.json();
@@ -77,6 +79,7 @@ async function sendMessage(text) {
             history = data.history || history;
             customerId = data.customerId ?? customerId;
             phoneVerified = data.phoneVerified ?? phoneVerified;
+            orderId = data.orderId ?? orderId;
         }
     } catch (err) {
         addMessage("Couldn't reach the kitchen — check your connection and try again.", 'error');
