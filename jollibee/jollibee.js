@@ -8,6 +8,7 @@ let customerId = null;
 let phoneVerified = false;
 let orderId = null;
 let offTopicCount = 0;
+let otpReminderCount = 0;
 let lastKnownStatus = null;
 let lastKnownTotal = null;
 let lastMessageCheckTime = null;
@@ -75,7 +76,8 @@ function stripMarkdown(text) {
     .replace(/\*\*(.*?)\*\*/g, '$1') // **bold**
     .replace(/__(.*?)__/g, '$1')     // __bold__
     .replace(/^#{1,6}\s+/gm, '')     // # headers
-    .replace(/^[-*]\s+/gm, '• ');    // bullet markers -> a plain bullet
+    .replace(/^[-*]\s+/gm, '• ')     // bullet markers -> a plain bullet
+    .replace(/\s+(\d+\.\s)/g, '\n$1'); // break run-together numbered list items onto their own lines
 }
 
 async function sendMessage(text) {
@@ -95,7 +97,8 @@ async function sendMessage(text) {
         customerId,
         phoneVerified,
         orderId,
-        offTopicCount
+        offTopicCount,
+        otpReminderCount
       })
     });
     const data = await res.json();
@@ -120,6 +123,7 @@ async function sendMessage(text) {
       customerId = data.customerId ?? customerId;
       phoneVerified = data.phoneVerified ?? phoneVerified;
       offTopicCount = data.offTopicCount ?? offTopicCount;
+      otpReminderCount = data.otpReminderCount ?? otpReminderCount;
 
       if (data.conversationEnded) {
         closeChat('Conversation ended');
@@ -187,9 +191,14 @@ async function checkOrderStatus() {
       lastMessageCheckTime = data.newMessages[data.newMessages.length - 1].created_at;
     }
 
-    // Staff handed control back to the AI — resume normal chat on the
-    // customer's next message.
-    if (inTakeover && !data.takeoverActive) {
+    // Keep inTakeover in sync with the server in both directions — if the
+    // customer's first sign of a takeover is staff messages arriving via
+    // this poll (not their own message send), inTakeover needs to flip on
+    // here too, or their next send will redundantly show the "connecting"
+    // message even though they can already see staff talking to them.
+    if (data.takeoverActive && !inTakeover) {
+      inTakeover = true;
+    } else if (inTakeover && !data.takeoverActive) {
       inTakeover = false;
     }
 
