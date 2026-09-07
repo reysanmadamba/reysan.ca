@@ -129,6 +129,7 @@ async function sendMessage(text) {
       if (data.orderId && data.orderId !== orderId) {
         orderId = data.orderId;
         lastKnownStatus = 'new';
+        lastKnownTotal = null; // this is a different order now — don't compare its total against the old one's
       }
 
       // Poll from the moment identity is known — a customer can be flagged
