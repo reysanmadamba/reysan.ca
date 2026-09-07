@@ -68,6 +68,24 @@ function addMessage(text, who) {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
+// Serverless functions can have a real cold-start delay — this makes sure
+// the customer sees SOMETHING happening immediately rather than a chat
+// that looks frozen while the function spins up.
+function showTypingIndicator() {
+  hideTypingIndicator(); // never stack more than one
+  const div = document.createElement('div');
+  div.className = 'msg bot typing-indicator';
+  div.id = 'jb-typing-indicator';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function hideTypingIndicator() {
+  const existing = document.getElementById('jb-typing-indicator');
+  if (existing) existing.remove();
+}
+
 // Safety net — the system prompt tells the model not to use markdown, but
 // that's a request, not a guarantee. Strip common markdown symbols so they
 // never render as literal asterisks/hashes in a plain-text chat bubble.
@@ -85,6 +103,7 @@ async function sendMessage(text) {
   addMessage(text, 'user');
   inputEl.value = '';
   sendBtn.disabled = true;
+  showTypingIndicator();
 
   try {
     const res = await fetch(CHAT_URL, {
@@ -102,6 +121,7 @@ async function sendMessage(text) {
       })
     });
     const data = await res.json();
+    hideTypingIndicator();
 
     if (!res.ok || data.error) {
       addMessage(data.error || 'Something went wrong, please try again.', 'error');
@@ -146,6 +166,7 @@ async function sendMessage(text) {
   } catch (err) {
     addMessage("Couldn't reach the kitchen — check your connection and try again.", 'error');
   } finally {
+    hideTypingIndicator();
     sendBtn.disabled = false;
     inputEl.focus();
   }
