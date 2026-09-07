@@ -9,6 +9,7 @@ let phoneVerified = false;
 let orderId = null;
 let offTopicCount = 0;
 let lastKnownStatus = null;
+let lastKnownTotal = null;
 let lastMessageCheckTime = null;
 let inTakeover = false;
 let pollTimer = null;
@@ -203,11 +204,22 @@ async function checkOrderStatus() {
           'bot'
         );
         closeChat();
+      } else if (data.status === 'cancelled') {
+        addMessage(
+          `Your order has been cancelled. If this wasn't expected, please contact the store at ${STORE_PHONE}.`,
+          'bot'
+        );
       }
       lastKnownStatus = data.status;
+    } else if (data.total && lastKnownTotal && data.total !== lastKnownTotal && data.status !== 'cancelled') {
+      // Status didn't change, but the total did — staff edited the order's
+      // items directly (e.g. after a phone call), so let the customer know
+      // rather than leaving them looking at a stale total.
+      addMessage(`Your order's been updated — new total is $${Number(data.total).toFixed(2)}.`, 'bot');
     }
+    if (data.total) lastKnownTotal = data.total;
 
-    if (data.status === 'ready' || data.status === 'completed') stopPolling();
+    if (data.status === 'ready' || data.status === 'completed' || data.status === 'cancelled') stopPolling();
   } catch (err) {
     // silent — this is a background poll, not worth surfacing a network error for
   }
