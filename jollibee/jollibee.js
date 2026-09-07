@@ -214,8 +214,12 @@ async function checkOrderStatus() {
     } else if (data.total && lastKnownTotal && data.total !== lastKnownTotal && data.status !== 'cancelled') {
       // Status didn't change, but the total did — staff edited the order's
       // items directly (e.g. after a phone call), so let the customer know
-      // rather than leaving them looking at a stale total.
-      addMessage(`Your order's been updated — new total is $${Number(data.total).toFixed(2)}.`, 'bot');
+      // rather than leaving them looking at a stale total, guessing what changed.
+      const itemLines = (data.items || []).map((i) => `• ${i.qty}x ${i.name} — $${(i.qty * i.price).toFixed(2)}`).join('\n');
+      addMessage(
+        `Your order #${data.order_number} has been updated. Here's what it looks like now:\n${itemLines}\nNew total: $${Number(data.total).toFixed(2)}`,
+        'bot'
+      );
     }
     if (data.total) lastKnownTotal = data.total;
 
