@@ -9,6 +9,7 @@ let phoneVerified = false;
 let orderId = null;
 let offTopicCount = 0;
 let otpReminderCount = 0;
+let guestInfoReminderCount = 0;
 let lastKnownStatus = null;
 let lastKnownTotal = null;
 let lastMessageCheckTime = null;
@@ -117,7 +118,8 @@ async function sendMessage(text) {
         phoneVerified,
         orderId,
         offTopicCount,
-        otpReminderCount
+        otpReminderCount,
+        guestInfoReminderCount
       })
     });
     const data = await res.json();
@@ -144,6 +146,7 @@ async function sendMessage(text) {
       phoneVerified = data.phoneVerified ?? phoneVerified;
       offTopicCount = data.offTopicCount ?? offTopicCount;
       otpReminderCount = data.otpReminderCount ?? otpReminderCount;
+      guestInfoReminderCount = data.guestInfoReminderCount ?? guestInfoReminderCount;
 
       if (data.conversationEnded) {
         closeChat('Conversation ended');
