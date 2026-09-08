@@ -16,6 +16,60 @@ let lastMessageCheckTime = null;
 let inTakeover = false;
 let pollTimer = null;
 let conversationStarted = false; // guards against Turnstile silently re-verifying mid-session
+let displayedMessages = []; // {text, who} — replayed on restore so a refresh doesn't look like the chat forgot everything
+
+const SESSION_KEY = 'jollibee_session';
+const SESSION_MAX_AGE_MS = 25 * 60 * 1000; // a bit under the server's own ~30 min token expiry
+
+function saveSession() {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      sessionToken, history, customerId, phoneVerified, orderId,
+      offTopicCount, otpReminderCount, guestInfoReminderCount,
+      lastKnownStatus, lastKnownTotal, lastMessageCheckTime, inTakeover,
+      displayedMessages
+    }));
+  } catch {
+    // localStorage unavailable (private browsing, quota, etc.) — fine,
+    // this is a convenience feature, not something to break the chat over.
+  }
+}
+
+function restoreSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (!saved.sessionToken || Date.now() - saved.savedAt > SESSION_MAX_AGE_MS) {
+      localStorage.removeItem(SESSION_KEY);
+      return false;
+    }
+
+    sessionToken = saved.sessionToken;
+    history = saved.history || [];
+    customerId = saved.customerId;
+    phoneVerified = saved.phoneVerified;
+    orderId = saved.orderId;
+    offTopicCount = saved.offTopicCount || 0;
+    otpReminderCount = saved.otpReminderCount || 0;
+    guestInfoReminderCount = saved.guestInfoReminderCount || 0;
+    lastKnownStatus = saved.lastKnownStatus;
+    lastKnownTotal = saved.lastKnownTotal;
+    lastMessageCheckTime = saved.lastMessageCheckTime;
+    inTakeover = saved.inTakeover || false;
+    displayedMessages = saved.displayedMessages || [];
+
+    conversationStarted = true;
+    gateEl.style.display = 'none';
+    chatViewEl.style.display = 'flex';
+    displayedMessages.forEach((m) => renderMessage(m.text, m.who));
+    if (customerId) startPolling();
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const gateEl = document.getElementById('gate');
 const gateErrorEl = document.getElementById('gate-error');
@@ -24,6 +78,8 @@ const messagesEl = document.getElementById('messages');
 const formEl = document.getElementById('chat-form');
 const inputEl = document.getElementById('chat-input');
 const sendBtn = formEl.querySelector('button.send');
+
+const sessionRestored = restoreSession();
 
 // Called by the Turnstile widget once the visitor passes the check.
 // Must be global — Turnstile invokes it by name from data-callback.
@@ -56,17 +112,26 @@ window.onTurnstileSuccess = async function (turnstileToken) {
       addMessage("Hi! I'm your Jollibee ordering assistant. What's your name and phone number so we can get started?", 'bot');
       inputEl.focus();
     }
+    saveSession();
   } catch (err) {
     if (!conversationStarted) gateErrorEl.textContent = "Couldn't verify — check your connection and refresh.";
   }
 };
 
-function addMessage(text, who) {
+// Appends a bubble to the DOM only — no state tracking. Used both for new
+// messages (via addMessage) and for replaying history on restore.
+function renderMessage(text, who) {
   const div = document.createElement('div');
   div.className = 'msg ' + who;
   div.textContent = who === 'bot' ? stripMarkdown(text) : text;
   messagesEl.appendChild(div);
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addMessage(text, who) {
+  renderMessage(text, who);
+  displayedMessages.push({ text, who });
+  saveSession();
 }
 
 // Serverless functions can have a real cold-start delay — this makes sure
