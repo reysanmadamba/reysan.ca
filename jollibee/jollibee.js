@@ -12,6 +12,7 @@ let otpReminderCount = 0;
 let guestInfoReminderCount = 0;
 let lastKnownStatus = null;
 let lastKnownTotal = null;
+let overdueNotified = false;
 let lastMessageCheckTime = null;
 let inTakeover = false;
 let pollTimer = null;
@@ -222,6 +223,7 @@ async function sendMessage(text) {
         orderId = data.orderId;
         lastKnownStatus = 'new';
         lastKnownTotal = null; // this is a different order now — don't compare its total against the old one's
+        overdueNotified = false;
       }
 
       // Poll from the moment identity is known — a customer can be flagged
@@ -303,13 +305,41 @@ async function checkOrderStatus() {
           'bot'
         );
         closeChat();
+      } else if (data.status === 'completed') {
+        // Usually reached via 'ready' first (which already closes the chat),
+        // but this is a safety net in case a status jumps straight here.
+        addMessage('Thank you for ordering! We hope you enjoyed it.', 'bot');
+        closeChat('Order complete');
       } else if (data.status === 'cancelled') {
         addMessage(
-          `Your order has been cancelled. If this wasn't expected, please contact the store at ${STORE_PHONE}.`,
+          data.cancellation_reason
+            ? `We're sorry, but your order has been cancelled: ${data.cancellation_reason}. Please contact the store at ${STORE_PHONE} if you have questions.`
+            : `We're sorry, but your order has been cancelled. Please contact the store at ${STORE_PHONE} if you have questions.`,
           'bot'
         );
+        closeChat('Order cancelled');
+      } else if (data.status === 'no_show') {
+        addMessage(
+          `We're sorry, but this order was marked as a no-show since it wasn't picked up in time. Please contact the store at ${STORE_PHONE} if you'd still like to arrange pickup.`,
+          'bot'
+        );
+        closeChat('Order not picked up');
       }
       lastKnownStatus = data.status;
+      overdueNotified = false; // fresh status change resets the one-time overdue nudge
+    } else if (
+      data.status === 'accepted' &&
+      data.remaining_minutes === 0 &&
+      !overdueNotified
+    ) {
+      // Still "accepted" (staff hasn't marked it ready yet) but the ETA has
+      // already passed — a one-time nudge so the customer isn't left
+      // wondering, without repeating it every single poll.
+      addMessage(
+        `Your order should be ready by now — if you haven't heard from us, feel free to check with the store or call ${STORE_PHONE}.`,
+        'bot'
+      );
+      overdueNotified = true;
     } else if (data.total && lastKnownTotal && data.total !== lastKnownTotal && data.status !== 'cancelled') {
       // Status didn't change, but the total did — staff edited the order's
       // items directly (e.g. after a phone call), so let the customer know
@@ -322,7 +352,7 @@ async function checkOrderStatus() {
     }
     if (data.total) lastKnownTotal = data.total;
 
-    if (data.status === 'ready' || data.status === 'completed' || data.status === 'cancelled') stopPolling();
+    if (data.status === 'ready' || data.status === 'completed' || data.status === 'cancelled' || data.status === 'no_show') stopPolling();
   } catch (err) {
     // silent — this is a background poll, not worth surfacing a network error for
   }
