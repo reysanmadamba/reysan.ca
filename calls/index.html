@@ -37,6 +37,8 @@
     header.dash-header .wrap { display: flex; align-items: center; justify-content: space-between; }
     .logo { font-family: var(--mono); font-size: 14px; }
     .logo span { color: var(--teal); }
+    .back-link { font-family: var(--mono); font-size: 13px; color: var(--muted); text-decoration: none; margin-right: 12px; }
+    .back-link:hover { color: var(--teal); }
     .logout-btn { font-family: var(--mono); font-size: 12.5px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
 
     main.dash-main { padding: 32px 0 64px; }
@@ -128,7 +130,7 @@
 
       app.innerHTML = `
         <header class="dash-header"><div class="wrap">
-          <span class="logo"><span>~/</span>call report</span>
+          <span class="logo"><a href="https://reysan.ca/dashboard/" class="back-link">&larr; Dashboard</a> <span>~/</span>call report</span>
           <button class="logout-btn" id="logout">Sign out</button>
         </div></header>
         <main class="dash-main"><div class="wrap" id="content"><div class="empty-state">Loading…</div></div></main>`;
