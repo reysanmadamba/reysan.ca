@@ -3,14 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jollibee — Order Dashboard</title>
+  <title>Tim Hortons — Order Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
   <script type="module" crossorigin src="/dashboard/assets/index-Bi5x4Gp1.js"></script>
   <link rel="stylesheet" crossorigin href="/dashboard/assets/index-BbbSn4OK.css">
+  <style>
+    #calls-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      background: #0F5D50;
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      padding: 12px 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+    #calls-fab:hover { background: #0c4a40; }
+    #calls-fab:disabled { opacity: 0.6; cursor: default; }
+  </style>
 </head>
 <body>
   <div id="root"></div>
+  <button id="calls-fab">📞 Calls</button>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    // This button is injected into the static HTML shell around the
+    // dashboard's compiled React app — the app itself is a compiled bundle
+    // with no editable source (recovered from an old build), so this is a
+    // deliberate workaround to add "Calls" navigation without touching that
+    // bundle at all. It runs independently of the React app, checking the
+    // same Supabase session, and either redirects to /calls/ (super_admin,
+    // or a tenant_admin whose tenant is on the Pro tier) or shows a message
+    // instead of navigating (any other tier).
+    const supabase = createClient(
+      'https://kuxukkknasjlfpahcled.supabase.co',
+      'sb_publishable_-fVzlBpMI2AoynUYjOyvwA_0FkivXts'
+    );
+    const ME_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/me';
+    const TENANTS_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/tenants';
+
+    const fab = document.getElementById('calls-fab');
+    fab.addEventListener('click', async () => {
+      fab.disabled = true;
+      fab.textContent = 'Checking…';
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        if (!token) { alert('Please sign in first.'); return; }
+
+        const meRes = await fetch(ME_URL, { headers: { Authorization: `Bearer ${token}` } });
+        const me = await meRes.json();
+        if (!meRes.ok) throw new Error(me.error || 'Failed to check account');
+
+        if (me.role === 'super_admin') {
+          window.location.href = 'https://reysan.ca/calls/';
+          return;
+        }
+
+        const tier = me.tenant?.subscription_tier;
+        if (tier === 'pro') {
+          window.location.href = 'https://reysan.ca/calls/';
+        } else {
+          alert('Call reports are a Pro feature. Please contact your administrator to upgrade your plan.');
+        }
+      } catch (err) {
+        alert('Something went wrong checking your access: ' + err.message);
+      } finally {
+        fab.disabled = false;
+        fab.textContent = '📞 Calls';
+      }
+    });
+  </script>
 </body>
 </html>
