@@ -77,6 +77,7 @@
     const SUPABASE_URL = 'https://kuxukkknasjlfpahcled.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_-fVzlBpMI2AoynUYjOyvwA_0FkivXts';
     const TENANTS_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/tenants';
+    const ME_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/me';
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     const app = document.getElementById('app');
@@ -123,6 +124,68 @@
       return `M ${cx} ${cy} L ${cx} ${cy - r} A ${r} ${r} 0 ${largeArc} 1 ${x} ${y} Z`;
     }
 
+    function renderReport(content, data, { skipProGate }) {
+      const tier = data.tenant?.subscription_tier;
+      if (!skipProGate && tier !== 'pro') {
+        content.innerHTML = `<div class="pro-gate"><h2>Call reports are a Pro feature</h2><p>Your current plan is <strong>${tier || 'unknown'}</strong>. Contact us to upgrade and unlock call minutes tracking and recordings.</p></div>`;
+        return;
+      }
+
+      const voice = data.voice || { minutes_used: 0, minutes_cap: 300, calls: [] };
+      const used = voice.minutes_used;
+      const cap = voice.minutes_cap;
+      const fraction = cap > 0 ? Math.min(used / cap, 1) : 0;
+      const over = used >= cap;
+
+      content.innerHTML = `
+        <div class="summary-row">
+          <svg width="160" height="160" viewBox="0 0 160 160">
+            <circle cx="80" cy="80" r="70" fill="${'var(--paper-2)'}" />
+            <path d="${pieSlicePath(fraction)}" fill="${over ? 'var(--coral)' : 'var(--teal)'}" />
+          </svg>
+          <div class="summary-stats ${over ? 'over' : ''}">
+            <div class="big">${used.toFixed(1)} / ${cap} min</div>
+            <div class="label">USED THIS MONTH${over ? ' — CAP REACHED' : ''}</div>
+            ${skipProGate ? `<div class="label">EST. COST: $${(voice.calls.reduce((s, c) => s + Number(c.cost_usd || 0), 0)).toFixed(2)}</div>` : ''}
+          </div>
+        </div>
+        ${voice.calls.length === 0
+          ? '<div class="empty-state">No calls yet this month.</div>'
+          : `<table>
+              <thead><tr><th>Caller</th><th>Phone</th><th>Date</th><th>Duration</th><th>Status</th>${skipProGate ? '<th>Cost</th>' : ''}<th>Replay</th></tr></thead>
+              <tbody>
+                ${voice.calls.map((c) => `
+                  <tr>
+                    <td>${c.caller_name}</td>
+                    <td>${c.phone || '—'}</td>
+                    <td>${new Date(c.created_at).toLocaleString()}</td>
+                    <td>${formatDuration(c.duration_seconds)}</td>
+                    <td><span class="status-pill ${c.ended_reason === 'customer-ended-call' || c.ended_reason === 'assistant-ended-call' ? 'customer' : 'silence'}">${c.ended_reason || 'unknown'}</span></td>
+                    ${skipProGate ? `<td>$${Number(c.cost_usd || 0).toFixed(2)}</td>` : ''}
+                    <td>${c.recording_url ? `<button class="replay-btn" data-url="${c.recording_url}">▶ Play</button>` : '<span class="no-recording">No recording</span>'}</td>
+                  </tr>
+                  <tr class="audio-row" id="audio-row-${c.id}" style="display:none"><td colspan="${skipProGate ? 7 : 6}"><audio controls id="audio-${c.id}"></audio></td></tr>
+                `).join('')}
+              </tbody>
+            </table>`}
+      `;
+
+      content.querySelectorAll('.replay-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const row = btn.closest('tr');
+          const audioRow = row.nextElementSibling;
+          const audioEl = audioRow.querySelector('audio');
+          if (audioRow.style.display === 'none') {
+            audioEl.src = btn.dataset.url;
+            audioRow.style.display = '';
+          } else {
+            audioRow.style.display = 'none';
+            audioEl.pause();
+          }
+        });
+      });
+    }
+
     async function init() {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
@@ -133,73 +196,50 @@
           <span class="logo"><a href="https://reysan.ca/dashboard/" class="back-link">&larr; Dashboard</a> <span>~/</span>call report</span>
           <button class="logout-btn" id="logout">Sign out</button>
         </div></header>
-        <main class="dash-main"><div class="wrap" id="content"><div class="empty-state">Loading…</div></div></main>`;
+        <main class="dash-main"><div class="wrap"><h1 class="dash-title" id="page-title">Call Report</h1><div id="picker-slot"></div><div id="content"><div class="empty-state">Loading…</div></div></div></main>`;
       document.getElementById('logout').addEventListener('click', async () => { await supabase.auth.signOut(); renderLogin(); });
 
       const content = document.getElementById('content');
+      const authHeader = { Authorization: `Bearer ${session.access_token}` };
+
       try {
-        const res = await fetch(TENANTS_URL, { headers: { Authorization: `Bearer ${session.access_token}` } });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to load');
+        const meRes = await fetch(ME_URL, { headers: authHeader });
+        const me = await meRes.json();
+        if (!meRes.ok) throw new Error(me.error || 'Failed to load account info');
 
-        const tier = data.tenant?.subscription_tier;
-        if (tier !== 'pro') {
-          content.innerHTML = `<div class="pro-gate"><h2>Call reports are a Pro feature</h2><p>Your current plan is <strong>${tier || 'unknown'}</strong>. Contact us to upgrade and unlock call minutes tracking and recordings.</p></div>`;
-          return;
+        if (me.role === 'super_admin') {
+          // Superadmin: track every tenant's minutes/cost, not just one —
+          // pick a tenant from a dropdown, no Pro-tier gate (this is you
+          // tracking expenses, not a customer-facing feature).
+          const listRes = await fetch(TENANTS_URL, { headers: authHeader });
+          const listData = await listRes.json();
+          if (!listRes.ok) throw new Error(listData.error || 'Failed to load tenants');
+
+          const picker = document.getElementById('picker-slot');
+          picker.innerHTML = `<select id="tenant-picker" style="margin-bottom:20px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);font-family:var(--sans);font-size:14px;">
+            ${listData.tenants.map((t) => `<option value="${t.id}">${t.name} (${t.slug})</option>`).join('')}
+          </select>`;
+
+          async function loadTenant(id) {
+            content.innerHTML = '<div class="empty-state">Loading…</div>';
+            const res = await fetch(`${TENANTS_URL}?id=${id}`, { headers: authHeader });
+            const data = await res.json();
+            if (!res.ok) return (content.innerHTML = `<p class="error-text">${data.error}</p>`);
+            document.getElementById('page-title').textContent = `${data.tenant?.name || 'Tenant'} — Call Report`;
+            renderReport(content, data, { skipProGate: true });
+          }
+
+          document.getElementById('tenant-picker').addEventListener('change', (e) => loadTenant(e.target.value));
+          if (listData.tenants[0]) loadTenant(listData.tenants[0].id);
+          else content.innerHTML = '<div class="empty-state">No tenants yet.</div>';
+        } else {
+          // tenant_admin: their own tenant only, Pro-tier gated.
+          const res = await fetch(TENANTS_URL, { headers: authHeader });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to load');
+          document.getElementById('page-title').textContent = `${data.tenant?.name || 'Tenant'} — Call Report`;
+          renderReport(content, data, { skipProGate: false });
         }
-
-        const voice = data.voice || { minutes_used: 0, minutes_cap: 300, calls: [] };
-        const used = voice.minutes_used;
-        const cap = voice.minutes_cap;
-        const fraction = cap > 0 ? Math.min(used / cap, 1) : 0;
-        const over = used >= cap;
-
-        content.innerHTML = `
-          <h1 class="dash-title">${data.tenant?.name || 'Tenant'} — Call Report</h1>
-          <div class="summary-row">
-            <svg width="160" height="160" viewBox="0 0 160 160">
-              <circle cx="80" cy="80" r="70" fill="${'var(--paper-2)'}" />
-              <path d="${pieSlicePath(fraction)}" fill="${over ? 'var(--coral)' : 'var(--teal)'}" />
-            </svg>
-            <div class="summary-stats ${over ? 'over' : ''}">
-              <div class="big">${used.toFixed(1)} / ${cap} min</div>
-              <div class="label">USED THIS MONTH${over ? ' — CAP REACHED' : ''}</div>
-            </div>
-          </div>
-          ${voice.calls.length === 0
-            ? '<div class="empty-state">No calls yet this month.</div>'
-            : `<table>
-                <thead><tr><th>Caller</th><th>Phone</th><th>Date</th><th>Duration</th><th>Status</th><th>Replay</th></tr></thead>
-                <tbody>
-                  ${voice.calls.map((c) => `
-                    <tr>
-                      <td>${c.caller_name}</td>
-                      <td>${c.phone || '—'}</td>
-                      <td>${new Date(c.created_at).toLocaleString()}</td>
-                      <td>${formatDuration(c.duration_seconds)}</td>
-                      <td><span class="status-pill ${c.ended_reason === 'customer-ended-call' || c.ended_reason === 'assistant-ended-call' ? 'customer' : 'silence'}">${c.ended_reason || 'unknown'}</span></td>
-                      <td>${c.recording_url ? `<button class="replay-btn" data-url="${c.recording_url}">▶ Play</button>` : '<span class="no-recording">No recording</span>'}</td>
-                    </tr>
-                    <tr class="audio-row" id="audio-row-${c.id}" style="display:none"><td colspan="6"><audio controls id="audio-${c.id}"></audio></td></tr>
-                  `).join('')}
-                </tbody>
-              </table>`}
-        `;
-
-        content.querySelectorAll('.replay-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const row = btn.closest('tr');
-            const audioRow = row.nextElementSibling;
-            const audioEl = audioRow.querySelector('audio');
-            if (audioRow.style.display === 'none') {
-              audioEl.src = btn.dataset.url;
-              audioRow.style.display = '';
-            } else {
-              audioRow.style.display = 'none';
-              audioEl.pause();
-            }
-          });
-        });
       } catch (err) {
         content.innerHTML = `<p class="error-text">${err.message}</p>`;
       }
