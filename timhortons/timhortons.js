@@ -86,6 +86,8 @@ const inputEl = document.getElementById('chat-input');
 const sendBtn = formEl.querySelector('button.send');
 const inappBannerEl = document.getElementById('inapp-banner');
 const inappBannerCloseBtn = document.getElementById('inapp-banner-close');
+const inappOpenLink = document.getElementById('inapp-open-link');
+const inappCopyBtn = document.getElementById('inapp-copy-btn');
 
 // Facebook/Instagram/Messenger/TikTok/etc. in-app browsers embed a real
 // WKWebView/Chromium view, but many apply their own tracker/privacy
@@ -98,12 +100,48 @@ function isInAppBrowser() {
   return /FBAN|FBAV|Instagram|Messenger|Line\/|MicroMessenger|musical_ly|BytedanceWebview|Snapchat/i.test(ua);
 }
 
+// There's no standard API for a page to escape an in-app browser — these
+// are best-effort OS-specific tricks, not guaranteed on every version.
+// "Copy link" below is the one option that always works everywhere.
+function inAppEscapeUrl(pageUrl) {
+  const ua = navigator.userAgent || '';
+  if (/Android/i.test(ua)) {
+    const bare = pageUrl.replace(/^https?:\/\//, '');
+    return `intent://${bare}#Intent;scheme=https;package=com.android.chrome;end`;
+  }
+  if (/iPhone|iPad|iPod/i.test(ua)) {
+    return pageUrl.replace(/^https?:\/\//, 'x-safari-https://');
+  }
+  return pageUrl;
+}
+
 if (isInAppBrowser() && !sessionStorage.getItem('inapp_banner_dismissed')) {
   inappBannerEl.style.display = 'flex';
+  inappOpenLink.href = inAppEscapeUrl(window.location.href);
 }
 inappBannerCloseBtn.addEventListener('click', () => {
   inappBannerEl.style.display = 'none';
   try { sessionStorage.setItem('inapp_banner_dismissed', '1'); } catch { /* ignore */ }
+});
+
+inappCopyBtn.addEventListener('click', async () => {
+  const original = inappCopyBtn.textContent;
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+  } catch {
+    // Clipboard API unavailable/blocked (common in sandboxed in-app
+    // browsers) — fall back to the old select-and-copy trick.
+    const ta = document.createElement('textarea');
+    ta.value = window.location.href;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch { /* nothing more we can do */ }
+    document.body.removeChild(ta);
+  }
+  inappCopyBtn.textContent = 'Copied!';
+  setTimeout(() => { inappCopyBtn.textContent = original; }, 2000);
 });
 
 const sessionRestored = restoreSession();

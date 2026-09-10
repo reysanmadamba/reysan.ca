@@ -124,24 +124,58 @@
        detected, see isInAppBrowser() in timhortons.js. */
     #inapp-banner {
       display: none;
+      flex-direction: column;
+      gap: 8px;
       background: #FFF3D6;
       color: #6b4f1d;
       font-size: 12.5px;
-      padding: 8px 14px;
-      text-align: center;
+      padding: 10px 14px;
+    }
+
+    .inapp-banner-row {
+      display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       gap: 10px;
     }
 
-    #inapp-banner button {
+    #inapp-banner-close {
       background: none;
       border: none;
       color: inherit;
-      font-size: 15px;
+      font-size: 17px;
       line-height: 1;
       cursor: pointer;
       opacity: 0.7;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .inapp-banner-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .inapp-btn {
+      font-size: 12.5px;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 7px 14px;
+      border-radius: 100px;
+      cursor: pointer;
+      border: 1px solid #6b4f1d;
+    }
+
+    a.inapp-btn {
+      background: #6b4f1d;
+      color: #fff;
+    }
+
+    button.inapp-btn {
+      background: none;
+      color: #6b4f1d;
+      font-family: inherit;
     }
 
     #chat-view {
@@ -286,8 +320,14 @@
 <body>
   <div class="wrap">
     <div id="inapp-banner">
-      <span>Chat not loading? Tap <strong>⋯</strong> above and choose <strong>Open in Browser</strong>.</span>
-      <button id="inapp-banner-close" aria-label="Dismiss">&times;</button>
+      <div class="inapp-banner-row">
+        <span>Chat may not load properly in this app's built-in browser.</span>
+        <button id="inapp-banner-close" aria-label="Dismiss">&times;</button>
+      </div>
+      <div class="inapp-banner-actions">
+        <a id="inapp-open-link" class="inapp-btn" href="#" rel="noopener">Open in Browser</a>
+        <button id="inapp-copy-btn" class="inapp-btn" type="button">Copy link</button>
+      </div>
     </div>
 
     <header>
