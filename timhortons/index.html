@@ -104,6 +104,46 @@
       min-height: 18px;
     }
 
+    #gate-retry-btn {
+      display: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--th-red);
+      background: none;
+      border: 1px solid var(--th-red);
+      border-radius: 100px;
+      padding: 6px 16px;
+      cursor: pointer;
+    }
+
+    #gate-retry-btn:hover { background: var(--th-red); color: #fff; }
+
+    /* Facebook/Instagram/TikTok/etc. in-app browsers are known to break
+       cross-origin fetches (the Turnstile widget itself can pass while our
+       own verify request silently fails) — shown only when that UA is
+       detected, see isInAppBrowser() in timhortons.js. */
+    #inapp-banner {
+      display: none;
+      background: #FFF3D6;
+      color: #6b4f1d;
+      font-size: 12.5px;
+      padding: 8px 14px;
+      text-align: center;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    #inapp-banner button {
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+
     #chat-view {
       display: none;
       flex: 1;
@@ -245,6 +285,11 @@
 
 <body>
   <div class="wrap">
+    <div id="inapp-banner">
+      <span>Chat not loading? Tap <strong>⋯</strong> above and choose <strong>Open in Browser</strong>.</span>
+      <button id="inapp-banner-close" aria-label="Dismiss">&times;</button>
+    </div>
+
     <header>
       <div class="badge">TH</div>
       <div>
@@ -257,6 +302,7 @@
       <p>Quick check before we start — this helps keep the demo running smoothly for everyone.</p>
       <div class="cf-turnstile" data-sitekey="0x4AAAAAAEp3iBget7hpTH-x" data-callback="onTurnstileSuccess"></div>
       <div id="gate-error"></div>
+      <button id="gate-retry-btn" type="button">Try again</button>
     </div>
 
     <div id="chat-view">

@@ -78,11 +78,33 @@ function restoreSession() {
 
 const gateEl = document.getElementById('gate');
 const gateErrorEl = document.getElementById('gate-error');
+const gateRetryBtn = document.getElementById('gate-retry-btn');
 const chatViewEl = document.getElementById('chat-view');
 const messagesEl = document.getElementById('messages');
 const formEl = document.getElementById('chat-form');
 const inputEl = document.getElementById('chat-input');
 const sendBtn = formEl.querySelector('button.send');
+const inappBannerEl = document.getElementById('inapp-banner');
+const inappBannerCloseBtn = document.getElementById('inapp-banner-close');
+
+// Facebook/Instagram/Messenger/TikTok/etc. in-app browsers embed a real
+// WKWebView/Chromium view, but many apply their own tracker/privacy
+// sandboxing that silently blocks or breaks cross-origin fetches — the
+// Turnstile widget itself can show "Success!" (it's Cloudflare's own iframe)
+// while our subsequent POST to the backend never completes. Detected purely
+// to point people at "Open in Browser", not to change any actual behavior.
+function isInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  return /FBAN|FBAV|Instagram|Messenger|Line\/|MicroMessenger|musical_ly|BytedanceWebview|Snapchat/i.test(ua);
+}
+
+if (isInAppBrowser() && !sessionStorage.getItem('inapp_banner_dismissed')) {
+  inappBannerEl.style.display = 'flex';
+}
+inappBannerCloseBtn.addEventListener('click', () => {
+  inappBannerEl.style.display = 'none';
+  try { sessionStorage.setItem('inapp_banner_dismissed', '1'); } catch { /* ignore */ }
+});
 
 const sessionRestored = restoreSession();
 
@@ -90,6 +112,7 @@ const sessionRestored = restoreSession();
 // Must be global — Turnstile invokes it by name from data-callback.
 window.onTurnstileSuccess = async function (turnstileToken) {
   gateErrorEl.textContent = '';
+  gateRetryBtn.style.display = 'none';
 
   try {
     const res = await fetch(CAPTCHA_URL, {
@@ -101,6 +124,7 @@ window.onTurnstileSuccess = async function (turnstileToken) {
 
     if (!res.ok || data.error) {
       gateErrorEl.textContent = data.error || 'Verification failed. Please refresh and try again.';
+      if (!conversationStarted) gateRetryBtn.style.display = 'inline-block';
       return;
     }
 
@@ -119,9 +143,23 @@ window.onTurnstileSuccess = async function (turnstileToken) {
     }
     saveSession();
   } catch (err) {
-    if (!conversationStarted) gateErrorEl.textContent = "Couldn't verify — check your connection and refresh.";
+    if (!conversationStarted) {
+      gateErrorEl.textContent = "Couldn't verify — check your connection and refresh.";
+      gateRetryBtn.style.display = 'inline-block';
+    }
   }
 };
+
+// The failure above is almost always our own POST to the backend never
+// landing (network hiccup, or an in-app browser's cross-origin sandboxing) —
+// the Turnstile token itself is usually still unconsumed, so get a fresh one
+// and let onTurnstileSuccess above run again rather than forcing a full
+// page reload.
+gateRetryBtn.addEventListener('click', () => {
+  gateErrorEl.textContent = '';
+  gateRetryBtn.style.display = 'none';
+  if (window.turnstile) window.turnstile.reset();
+});
 
 // Appends a bubble to the DOM only — no state tracking. Used both for new
 // messages (via addMessage) and for replaying history on restore.
