@@ -16,6 +16,7 @@ let lastKnownTotal = null;
 let overdueNotified = false;
 let lastMessageCheckTime = null;
 let inTakeover = false;
+let wantsHuman = false; // true from the moment a human is asked for, even before staff formally takes over — used to poll faster during that wait
 let pollTimer = null;
 let conversationStarted = false; // guards against Turnstile silently re-verifying mid-session
 let displayedMessages = []; // {text, who} — replayed on restore so a refresh doesn't look like the chat forgot everything
@@ -29,7 +30,7 @@ function saveSession() {
       savedAt: Date.now(),
       sessionToken, history, customerId, customerAuth, phoneVerified, orderId,
       offTopicCount, otpReminderCount, guestInfoReminderCount,
-      lastKnownStatus, lastKnownTotal, lastMessageCheckTime, inTakeover,
+      lastKnownStatus, lastKnownTotal, lastMessageCheckTime, inTakeover, wantsHuman,
       displayedMessages
     }));
   } catch {
@@ -61,6 +62,7 @@ function restoreSession() {
     lastKnownTotal = saved.lastKnownTotal;
     lastMessageCheckTime = saved.lastMessageCheckTime;
     inTakeover = saved.inTakeover || false;
+    wantsHuman = saved.wantsHuman || false;
     displayedMessages = saved.displayedMessages || [];
 
     conversationStarted = true;
@@ -219,6 +221,16 @@ async function sendMessage(text) {
       otpReminderCount = data.otpReminderCount ?? otpReminderCount;
       guestInfoReminderCount = data.guestInfoReminderCount ?? guestInfoReminderCount;
 
+      // The moment a human is asked for, switch to fast polling right away
+      // — don't make the customer wait through slow 15s checks just because
+      // staff hasn't formally clicked "take over" yet.
+      if (data.wantsHuman && !wantsHuman) {
+        wantsHuman = true;
+        startPolling();
+      } else {
+        wantsHuman = data.wantsHuman ?? wantsHuman;
+      }
+
       if (data.conversationEnded) {
         closeChat('Conversation ended');
         return;
@@ -253,14 +265,16 @@ formEl.addEventListener('submit', (e) => {
 });
 
 const POLL_INTERVAL_MS = 15000;
-// While a staff member is actively chatting live, 15s between checks feels
-// slow for a back-and-forth conversation — poll much faster during a
-// takeover, and fall back to the normal, cheaper interval otherwise.
+// While a staff member is actively chatting live, or the customer is
+// waiting on one after asking for a human, 15s between checks feels slow
+// for something that should feel like a live conversation — poll much
+// faster for either of those, and fall back to the normal, cheaper
+// interval otherwise.
 const TAKEOVER_POLL_INTERVAL_MS = 4000;
 let currentPollIntervalMs = null;
 
 function startPolling() {
-  const desired = inTakeover ? TAKEOVER_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+  const desired = (inTakeover || wantsHuman) ? TAKEOVER_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
   if (pollTimer && currentPollIntervalMs === desired) return; // already running at the right speed
   if (pollTimer) clearInterval(pollTimer);
   currentPollIntervalMs = desired;
