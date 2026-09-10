@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Call Report</title>
+  <style>
+    :root {
+      --ink: #161613;
+      --paper: #F8F7F3;
+      --paper-2: #EFEDE6;
+      --line: #DAD7CC;
+      --muted: #6B685E;
+      --teal: #0F5D50;
+      --teal-light: #E3EDE9;
+      --coral: #C1502E;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'IBM Plex Sans', system-ui, sans-serif;
+      --disp: 'Space Grotesk', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); line-height: 1.5; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+    .login-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .login-card { width: 100%; max-width: 360px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 32px; }
+    .login-card h1 { font-family: var(--disp); font-size: 20px; margin: 0 0 20px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .field input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+    .btn { font-size: 14px; font-weight: 500; border: 1px solid var(--ink); border-radius: 8px; padding: 11px 20px; background: var(--ink); color: var(--paper); cursor: pointer; width: 100%; }
+    .btn:hover { background: var(--teal); border-color: var(--teal); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-text { color: var(--coral); font-size: 13px; margin: 10px 0 0; }
+
+    header.dash-header { background: #fff; border-bottom: 1px solid var(--line); padding: 18px 0; }
+    header.dash-header .wrap { display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-family: var(--mono); font-size: 14px; }
+    .logo span { color: var(--teal); }
+    .logout-btn { font-family: var(--mono); font-size: 12.5px; color: var(--muted); background: none; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+
+    main.dash-main { padding: 32px 0 64px; }
+    .dash-title { font-family: var(--disp); font-size: 20px; margin: 0 0 24px; }
+    .empty-state { padding: 48px; text-align: center; color: var(--muted); font-family: var(--mono); font-size: 13px; }
+
+    .summary-row { display: flex; gap: 24px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 24px; margin-bottom: 24px; flex-wrap: wrap; }
+    .summary-stats { flex: 1; min-width: 180px; }
+    .summary-stats .big { font-family: var(--disp); font-size: 28px; }
+    .summary-stats .label { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .summary-stats.over .big { color: var(--coral); }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    th { text-align: left; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); padding: 10px 14px; background: var(--paper-2); border-bottom: 1px solid var(--line); }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    .status-pill { font-family: var(--mono); font-size: 11px; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; color: #fff; background: var(--muted); }
+    .status-pill.customer { background: var(--teal); }
+    .status-pill.silence { background: var(--coral); }
+    .replay-btn { font-family: var(--sans); font-size: 12.5px; background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+    .replay-btn:hover { background: #0c4a40; }
+    .no-recording { color: var(--muted); font-size: 12px; font-style: italic; }
+
+    .pro-gate { text-align: center; padding: 60px 24px; }
+    .pro-gate h2 { font-family: var(--disp); }
+
+    audio { width: 100%; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://kuxukkknasjlfpahcled.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_-fVzlBpMI2AoynUYjOyvwA_0FkivXts';
+    const TENANTS_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/tenants';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const app = document.getElementById('app');
+
+    function renderLogin(error) {
+      app.innerHTML = `
+        <div class="login-shell">
+          <div class="login-card">
+            <h1>Call Report — Sign in</h1>
+            <form id="login-form">
+              <div class="field"><label>Email</label><input type="email" id="email" required /></div>
+              <div class="field"><label>Password</label><input type="password" id="password" required /></div>
+              <button class="btn" type="submit">Sign in</button>
+              ${error ? `<p class="error-text">${error}</p>` : ''}
+            </form>
+          </div>
+        </div>`;
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) renderLogin(error.message);
+        else init();
+      });
+    }
+
+    function formatDuration(seconds) {
+      const s = Math.round(seconds || 0);
+      const m = Math.floor(s / 60);
+      const rem = s % 60;
+      return `${m}m ${rem}s`;
+    }
+
+    function pieSlicePath(fraction) {
+      // Simple two-slice pie via SVG arc — fraction is 0..1 of the circle for the "used" slice.
+      const r = 70, cx = 80, cy = 80;
+      if (fraction <= 0) return '';
+      if (fraction >= 1) return `M ${cx} ${cy} m -${r},0 a ${r},${r} 0 1,0 ${r * 2},0 a ${r},${r} 0 1,0 -${r * 2},0`;
+      const angle = fraction * 2 * Math.PI - Math.PI / 2;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      const largeArc = fraction > 0.5 ? 1 : 0;
+      return `M ${cx} ${cy} L ${cx} ${cy - r} A ${r} ${r} 0 ${largeArc} 1 ${x} ${y} Z`;
+    }
+
+    async function init() {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
+      if (!session) return renderLogin();
+
+      app.innerHTML = `
+        <header class="dash-header"><div class="wrap">
+          <span class="logo"><span>~/</span>call report</span>
+          <button class="logout-btn" id="logout">Sign out</button>
+        </div></header>
+        <main class="dash-main"><div class="wrap" id="content"><div class="empty-state">Loading…</div></div></main>`;
+      document.getElementById('logout').addEventListener('click', async () => { await supabase.auth.signOut(); renderLogin(); });
+
+      const content = document.getElementById('content');
+      try {
+        const res = await fetch(TENANTS_URL, { headers: { Authorization: `Bearer ${session.access_token}` } });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load');
+
+        const tier = data.tenant?.subscription_tier;
+        if (tier !== 'pro') {
+          content.innerHTML = `<div class="pro-gate"><h2>Call reports are a Pro feature</h2><p>Your current plan is <strong>${tier || 'unknown'}</strong>. Contact us to upgrade and unlock call minutes tracking and recordings.</p></div>`;
+          return;
+        }
+
+        const voice = data.voice || { minutes_used: 0, minutes_cap: 300, calls: [] };
+        const used = voice.minutes_used;
+        const cap = voice.minutes_cap;
+        const fraction = cap > 0 ? Math.min(used / cap, 1) : 0;
+        const over = used >= cap;
+
+        content.innerHTML = `
+          <h1 class="dash-title">${data.tenant?.name || 'Tenant'} — Call Report</h1>
+          <div class="summary-row">
+            <svg width="160" height="160" viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="70" fill="${'var(--paper-2)'}" />
+              <path d="${pieSlicePath(fraction)}" fill="${over ? 'var(--coral)' : 'var(--teal)'}" />
+            </svg>
+            <div class="summary-stats ${over ? 'over' : ''}">
+              <div class="big">${used.toFixed(1)} / ${cap} min</div>
+              <div class="label">USED THIS MONTH${over ? ' — CAP REACHED' : ''}</div>
+            </div>
+          </div>
+          ${voice.calls.length === 0
+            ? '<div class="empty-state">No calls yet this month.</div>'
+            : `<table>
+                <thead><tr><th>Caller</th><th>Phone</th><th>Date</th><th>Duration</th><th>Status</th><th>Replay</th></tr></thead>
+                <tbody>
+                  ${voice.calls.map((c) => `
+                    <tr>
+                      <td>${c.caller_name}</td>
+                      <td>${c.phone || '—'}</td>
+                      <td>${new Date(c.created_at).toLocaleString()}</td>
+                      <td>${formatDuration(c.duration_seconds)}</td>
+                      <td><span class="status-pill ${c.ended_reason === 'customer-ended-call' || c.ended_reason === 'assistant-ended-call' ? 'customer' : 'silence'}">${c.ended_reason || 'unknown'}</span></td>
+                      <td>${c.recording_url ? `<button class="replay-btn" data-url="${c.recording_url}">▶ Play</button>` : '<span class="no-recording">No recording</span>'}</td>
+                    </tr>
+                    <tr class="audio-row" id="audio-row-${c.id}" style="display:none"><td colspan="6"><audio controls id="audio-${c.id}"></audio></td></tr>
+                  `).join('')}
+                </tbody>
+              </table>`}
+        `;
+
+        content.querySelectorAll('.replay-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const row = btn.closest('tr');
+            const audioRow = row.nextElementSibling;
+            const audioEl = audioRow.querySelector('audio');
+            if (audioRow.style.display === 'none') {
+              audioEl.src = btn.dataset.url;
+              audioRow.style.display = '';
+            } else {
+              audioRow.style.display = 'none';
+              audioEl.pause();
+            }
+          });
+        });
+      } catch (err) {
+        content.innerHTML = `<p class="error-text">${err.message}</p>`;
+      }
+    }
+
+    supabase.auth.onAuthStateChange((_event, session) => { if (session) init(); });
+    init();
+  </script>
+</body>
+</html>
