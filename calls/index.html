@@ -186,6 +186,73 @@
       });
     }
 
+    const TIMEZONES = [
+      { value: 'America/Edmonton', label: 'Mountain Time (Edmonton)' },
+      { value: 'America/Toronto', label: 'Eastern Time (Toronto)' },
+      { value: 'America/Vancouver', label: 'Pacific Time (Vancouver)' }
+    ];
+    const HOURS = Array.from({ length: 25 }, (_, i) => i); // 0-24, 24 = midnight/end of day
+
+    function hourOptions(selected) {
+      return HOURS.map((h) => `<option value="${h}" ${h === selected ? 'selected' : ''}>${h === 24 ? '12:00 AM (next day)' : h === 0 ? '12:00 AM' : h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h - 12}:00 PM`}</option>`).join('');
+    }
+
+    function renderVoiceSettings(slot, tenant, authHeader) {
+      slot.innerHTML = `
+        <div class="summary-row" style="flex-direction:column;align-items:stretch;gap:12px;">
+          <strong style="font-family:var(--disp);font-size:15px;">Voice line settings</strong>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+            <input type="checkbox" id="vs-enabled" ${tenant.voice_enabled ? 'checked' : ''} /> Voice line enabled
+          </label>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Timezone</label>
+            <select id="vs-tz">${TIMEZONES.map((tz) => `<option value="${tz.value}" ${tz.value === tenant.voice_timezone ? 'selected' : ''}>${tz.label}</option>`).join('')}</select>
+          </div>
+          <div style="display:flex;gap:24px;flex-wrap:wrap;">
+            <div>
+              <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Weekday open</label>
+              <select id="vs-wd-open">${hourOptions(tenant.voice_weekday_open_hour ?? 0)}</select>
+              <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 4px;">Weekday close</label>
+              <select id="vs-wd-close">${hourOptions(tenant.voice_weekday_close_hour ?? 24)}</select>
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Weekend open</label>
+              <select id="vs-we-open">${hourOptions(tenant.voice_weekend_open_hour ?? 0)}</select>
+              <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 4px;">Weekend close</label>
+              <select id="vs-we-close">${hourOptions(tenant.voice_weekend_close_hour ?? 24)}</select>
+            </div>
+          </div>
+          <button class="replay-btn" id="vs-save" style="width:fit-content;">Save voice settings</button>
+          <span id="vs-status" class="error-text" style="color:var(--teal);display:none;"></span>
+        </div>`;
+
+      document.getElementById('vs-save').addEventListener('click', async () => {
+        const status = document.getElementById('vs-status');
+        status.style.display = 'none';
+        const payload = {
+          id: tenant.id,
+          voice_enabled: document.getElementById('vs-enabled').checked,
+          voice_timezone: document.getElementById('vs-tz').value,
+          voice_weekday_open_hour: Number(document.getElementById('vs-wd-open').value),
+          voice_weekday_close_hour: Number(document.getElementById('vs-wd-close').value),
+          voice_weekend_open_hour: Number(document.getElementById('vs-we-open').value),
+          voice_weekend_close_hour: Number(document.getElementById('vs-we-close').value)
+        };
+        try {
+          const res = await fetch(TENANTS_URL, { method: 'PATCH', headers: { ...authHeader, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Save failed');
+          status.textContent = 'Saved.';
+          status.style.color = 'var(--teal)';
+          status.style.display = 'inline';
+        } catch (err) {
+          status.textContent = err.message;
+          status.style.color = 'var(--coral)';
+          status.style.display = 'inline';
+        }
+      });
+    }
+
     async function init() {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
@@ -196,7 +263,7 @@
           <span class="logo"><a href="https://reysan.ca/dashboard/" class="back-link">&larr; Dashboard</a> <span>~/</span>call report</span>
           <button class="logout-btn" id="logout">Sign out</button>
         </div></header>
-        <main class="dash-main"><div class="wrap"><h1 class="dash-title" id="page-title">Call Report</h1><div id="picker-slot"></div><div id="content"><div class="empty-state">Loading…</div></div></div></main>`;
+        <main class="dash-main"><div class="wrap"><h1 class="dash-title" id="page-title">Call Report</h1><div id="picker-slot"></div><div id="settings-slot"></div><div id="content"><div class="empty-state">Loading…</div></div></div></main>`;
       document.getElementById('logout').addEventListener('click', async () => { await supabase.auth.signOut(); renderLogin(); });
 
       const content = document.getElementById('content');
@@ -226,6 +293,7 @@
             const data = await res.json();
             if (!res.ok) return (content.innerHTML = `<p class="error-text">${data.error}</p>`);
             document.getElementById('page-title').textContent = `${data.tenant?.name || 'Tenant'} — Call Report`;
+            renderVoiceSettings(document.getElementById('settings-slot'), data.tenant, authHeader);
             renderReport(content, data, { skipProGate: true });
           }
 
