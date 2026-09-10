@@ -4,16 +4,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jollibee Canada — Order Assistant</title>
+  <title>Tim Hortons Canada — Order Assistant</title>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <style>
     :root {
-      --jb-red: #C8102E;
-      --jb-red-dark: #970C22;
-      --jb-yellow: #FFC72C;
-      --jb-cream: #FFF8EC;
-      --jb-ink: #2B1A12;
-      --jb-line: #EADFC9;
+      --th-red: #D52B1E;
+      --th-red-dark: #A31F16;
+      --th-gold: #D9A566;
+      --th-cream: #FFF8EC;
+      --th-ink: #2B1A12;
+      --th-line: #EADFC9;
     }
 
     * {
@@ -30,8 +30,8 @@
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--jb-cream);
-      color: var(--jb-ink);
+      background: var(--th-cream);
+      color: var(--th-ink);
     }
 
     .wrap {
@@ -48,7 +48,7 @@
     }
 
     header {
-      background: var(--jb-red);
+      background: var(--th-red);
       color: #fff;
       padding: 18px 20px;
       display: flex;
@@ -59,13 +59,13 @@
     header .badge {
       width: 36px;
       height: 36px;
-      background: var(--jb-yellow);
+      background: var(--th-gold);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      color: var(--jb-red-dark);
+      color: var(--th-red-dark);
     }
 
     header h1 {
@@ -99,7 +99,7 @@
     }
 
     #gate-error {
-      color: var(--jb-red);
+      color: var(--th-red);
       font-size: 13px;
       min-height: 18px;
     }
@@ -133,22 +133,22 @@
 
     .msg.user {
       align-self: flex-end;
-      background: var(--jb-yellow);
-      color: var(--jb-ink);
+      background: var(--th-gold);
+      color: var(--th-ink);
       border-bottom-right-radius: 4px;
     }
 
     .msg.bot {
       align-self: flex-start;
-      background: var(--jb-cream);
-      border: 1px solid var(--jb-line);
+      background: var(--th-cream);
+      border: 1px solid var(--th-line);
       border-bottom-left-radius: 4px;
     }
 
     .msg.staff {
       align-self: flex-start;
-      background: var(--jb-yellow);
-      color: var(--jb-ink);
+      background: var(--th-gold);
+      color: var(--th-ink);
       border: 1px solid #e0a800;
       border-bottom-left-radius: 4px;
       font-weight: 500;
@@ -165,9 +165,9 @@
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: var(--jb-ink);
+      background: var(--th-ink);
       opacity: 0.4;
-      animation: jb-typing-bounce 1.2s infinite ease-in-out;
+      animation: th-typing-bounce 1.2s infinite ease-in-out;
     }
 
     .typing-indicator span:nth-child(2) {
@@ -178,7 +178,7 @@
       animation-delay: 0.3s;
     }
 
-    @keyframes jb-typing-bounce {
+    @keyframes th-typing-bounce {
 
       0%,
       60%,
@@ -196,7 +196,7 @@
     .msg.error {
       align-self: center;
       background: #fdecec;
-      color: var(--jb-red-dark);
+      color: var(--th-red-dark);
       border: 1px solid #f3c9c9;
       font-size: 13px;
     }
@@ -205,24 +205,24 @@
       display: flex;
       gap: 8px;
       padding: 14px 16px;
-      border-top: 1px solid var(--jb-line);
+      border-top: 1px solid var(--th-line);
     }
 
     input[type=text] {
       flex: 1;
       padding: 12px 14px;
       border-radius: 22px;
-      border: 1px solid var(--jb-line);
+      border: 1px solid var(--th-line);
       font-size: 14px;
       outline: none;
     }
 
     input[type=text]:focus {
-      border-color: var(--jb-red);
+      border-color: var(--th-red);
     }
 
     button.send {
-      background: var(--jb-red);
+      background: var(--th-red);
       color: #fff;
       border: none;
       padding: 0 20px;
@@ -233,7 +233,7 @@
     }
 
     button.send:hover {
-      background: var(--jb-red-dark);
+      background: var(--th-red-dark);
     }
 
     button.send:disabled {
@@ -246,9 +246,9 @@
 <body>
   <div class="wrap">
     <header>
-      <div class="badge">JB</div>
+      <div class="badge">TH</div>
       <div>
-        <h1>Jollibee Canada</h1>
+        <h1>Tim Hortons Canada</h1>
         <p>Ask about the menu or place an order</p>
       </div>
     </header>
@@ -268,7 +268,7 @@
     </div>
   </div>
 
-  <script src="jollibee.js"></script>
+  <script src="timhortons.js"></script>
 </body>
 
 </html>

@@ -1,11 +1,11 @@
-const CAPTCHA_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/jollibee-captcha';
-const CHAT_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/jollibee-chat';
+const CAPTCHA_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/timhortons-captcha';
+const CHAT_URL = 'https://reysan-ca-backend-77ah.vercel.app/api/timhortons-chat';
 const STORE_PHONE = '780-000-0000'; // TODO: replace with the real store contact number
 
 let sessionToken = null;
 let history = [];
 let customerId = null;
-let customerAuth = null; // proves to the server we actually own customerId — see jollibee-chat.js
+let customerAuth = null; // proves to the server we actually own customerId — see timhortons-chat.js
 let phoneVerified = false;
 let orderId = null;
 let offTopicCount = 0;
@@ -20,7 +20,7 @@ let pollTimer = null;
 let conversationStarted = false; // guards against Turnstile silently re-verifying mid-session
 let displayedMessages = []; // {text, who} — replayed on restore so a refresh doesn't look like the chat forgot everything
 
-const SESSION_KEY = 'jollibee_session';
+const SESSION_KEY = 'timhortons_session';
 const SESSION_MAX_AGE_MS = 25 * 60 * 1000; // a bit under the server's own ~30 min token expiry
 
 function saveSession() {
@@ -112,7 +112,7 @@ window.onTurnstileSuccess = async function (turnstileToken) {
       conversationStarted = true;
       gateEl.style.display = 'none';
       chatViewEl.style.display = 'flex';
-      addMessage("Hi! I'm your Jollibee ordering assistant. What's your name and phone number so we can get started?", 'bot');
+      addMessage("Hi! I'm your Tim Hortons ordering assistant. What's your name and phone number so we can get started?", 'bot');
       inputEl.focus();
     }
     saveSession();
@@ -144,14 +144,14 @@ function showTypingIndicator() {
   hideTypingIndicator(); // never stack more than one
   const div = document.createElement('div');
   div.className = 'msg bot typing-indicator';
-  div.id = 'jb-typing-indicator';
+  div.id = 'th-typing-indicator';
   div.innerHTML = '<span></span><span></span><span></span>';
   messagesEl.appendChild(div);
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
 function hideTypingIndicator() {
-  const existing = document.getElementById('jb-typing-indicator');
+  const existing = document.getElementById('th-typing-indicator');
   if (existing) existing.remove();
 }
 
