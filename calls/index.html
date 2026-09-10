@@ -208,16 +208,17 @@
     ];
 
     function renderVoiceSettings(slot, tenant, authHeader) {
-      const hours = tenant.voice_hours || {};
+      const hours = tenant.store_hours || {};
       slot.innerHTML = `
         <div class="summary-row" style="flex-direction:column;align-items:stretch;gap:12px;">
-          <strong style="font-family:var(--disp);font-size:15px;">Voice line settings</strong>
+          <strong style="font-family:var(--disp);font-size:15px;">Store hours</strong>
+          <p style="font-size:12.5px;color:var(--muted);margin:-4px 0 0;">Applies to both the voice line and chat ordering — outside these hours, neither will take new orders.</p>
           <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
             <input type="checkbox" id="vs-enabled" ${tenant.voice_enabled ? 'checked' : ''} /> Voice line enabled
           </label>
           <div>
             <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Timezone</label>
-            <select id="vs-tz">${TIMEZONES.map((tz) => `<option value="${tz.value}" ${tz.value === tenant.voice_timezone ? 'selected' : ''}>${tz.label}</option>`).join('')}</select>
+            <select id="vs-tz">${TIMEZONES.map((tz) => `<option value="${tz.value}" ${tz.value === tenant.store_timezone ? 'selected' : ''}>${tz.label}</option>`).join('')}</select>
           </div>
           <div>
             <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:8px;">Hours per day (same open/close hour = closed that day)</label>
@@ -242,9 +243,9 @@
       document.getElementById('vs-save').addEventListener('click', async () => {
         const status = document.getElementById('vs-status');
         status.style.display = 'none';
-        const voice_hours = {};
+        const store_hours = {};
         DAYS.forEach((d) => {
-          voice_hours[d.key] = {
+          store_hours[d.key] = {
             open: Number(document.getElementById(`vs-${d.key}-open`).value),
             close: Number(document.getElementById(`vs-${d.key}-close`).value)
           };
@@ -252,8 +253,8 @@
         const payload = {
           id: tenant.id,
           voice_enabled: document.getElementById('vs-enabled').checked,
-          voice_timezone: document.getElementById('vs-tz').value,
-          voice_hours
+          store_timezone: document.getElementById('vs-tz').value,
+          store_hours
         };
         try {
           const res = await fetch(TENANTS_URL, { method: 'PATCH', headers: { ...authHeader, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -318,11 +319,15 @@
           if (listData.tenants[0]) loadTenant(listData.tenants[0].id);
           else content.innerHTML = '<div class="empty-state">No tenants yet.</div>';
         } else {
-          // tenant_admin: their own tenant only, Pro-tier gated.
+          // tenant_admin: their own tenant only. Store hours are available to
+          // every tier — every tenant needs to be able to keep chat/voice from
+          // taking orders while closed — but the minutes/cost report itself
+          // stays a Pro feature.
           const res = await fetch(TENANTS_URL, { headers: authHeader });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Failed to load');
           document.getElementById('page-title').textContent = `${data.tenant?.name || 'Tenant'} — Call Report`;
+          renderVoiceSettings(document.getElementById('settings-slot'), data.tenant, authHeader);
           renderReport(content, data, { skipProGate: false });
         }
       } catch (err) {
