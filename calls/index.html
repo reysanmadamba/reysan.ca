@@ -197,7 +197,18 @@
       return HOURS.map((h) => `<option value="${h}" ${h === selected ? 'selected' : ''}>${h === 24 ? '12:00 AM (next day)' : h === 0 ? '12:00 AM' : h < 12 ? `${h}:00 AM` : h === 12 ? '12:00 PM' : `${h - 12}:00 PM`}</option>`).join('');
     }
 
+    const DAYS = [
+      { key: 'mon', label: 'Monday' },
+      { key: 'tue', label: 'Tuesday' },
+      { key: 'wed', label: 'Wednesday' },
+      { key: 'thu', label: 'Thursday' },
+      { key: 'fri', label: 'Friday' },
+      { key: 'sat', label: 'Saturday' },
+      { key: 'sun', label: 'Sunday' }
+    ];
+
     function renderVoiceSettings(slot, tenant, authHeader) {
+      const hours = tenant.voice_hours || {};
       slot.innerHTML = `
         <div class="summary-row" style="flex-direction:column;align-items:stretch;gap:12px;">
           <strong style="font-family:var(--disp);font-size:15px;">Voice line settings</strong>
@@ -208,19 +219,21 @@
             <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Timezone</label>
             <select id="vs-tz">${TIMEZONES.map((tz) => `<option value="${tz.value}" ${tz.value === tenant.voice_timezone ? 'selected' : ''}>${tz.label}</option>`).join('')}</select>
           </div>
-          <div style="display:flex;gap:24px;flex-wrap:wrap;">
-            <div>
-              <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Weekday open</label>
-              <select id="vs-wd-open">${hourOptions(tenant.voice_weekday_open_hour ?? 0)}</select>
-              <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 4px;">Weekday close</label>
-              <select id="vs-wd-close">${hourOptions(tenant.voice_weekday_close_hour ?? 24)}</select>
-            </div>
-            <div>
-              <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Weekend open</label>
-              <select id="vs-we-open">${hourOptions(tenant.voice_weekend_open_hour ?? 0)}</select>
-              <label style="display:block;font-size:12px;color:var(--muted);margin:8px 0 4px;">Weekend close</label>
-              <select id="vs-we-close">${hourOptions(tenant.voice_weekend_close_hour ?? 24)}</select>
-            </div>
+          <div>
+            <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:8px;">Hours per day (same open/close hour = closed that day)</label>
+            <table style="width:100%;">
+              <thead><tr><th>Day</th><th>Open</th><th>Close</th></tr></thead>
+              <tbody>
+                ${DAYS.map((d) => {
+                  const dayHours = hours[d.key] || { open: 0, close: 24 };
+                  return `<tr>
+                    <td>${d.label}</td>
+                    <td><select id="vs-${d.key}-open">${hourOptions(dayHours.open)}</select></td>
+                    <td><select id="vs-${d.key}-close">${hourOptions(dayHours.close)}</select></td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
           </div>
           <button class="replay-btn" id="vs-save" style="width:fit-content;">Save voice settings</button>
           <span id="vs-status" class="error-text" style="color:var(--teal);display:none;"></span>
@@ -229,14 +242,18 @@
       document.getElementById('vs-save').addEventListener('click', async () => {
         const status = document.getElementById('vs-status');
         status.style.display = 'none';
+        const voice_hours = {};
+        DAYS.forEach((d) => {
+          voice_hours[d.key] = {
+            open: Number(document.getElementById(`vs-${d.key}-open`).value),
+            close: Number(document.getElementById(`vs-${d.key}-close`).value)
+          };
+        });
         const payload = {
           id: tenant.id,
           voice_enabled: document.getElementById('vs-enabled').checked,
           voice_timezone: document.getElementById('vs-tz').value,
-          voice_weekday_open_hour: Number(document.getElementById('vs-wd-open').value),
-          voice_weekday_close_hour: Number(document.getElementById('vs-wd-close').value),
-          voice_weekend_open_hour: Number(document.getElementById('vs-we-open').value),
-          voice_weekend_close_hour: Number(document.getElementById('vs-we-close').value)
+          voice_hours
         };
         try {
           const res = await fetch(TENANTS_URL, { method: 'PATCH', headers: { ...authHeader, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
