@@ -5,6 +5,7 @@ const STORE_PHONE = '780-000-0000'; // TODO: replace with the real store contact
 let sessionToken = null;
 let history = [];
 let customerId = null;
+let customerAuth = null; // proves to the server we actually own customerId — see jollibee-chat.js
 let phoneVerified = false;
 let orderId = null;
 let offTopicCount = 0;
@@ -26,7 +27,7 @@ function saveSession() {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify({
       savedAt: Date.now(),
-      sessionToken, history, customerId, phoneVerified, orderId,
+      sessionToken, history, customerId, customerAuth, phoneVerified, orderId,
       offTopicCount, otpReminderCount, guestInfoReminderCount,
       lastKnownStatus, lastKnownTotal, lastMessageCheckTime, inTakeover,
       displayedMessages
@@ -50,6 +51,7 @@ function restoreSession() {
     sessionToken = saved.sessionToken;
     history = saved.history || [];
     customerId = saved.customerId;
+    customerAuth = saved.customerAuth || null;
     phoneVerified = saved.phoneVerified;
     orderId = saved.orderId;
     offTopicCount = saved.offTopicCount || 0;
@@ -181,6 +183,7 @@ async function sendMessage(text) {
         history,
         token: sessionToken,
         customerId,
+        customerAuth,
         phoneVerified,
         orderId,
         offTopicCount,
@@ -197,6 +200,7 @@ async function sendMessage(text) {
       // AI is paused — a staff member is handling this conversation. No
       // auto-reply; their message will arrive via polling instead.
       customerId = data.customerId ?? customerId;
+      customerAuth = data.customerAuth ?? customerAuth;
       phoneVerified = data.phoneVerified ?? phoneVerified;
       orderId = data.orderId ?? orderId;
       if (!inTakeover) {
@@ -209,6 +213,7 @@ async function sendMessage(text) {
       addMessage(data.reply, 'bot');
       history = data.history || history;
       customerId = data.customerId ?? customerId;
+      customerAuth = data.customerAuth ?? customerAuth;
       phoneVerified = data.phoneVerified ?? phoneVerified;
       offTopicCount = data.offTopicCount ?? offTopicCount;
       otpReminderCount = data.otpReminderCount ?? otpReminderCount;
@@ -270,6 +275,7 @@ async function checkOrderStatus() {
         checkStatus: true,
         orderId,
         customerId,
+        customerAuth,
         token: sessionToken,
         messagesSince: lastMessageCheckTime
       })
