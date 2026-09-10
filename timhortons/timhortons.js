@@ -253,15 +253,24 @@ formEl.addEventListener('submit', (e) => {
 });
 
 const POLL_INTERVAL_MS = 15000;
+// While a staff member is actively chatting live, 15s between checks feels
+// slow for a back-and-forth conversation — poll much faster during a
+// takeover, and fall back to the normal, cheaper interval otherwise.
+const TAKEOVER_POLL_INTERVAL_MS = 4000;
+let currentPollIntervalMs = null;
 
 function startPolling() {
-  if (pollTimer) return; // already running
-  pollTimer = setInterval(checkOrderStatus, POLL_INTERVAL_MS);
+  const desired = inTakeover ? TAKEOVER_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+  if (pollTimer && currentPollIntervalMs === desired) return; // already running at the right speed
+  if (pollTimer) clearInterval(pollTimer);
+  currentPollIntervalMs = desired;
+  pollTimer = setInterval(checkOrderStatus, desired);
 }
 
 function stopPolling() {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = null;
+  currentPollIntervalMs = null;
 }
 
 async function checkOrderStatus() {
@@ -295,8 +304,10 @@ async function checkOrderStatus() {
     // message even though they can already see staff talking to them.
     if (data.takeoverActive && !inTakeover) {
       inTakeover = true;
+      startPolling(); // speed up now that a human is live
     } else if (inTakeover && !data.takeoverActive) {
       inTakeover = false;
+      startPolling(); // back to the normal, cheaper interval
     }
 
     if (data.status && data.status !== lastKnownStatus) {
