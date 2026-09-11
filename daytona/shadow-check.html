@@ -262,10 +262,74 @@
             opacity: 0.5;
             cursor: default;
         }
+
+        #introBackdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(43, 33, 24, 0.55);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #introBackdrop.hidden {
+            display: none;
+        }
+
+        #introPanel {
+            background: white;
+            border-radius: 14px;
+            max-width: 380px;
+            width: 100%;
+            padding: 24px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        #introPanel h2 {
+            margin: 0 0 10px;
+            font-size: 17px;
+            color: var(--daytona-text);
+        }
+
+        #introPanel p {
+            margin: 0 0 18px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #5A4C3C;
+        }
+
+        #introOkBtn {
+            background: var(--daytona-orange);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        #introOkBtn:hover {
+            background: var(--daytona-orange-dark);
+        }
     </style>
 </head>
 
 <body>
+    <div id="introBackdrop">
+        <div id="introPanel">
+            <h2>Before you explore</h2>
+            <p>Some listings don't have a house built yet in the map data this tool uses, so an exact shadow
+                simulation isn't possible for that specific home. You can still try the feature though — zoom out,
+                click on any nearby house, and drag the sun icon around to see how shadows move throughout the day.
+            </p>
+            <button id="introOkBtn">Got it</button>
+        </div>
+    </div>
+
     <div id="app">
         <header>
             <div>
@@ -329,6 +393,12 @@
 
     <script>
         (function () {
+            var introBackdrop = document.getElementById('introBackdrop');
+            var introOkBtn = document.getElementById('introOkBtn');
+            introOkBtn.addEventListener('click', function () {
+                introBackdrop.classList.add('hidden');
+            });
+
             var DEFAULT_LAT = 53.5461;
             var DEFAULT_LNG = -113.4938; // Edmonton area fallback
             var DEFAULT_ZOOM = 18;
