@@ -185,22 +185,32 @@
         }
     }
 
-    // The system prompt always phrases the shadow-check follow-up this
-    // exact way on its own line after a blank line (see daytona-chat.js).
-    // Splitting on it lets the listing details render immediately and the
-    // follow-up land a beat later, so it doesn't get lost right after a
-    // URL the visitor's eye stops on.
-    var SHADOW_CHECK_QUESTION = 'Want to see how sunlight and shadows move across this property throughout the day?';
+    // The system prompt always puts the shadow-check follow-up (there are
+    // three variants now — one listing, several listings, or several
+    // listings plus a "want 5 more?" offer) on its own paragraph at the
+    // end, after a blank line. The model doesn't always reproduce the
+    // suggested wording byte-for-byte (smart quotes, em-dashes, minor
+    // rephrasing), so rather than matching one exact sentence, split on
+    // the LAST paragraph if it looks like that follow-up — this catches
+    // all three variants and close paraphrases of them. Splitting lets
+    // the listing details render immediately and the follow-up land a
+    // beat later, so it doesn't get lost right after a URL the visitor's
+    // eye stops on.
+    function looksLikeShadowCheckFollowUp(paragraph) {
+        var p = paragraph.trim();
+        return /^want to see/i.test(p) && /sunlight/i.test(p);
+    }
     function addAssistantReply(text) {
-        var idx = text.lastIndexOf(SHADOW_CHECK_QUESTION);
-        if (idx !== -1 && idx + SHADOW_CHECK_QUESTION.length >= text.length - 1) {
-            var main = text.slice(0, idx).trim();
+        var paragraphs = text.split(/\n\n+/);
+        var last = paragraphs[paragraphs.length - 1];
+        if (paragraphs.length > 1 && looksLikeShadowCheckFollowUp(last)) {
+            var main = paragraphs.slice(0, -1).join('\n\n').trim();
             if (main) {
                 addMsg(main, 'assistant');
                 playReplyTone();
             }
             setTimeout(function () {
-                addMsg(SHADOW_CHECK_QUESTION, 'assistant');
+                addMsg(last.trim(), 'assistant');
                 playReplyTone();
             }, 3000);
             return;
