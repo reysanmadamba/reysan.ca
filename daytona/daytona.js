@@ -131,6 +131,84 @@
         chatLog.scrollTop = chatLog.scrollHeight;
     }
 
+    // ============================================================
+    // Typing indicator — shown while waiting on a reply (a search_listings
+    // tool round-trip can take a few seconds, so this is the "Dakota is
+    // still working on it" signal rather than the chat looking frozen).
+    // ============================================================
+    var typingEl = null;
+    function showTyping() {
+        if (typingEl) return;
+        typingEl = document.createElement('div');
+        typingEl.className = 'msg assistant typing';
+        typingEl.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+        chatLog.appendChild(typingEl);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+    function hideTyping() {
+        if (!typingEl) return;
+        typingEl.remove();
+        typingEl = null;
+    }
+
+    // ============================================================
+    // Reply sound — a short synthesized tone (no audio file to host),
+    // played whenever a real Dakota reply lands. The AudioContext is
+    // created lazily on the visitor's first interaction with the chat
+    // (typing/sending) rather than at page load, since browsers block
+    // audio that starts before any user gesture.
+    // ============================================================
+    var audioCtx = null;
+    function ensureAudioCtx() {
+        if (!audioCtx && (window.AudioContext || window.webkitAudioContext)) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    function playReplyTone() {
+        if (!audioCtx || reduce) return; // respects prefers-reduced-motion as a rough "keep it subtle" signal too
+        try {
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.26);
+        } catch (err) {
+            // audio is a nice-to-have — never let it break the chat
+        }
+    }
+
+    // The system prompt always phrases the shadow-check follow-up this
+    // exact way on its own line after a blank line (see daytona-chat.js).
+    // Splitting on it lets the listing details render immediately and the
+    // follow-up land a beat later, so it doesn't get lost right after a
+    // URL the visitor's eye stops on.
+    var SHADOW_CHECK_QUESTION = 'Want to see how sunlight and shadows move across this property throughout the day?';
+    function addAssistantReply(text) {
+        var idx = text.lastIndexOf(SHADOW_CHECK_QUESTION);
+        if (idx !== -1 && idx + SHADOW_CHECK_QUESTION.length >= text.length - 1) {
+            var main = text.slice(0, idx).trim();
+            if (main) {
+                addMsg(main, 'assistant');
+                playReplyTone();
+            }
+            setTimeout(function () {
+                addMsg(SHADOW_CHECK_QUESTION, 'assistant');
+                playReplyTone();
+            }, 3000);
+            return;
+        }
+        addMsg(text, 'assistant');
+        playReplyTone();
+    }
+
     function lockChat(message) {
         addMsg(message, 'assistant');
         chatEnded = true;
@@ -147,6 +225,7 @@
                 return;
             }
 
+            ensureAudioCtx(); // prime it on this earlier gesture too
             startChat.disabled = true;
             startChat.textContent = 'Verifying...';
 
@@ -186,6 +265,8 @@
         var message = chatInput.value.trim();
         if (!message) return;
 
+        ensureAudioCtx(); // lazily start audio here — this click/keypress IS the user gesture browsers require
+
         var userTurns = conversation.filter(function (m) { return m.role === 'user'; }).length;
         if (userTurns >= MAX_MESSAGES) {
             lockChat("We've hit the message limit for this demo session — thanks for chatting!");
@@ -196,6 +277,7 @@
         conversation.push({ role: 'user', content: message });
         chatInput.value = '';
         chatSend.disabled = true;
+        showTyping();
 
         try {
             var res = await fetch(CHAT_ENDPOINT, {
@@ -203,6 +285,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionToken: sessionToken, messages: conversation })
             });
+
+            hideTyping();
 
             if (res.status === 401) {
                 addMsg('Session expired — please restart the verification.', 'assistant');
@@ -215,7 +299,7 @@
 
             var data = await res.json();
             var reply = data.reply || "Sorry, I couldn't get an answer just now.";
-            addMsg(reply, 'assistant');
+            addAssistantReply(reply);
             conversation.push({ role: 'assistant', content: reply });
 
             if (data.disconnected) {
@@ -230,8 +314,10 @@
                 lockChat("That's the message limit for this demo session — thanks for chatting!");
             }
         } catch (err) {
+            hideTyping();
             addMsg('Sorry, something went wrong.', 'assistant');
         } finally {
+            hideTyping(); // belt-and-suspenders — every path above should already have cleared it
             if (!chatEnded) chatSend.disabled = false;
         }
     }

@@ -55,3 +55,34 @@
 .dt-panel .chat-intake input:focus-visible {
     outline: 2px solid var(--dt-orange);
 }
+
+/* "Dakota is typing..." indicator — shown while waiting on the reply
+   (including any search_listings tool round-trip, which can take a few
+   seconds), removed the moment the real reply renders. */
+.dt-panel .chat-log .msg.typing {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+}
+
+.dt-panel .chat-log .msg.typing .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--dt-orange);
+    opacity: 0.4;
+    animation: dt-typing-bounce 1.2s infinite ease-in-out;
+}
+
+.dt-panel .chat-log .msg.typing .dot:nth-child(2) { animation-delay: 0.15s; }
+.dt-panel .chat-log .msg.typing .dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dt-typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-4px); opacity: 0.9; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dt-panel .chat-log .msg.typing .dot { animation: none; opacity: 0.7; }
+}
