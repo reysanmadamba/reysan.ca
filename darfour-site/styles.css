@@ -116,7 +116,7 @@ html.darfour-site{scroll-behavior:smooth;}
 .darfour-site .board-card p{font-size:0.85rem; margin-top:4px;}
 
 /* contact page */
-.darfour-site .contact-grid{display:grid; grid-template-columns:1fr 1fr; gap:48px;}
+.darfour-site .contact-grid{display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:start;}
 .darfour-site .contact-list{list-style:none; padding:0; margin:20px 0 0;}
 .darfour-site .contact-list li{padding:12px 0; border-top:1px solid var(--border); font-size:0.94rem;}
 .darfour-site .contact-list li:last-child{border-bottom:1px solid var(--border);}
