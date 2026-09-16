@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="darfour-site">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact — Darfour Community League</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Work+Sans:wght@400;500;600&family=Noto+Sans+Arabic:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div>
+      <div class="brand-en">Darfour Community League</div>
+      <div class="brand-ar">رابطة دارفور المجتمعية</div>
+    </div>
+    <nav class="links">
+      <a href="index.html">Home</a>
+      <a href="mission.html">Mission</a>
+      <a href="about.html">About</a>
+      <a href="how-to-help.html">How to Help</a>
+      <a href="contact.html" aria-current="page">Contact</a>
+    </nav>
+    <div class="nav-right">
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">White template</button>
+      <a href="how-to-help.html" class="btn btn-primary">Give</a>
+    </div>
+  </div>
+</header>
+
+<section style="padding-bottom:40px;">
+  <div class="wrap">
+    <div class="kicker">Get in touch</div>
+    <h1 class="page-title">Visit us, write to us, or send a donation by mail.</h1>
+  </div>
+</section>
+
+<section style="padding-top:0;">
+  <div class="wrap contact-grid">
+    <div>
+      <ul class="contact-list">
+        <li>Address — 10123 104 Avenue NW, Edmonton, AB T5J 0H8 <em style="opacity:0.65;">(placeholder, replace with registered address)</em></li>
+        <li>Email — info@darfuredm.org</li>
+        <li>Phone — (780) 555‑0148 <em style="opacity:0.65;">(placeholder)</em></li>
+        <li>Website — darfuredm.org</li>
+      </ul>
+
+      <form class="contact-form" onsubmit="handleContactSubmit(event)">
+        <div>
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div>
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div>
+          <label for="message">Message</label>
+          <textarea id="message" name="message" required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Send message</button>
+        <p id="form-status" class="form-note"></p>
+      </form>
+    </div>
+
+    <div class="img-slot map-slot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2C7.6 2 4 5.6 4 10c0 6 8 12 8 12s8-6 8-12c0-4.4-3.6-8-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+      <span>Map placeholder</span>
+      <small>Swap for a live Google Maps embed once the address is confirmed</small>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div>
+      <div class="brand-en">Darfour Community League</div>
+      <div class="ar" style="color:var(--gold); margin-top:4px; font-size:0.85rem;">رابطة دارفور المجتمعية</div>
+    </div>
+    <div style="font-size:0.9rem; color:var(--muted);">Edmonton, AB · darfuredm.org</div>
+  </div>
+  <div class="wrap fine">Wireframe draft — placeholder images, text, and contact details throughout, for layout and content review only.</div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

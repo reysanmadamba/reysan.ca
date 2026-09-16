@@ -1,0 +1,132 @@
+/* Darfour Community League — shared stylesheet
+   Two color themes controlled by [data-theme] on <html>.
+   Theme choice is saved to localStorage so it persists across pages.
+   All rules are scoped under html.darfour-site so nothing here can
+   collide with the main reysan.ca stylesheet. */
+
+html.darfour-site[data-theme="dark"]{
+  --bg:#1B140D; --bg-2:#241B12; --card:#241B12;
+  --ink:#F1E6CE; --muted:#C9B98C; --border:rgba(241,230,206,0.16);
+  --rust:#D4753C; --green:#3E8F6C; --gold:#CE9A2E;
+  --btn-primary-text:#1B140D;
+}
+html.darfour-site[data-theme="light"]{
+  --bg:#FFFFFF; --bg-2:#F6F3EC; --card:#FFFFFF;
+  --ink:#221A12; --muted:#6B6153; --border:rgba(34,26,18,0.14);
+  --rust:#B0491F; --green:#0E5C3F; --gold:#A9791F;
+  --btn-primary-text:#FBF6EA;
+}
+
+html.darfour-site, .darfour-site *{box-sizing:border-box;}
+html.darfour-site{scroll-behavior:smooth;}
+.darfour-site body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:'Work Sans', sans-serif; line-height:1.6;
+}
+.darfour-site h1, .darfour-site h2, .darfour-site h3{font-family:'Lora', serif; margin:0; line-height:1.2; font-weight:700;}
+.darfour-site p{margin:0 0 14px; color:var(--muted); font-size:0.98rem;}
+.darfour-site .ar{font-family:'Noto Sans Arabic', sans-serif; direction:rtl;}
+.darfour-site a{color:inherit;}
+.darfour-site .wrap{max-width:1100px; margin:0 auto; padding:0 28px;}
+
+/* header / nav */
+.darfour-site header{position:sticky; top:0; z-index:50; background:var(--bg); border-bottom:1px solid var(--border);}
+.darfour-site .nav{display:flex; align-items:center; justify-content:space-between; padding:16px 0; gap:16px; flex-wrap:wrap;}
+.darfour-site .brand-en{font-family:'Lora', serif; font-weight:700; font-size:1.05rem;}
+.darfour-site .brand-ar{font-family:'Noto Sans Arabic', sans-serif; direction:rtl; font-size:0.82rem; color:var(--rust); font-weight:600;}
+.darfour-site nav.links{display:flex; gap:24px; font-size:0.94rem;}
+.darfour-site nav.links a{text-decoration:none; opacity:0.75;}
+.darfour-site nav.links a[aria-current="page"]{opacity:1; border-bottom:2px solid var(--rust); padding-bottom:2px;}
+.darfour-site .nav-right{display:flex; align-items:center; gap:14px;}
+.darfour-site .theme-toggle{
+  border:1px solid var(--border); background:transparent; color:var(--ink);
+  font:inherit; font-size:0.82rem; padding:8px 14px; border-radius:20px; cursor:pointer;
+}
+.darfour-site .btn{display:inline-block; padding:12px 24px; border-radius:3px; font-weight:600; text-decoration:none; font-size:0.92rem; border:1px solid transparent; cursor:pointer;}
+.darfour-site .btn-primary{background:var(--rust); color:var(--btn-primary-text);}
+.darfour-site .btn-outline{background:transparent; border-color:var(--border); color:var(--ink);}
+
+.darfour-site section{padding:76px 0;}
+.darfour-site .kicker{color:var(--rust); font-weight:600; font-size:0.9rem; margin-bottom:10px;}
+.darfour-site .page-title{font-size:clamp(2rem, 4.2vw, 2.6rem); margin-bottom:16px;}
+.darfour-site .lede{max-width:620px; font-size:1.05rem;}
+
+/* image placeholder slot */
+.darfour-site .img-slot{
+  border:1.5px dashed var(--border); border-radius:6px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  background:var(--bg-2); color:var(--muted); text-align:center; padding:20px;
+}
+.darfour-site .img-slot svg{width:30px; height:30px; opacity:0.6;}
+.darfour-site .img-slot span{font-size:0.82rem;}
+.darfour-site .img-slot small{font-size:0.72rem; opacity:0.75;}
+
+/* hero */
+.darfour-site .hero-grid{display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; padding:70px 0;}
+.darfour-site .hero h1{font-size:clamp(2.1rem, 4.4vw, 3rem);}
+.darfour-site .hero .ar-title{font-size:clamp(1.5rem, 3vw, 2rem); margin-top:4px; text-align:right;}
+.darfour-site .hero p{margin-top:20px; font-size:1.05rem;}
+.darfour-site .hero .img-slot{aspect-ratio:4/3;}
+.darfour-site .hero-ctas{display:flex; gap:14px; margin-top:26px; flex-wrap:wrap;}
+
+/* two column content block */
+.darfour-site .two-col{display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:start;}
+.darfour-site .two-col .img-slot{aspect-ratio:4/3;}
+
+/* quick link cards on home */
+.darfour-site .quicklinks{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+.darfour-site .quicklink-card{background:var(--card); border:1px solid var(--border); border-radius:6px; padding:26px; text-decoration:none; color:var(--ink); display:block;}
+.darfour-site .quicklink-card h3{font-size:1.02rem; margin-bottom:8px;}
+.darfour-site .quicklink-card p{margin:0; font-size:0.9rem;}
+
+/* mission focus-area cards */
+.darfour-site .focus-list{display:flex; flex-direction:column; gap:28px;}
+.darfour-site .focus-card{display:grid; grid-template-columns:1fr 1.4fr; gap:36px; align-items:center; background:var(--card); border:1px solid var(--border); border-radius:6px; padding:28px;}
+.darfour-site .focus-card.reverse .img-slot{order:2;}
+.darfour-site .focus-card .img-slot{aspect-ratio:4/3;}
+.darfour-site .focus-card h3{font-size:1.2rem; margin-bottom:10px;}
+
+/* how to help cards */
+.darfour-site .help-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+.darfour-site .help-card{background:var(--bg-2); border:1px solid var(--border); border-radius:6px; padding:26px;}
+.darfour-site .help-card h3{font-size:1.05rem; margin-bottom:10px;}
+.darfour-site .help-card ul{margin:0; padding-left:18px; color:var(--muted); font-size:0.9rem;}
+.darfour-site .help-card li{margin-bottom:6px;}
+
+/* board */
+.darfour-site .board-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:12px;}
+.darfour-site .board-card{text-align:center;}
+.darfour-site .board-card .img-slot{aspect-ratio:1/1; border-radius:50%; margin:0 auto 14px; width:120px; height:120px;}
+.darfour-site .board-card h3{font-size:0.98rem;}
+.darfour-site .board-card p{font-size:0.85rem; margin-top:4px;}
+
+/* contact page */
+.darfour-site .contact-grid{display:grid; grid-template-columns:1fr 1fr; gap:48px;}
+.darfour-site .contact-list{list-style:none; padding:0; margin:20px 0 0;}
+.darfour-site .contact-list li{padding:12px 0; border-top:1px solid var(--border); font-size:0.94rem;}
+.darfour-site .contact-list li:last-child{border-bottom:1px solid var(--border);}
+.darfour-site .map-slot{aspect-ratio:4/3;}
+
+.darfour-site .contact-form{display:flex; flex-direction:column; gap:14px; margin-top:20px;}
+.darfour-site .contact-form label{font-size:0.85rem; color:var(--muted); margin-bottom:6px; display:block;}
+.darfour-site .contact-form input, .darfour-site .contact-form textarea{
+  width:100%; padding:11px 12px; border-radius:4px; border:1px solid var(--border);
+  background:var(--bg-2); color:var(--ink); font:inherit; font-size:0.94rem;
+}
+.darfour-site .contact-form textarea{min-height:120px; resize:vertical;}
+.darfour-site .form-note{font-size:0.8rem; opacity:0.65; margin-top:6px;}
+
+.darfour-site footer{background:var(--bg-2); border-top:1px solid var(--border); padding:40px 0 26px;}
+.darfour-site .footer-grid{display:flex; justify-content:space-between; flex-wrap:wrap; gap:20px; align-items:flex-start;}
+.darfour-site .fine{font-size:0.8rem; opacity:0.6; margin-top:22px;}
+
+@media (max-width:860px){
+  .darfour-site .hero-grid, .darfour-site .two-col, .darfour-site .contact-grid, .darfour-site .focus-card{grid-template-columns:1fr;}
+  .darfour-site .focus-card.reverse .img-slot{order:0;}
+  .darfour-site .quicklinks, .darfour-site .help-grid, .darfour-site .board-grid{grid-template-columns:1fr 1fr;}
+  .darfour-site nav.links{display:none;}
+}
+@media (max-width:560px){
+  .darfour-site .quicklinks, .darfour-site .help-grid, .darfour-site .board-grid{grid-template-columns:1fr;}
+}
+.darfour-site a:focus-visible, .darfour-site button:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
