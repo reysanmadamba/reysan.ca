@@ -17,7 +17,7 @@
       <div class="brand-en">Darfour Community League</div>
       <div class="brand-ar">رابطة دارفور المجتمعية</div>
     </div>
-    <nav class="links">
+    <nav class="links" id="nav-links">
       <a href="index.html">Home</a>
       <a href="mission.html">Mission</a>
       <a href="about.html">About</a>
@@ -25,6 +25,9 @@
       <a href="contact.html" aria-current="page">Contact</a>
     </nav>
     <div class="nav-right">
+      <button class="menu-toggle" onclick="toggleMenu()" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
       <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">White template</button>
       <a href="how-to-help.html" class="btn btn-primary">Give</a>
     </div>
@@ -82,7 +85,7 @@
     </div>
     <div style="font-size:0.9rem; color:var(--muted);">Edmonton, AB · darfuredm.org</div>
   </div>
-  <div class="wrap fine">Wireframe draft — placeholder images, text, and contact details throughout, for layout and content review only.</div>
+  <div class="wrap fine">Wireframe draft — placeholder images, text, and contact details throughout, for layout and content review only. <a href="credits.html" style="color:inherit; text-decoration:underline;">Photo credits</a></div>
 </footer>
 
 <script src="script.js"></script>

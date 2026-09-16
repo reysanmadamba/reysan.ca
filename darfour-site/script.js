@@ -25,6 +25,14 @@ function toggleTheme() {
 
 document.addEventListener('DOMContentLoaded', updateToggleLabel);
 
+function toggleMenu() {
+  var nav = document.getElementById('nav-links');
+  var btn = document.getElementById('menu-btn');
+  if (!nav || !btn) return;
+  var isOpen = nav.classList.toggle('open');
+  btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
 // Placeholder contact form handler (contact.html only).
 // Wire this up to a real form backend (e.g. Formspree, a serverless
 // function, or your own API) before going live.

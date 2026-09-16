@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" class="darfour-site">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Credits — Darfour Community League</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Work+Sans:wght@400;500;600&family=Noto+Sans+Arabic:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div>
+      <div class="brand-en">Darfour Community League</div>
+      <div class="brand-ar">رابطة دارفور المجتمعية</div>
+    </div>
+    <nav class="links" id="nav-links">
+      <a href="index.html">Home</a>
+      <a href="mission.html">Mission</a>
+      <a href="about.html">About</a>
+      <a href="how-to-help.html">How to Help</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav-right">
+      <button class="menu-toggle" onclick="toggleMenu()" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">White template</button>
+      <a href="how-to-help.html" class="btn btn-primary">Give</a>
+    </div>
+  </div>
+</header>
+
+<section style="padding-bottom:40px;">
+  <div class="wrap">
+    <div class="kicker">Photo credits</div>
+    <h1 class="page-title">Where the photos on this site come from.</h1>
+    <p class="lede">This is a demo build, so most photos are stand-ins sourced from freely-licensed collections rather than our own photography. They're credited here in line with each photo's license.</p>
+  </div>
+</section>
+
+<section style="padding-top:0;">
+  <div class="wrap">
+    <div class="contact-list" style="max-width:760px;">
+      <ul class="contact-list">
+
+        <li><strong>Hero photo (home page)</strong> — placeholder only, sourced from a news article and <strong>not freely licensed</strong>. It will be replaced with a properly licensed or donated photo before this site is used as a real, public destination.</li>
+
+        <li><strong>Home — "Why we exist"</strong>: <em>COSV – Darfur 2008 – Market sellers</em>, © COSV, <a href="https://creativecommons.org/licenses/by-sa/3.0" style="color:var(--rust); text-decoration:underline;">CC BY-SA 3.0</a>, via <a href="https://commons.wikimedia.org/wiki/File:COSV_-_Darfur_2008_-_Market_sellers.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+        <li><strong>About — community photo</strong>: <em>COSV – Darfur 2008 – Market</em>, © COSV, <a href="https://creativecommons.org/licenses/by-sa/3.0" style="color:var(--rust); text-decoration:underline;">CC BY-SA 3.0</a>, via <a href="https://commons.wikimedia.org/wiki/File:COSV_-_Darfur_2008_-_Market.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+        <li><strong>About — landscape photo</strong>: <em>Harry Mountain around Dougu Village in the Western Sudan, South Darfur State</em>, © Fudol Yousuf Ahmed Hamid, <a href="https://creativecommons.org/licenses/by-sa/4.0" style="color:var(--rust); text-decoration:underline;">CC BY-SA 4.0</a>, via <a href="https://commons.wikimedia.org/wiki/File:Harry_Mountain_around_Dougu_Village_in_the_Western_Sudan,_South_Darfur_State.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+        <li><strong>Mission — Food security</strong>: <em>Wheat harvest – Egypt</em>, © Doaa Adel, <a href="https://creativecommons.org/licenses/by-sa/4.0" style="color:var(--rust); text-decoration:underline;">CC BY-SA 4.0</a>, via <a href="https://commons.wikimedia.org/wiki/File:Wheat_harvest_-_Egypt.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+        <li><strong>Mission — Water supply</strong>: <em>COSV – Darfur 2009 – Water pump</em>, © COSV, <a href="https://creativecommons.org/licenses/by-sa/3.0" style="color:var(--rust); text-decoration:underline;">CC BY-SA 3.0</a>, via <a href="https://commons.wikimedia.org/wiki/File:COSV_-_Darfur_2009_-_Water_pump.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+        <li><strong>Mission — Health care</strong>: <em>A primary Health centre</em>, © HarunaSylvester, <a href="https://creativecommons.org/licenses/by-sa/4.0" style="color:var(--rust); text-decoration:underline;">CC BY-SA 4.0</a>, via <a href="https://commons.wikimedia.org/wiki/File:A_primary_Health_centre.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+        <li><strong>Mission — Education</strong>: <em>Wiki In Classroom 2.0 Kano 11</em>, released under <a href="https://creativecommons.org/publicdomain/zero/1.0/" style="color:var(--rust); text-decoration:underline;">CC0</a>, via <a href="https://commons.wikimedia.org/wiki/File:Wiki_In_Classroom_2.0_Kano_11.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+        <li><strong>Mission — Electric power supply</strong>: <em>Men working on the solar panel 02</em>, released under <a href="https://creativecommons.org/publicdomain/zero/1.0/" style="color:var(--rust); text-decoration:underline;">CC0</a>, via <a href="https://commons.wikimedia.org/wiki/File:Men_working_on_the_solar_panel_02.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+        <li><strong>How to Help</strong>: <em>Alameda Food Bank Thanksgiving volunteers</em> (U.S. Coast Guard), public domain, via <a href="https://commons.wikimedia.org/wiki/File:Alameda_Food_Bank_Thanksgiving_volunteers_111119-G-FY356-017.jpg" style="color:var(--rust); text-decoration:underline;">Wikimedia Commons</a>.</li>
+
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div>
+      <div class="brand-en">Darfour Community League</div>
+      <div class="ar" style="color:var(--gold); margin-top:4px; font-size:0.85rem;">رابطة دارفور المجتمعية</div>
+    </div>
+    <div style="font-size:0.9rem; color:var(--muted);">Edmonton, AB · darfuredm.org</div>
+  </div>
+  <div class="wrap fine">Wireframe draft — placeholder images, text, and contact details throughout, for layout and content review only.</div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

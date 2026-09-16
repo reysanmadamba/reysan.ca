@@ -38,6 +38,11 @@ html.darfour-site{scroll-behavior:smooth;}
 .darfour-site nav.links a{text-decoration:none; opacity:0.75;}
 .darfour-site nav.links a[aria-current="page"]{opacity:1; border-bottom:2px solid var(--rust); padding-bottom:2px;}
 .darfour-site .nav-right{display:flex; align-items:center; gap:14px;}
+.darfour-site .menu-toggle{
+  display:none; border:1px solid var(--border); background:transparent; color:var(--ink);
+  padding:8px; border-radius:6px; cursor:pointer; align-items:center; justify-content:center;
+}
+.darfour-site .menu-toggle svg{width:20px; height:20px;}
 .darfour-site .theme-toggle{
   border:1px solid var(--border); background:transparent; color:var(--ink);
   font:inherit; font-size:0.82rem; padding:8px 14px; border-radius:20px; cursor:pointer;
@@ -67,7 +72,16 @@ html.darfour-site{scroll-behavior:smooth;}
 .darfour-site .hero .ar-title{font-size:clamp(1.5rem, 3vw, 2rem); margin-top:4px; text-align:right;}
 .darfour-site .hero p{margin-top:20px; font-size:1.05rem;}
 .darfour-site .hero .img-slot{aspect-ratio:4/3;}
+.darfour-site .hero-photo{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:6px; display:block;}
+.darfour-site .hero-photo-wrap{margin:0; position:relative;}
+.darfour-site .photo-badge{
+  position:absolute; top:12px; left:12px; background:rgba(20,16,10,0.75); color:#F1E6CE;
+  font-size:0.7rem; font-weight:600; letter-spacing:0.02em; padding:5px 10px; border-radius:20px;
+}
 .darfour-site .hero-ctas{display:flex; gap:14px; margin-top:26px; flex-wrap:wrap;}
+
+/* real content photos (replace the wireframe img-slot placeholders) */
+.darfour-site .content-photo{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:6px; display:block;}
 
 /* two column content block */
 .darfour-site .two-col{display:grid; grid-template-columns:1fr 1fr; gap:52px; align-items:start;}
@@ -82,7 +96,8 @@ html.darfour-site{scroll-behavior:smooth;}
 /* mission focus-area cards */
 .darfour-site .focus-list{display:flex; flex-direction:column; gap:28px;}
 .darfour-site .focus-card{display:grid; grid-template-columns:1fr 1.4fr; gap:36px; align-items:center; background:var(--card); border:1px solid var(--border); border-radius:6px; padding:28px;}
-.darfour-site .focus-card.reverse .img-slot{order:2;}
+.darfour-site .focus-card.reverse .img-slot,
+.darfour-site .focus-card.reverse .content-photo{order:2;}
 .darfour-site .focus-card .img-slot{aspect-ratio:4/3;}
 .darfour-site .focus-card h3{font-size:1.2rem; margin-bottom:10px;}
 
@@ -122,9 +137,20 @@ html.darfour-site{scroll-behavior:smooth;}
 
 @media (max-width:860px){
   .darfour-site .hero-grid, .darfour-site .two-col, .darfour-site .contact-grid, .darfour-site .focus-card{grid-template-columns:1fr;}
-  .darfour-site .focus-card.reverse .img-slot{order:0;}
+  .darfour-site .focus-card.reverse .img-slot,
+  .darfour-site .focus-card.reverse .content-photo{order:0;}
   .darfour-site .quicklinks, .darfour-site .help-grid, .darfour-site .board-grid{grid-template-columns:1fr 1fr;}
-  .darfour-site nav.links{display:none;}
+
+  .darfour-site .nav{position:relative;}
+  .darfour-site .menu-toggle{display:inline-flex;}
+  .darfour-site nav.links{
+    display:none; position:absolute; top:100%; left:0; right:0;
+    flex-direction:column; gap:0; background:var(--bg); border:1px solid var(--border);
+    border-top:none; padding:6px 0; box-shadow:0 12px 24px rgba(0,0,0,0.18);
+  }
+  .darfour-site nav.links.open{display:flex;}
+  .darfour-site nav.links a{padding:14px 28px; opacity:1;}
+  .darfour-site nav.links a[aria-current="page"]{border-bottom:none; background:var(--bg-2);}
 }
 @media (max-width:560px){
   .darfour-site .quicklinks, .darfour-site .help-grid, .darfour-site .board-grid{grid-template-columns:1fr;}

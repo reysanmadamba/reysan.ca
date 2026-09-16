@@ -17,7 +17,7 @@
       <div class="brand-en">Darfour Community League</div>
       <div class="brand-ar">رابطة دارفور المجتمعية</div>
     </div>
-    <nav class="links">
+    <nav class="links" id="nav-links">
       <a href="index.html" aria-current="page">Home</a>
       <a href="mission.html">Mission</a>
       <a href="about.html">About</a>
@@ -25,6 +25,9 @@
       <a href="contact.html">Contact</a>
     </nav>
     <div class="nav-right">
+      <button class="menu-toggle" onclick="toggleMenu()" id="menu-btn" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
       <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">White template</button>
       <a href="how-to-help.html" class="btn btn-primary">Give</a>
     </div>
@@ -43,11 +46,11 @@
         <a href="mission.html" class="btn btn-outline">Read our mission</a>
       </div>
     </div>
-    <div class="img-slot">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="1"/><circle cx="9" cy="10" r="1.8"/><path d="M3 17l5-5 4 4 3-3 6 6"/></svg>
-      <span>Hero image placeholder</span>
-      <small>Recommended: 1200×900, community or rebuilding scene</small>
-    </div>
+    <!-- Placeholder photo — replace with a properly licensed image before the site goes fully public -->
+    <figure class="hero-photo-wrap">
+      <img class="hero-photo" src="hero-placeholder.jpg" alt="Displacement camp in Darfur (placeholder photo, pending a licensed replacement)">
+      <figcaption class="photo-badge">Placeholder photo — to be replaced</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -59,11 +62,7 @@
       <p style="margin-top:16px;">Darfour Community League formed to help re-instate the essential services and needs of Darfur State after more than twenty years of destructive civil war wiped out its basic infrastructure. We're a diaspora community turning distance into action, one project at a time.</p>
       <a href="about.html" class="btn btn-outline">Our story</a>
     </div>
-    <div class="img-slot">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="1"/><circle cx="9" cy="10" r="1.8"/><path d="M3 17l5-5 4 4 3-3 6 6"/></svg>
-      <span>Supporting image placeholder</span>
-      <small>Recommended: 900×675</small>
-    </div>
+    <img class="content-photo" src="why-we-exist.jpg" alt="Everyday market life in a Darfur community">
   </div>
 </section>
 
@@ -96,7 +95,7 @@
     </div>
     <div style="font-size:0.9rem; color:var(--muted);">Edmonton, AB · darfuredm.org</div>
   </div>
-  <div class="wrap fine">Wireframe draft — placeholder images, text, and contact details throughout, for layout and content review only.</div>
+  <div class="wrap fine">Wireframe draft — placeholder images, text, and contact details throughout, for layout and content review only. <a href="credits.html" style="color:inherit; text-decoration:underline;">Photo credits</a></div>
 </footer>
 
 <script src="script.js"></script>
