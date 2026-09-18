@@ -212,7 +212,20 @@
         var p = paragraph.trim();
         return /^want to see/i.test(p) && /sunlight/i.test(p);
     }
-    function addAssistantReply(text) {
+    // "4", "#4", "number 4", "1 and 3", "the second one"...
+    function looksLikeListingPick(message) {
+        var num = '(#|no\\.?\\s*|number\\s*)?\\d{1,3}';
+        var ord = '(the\\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\\d{1,3}(st|nd|rd|th))(\\s+one)?';
+        return new RegExp('^\\s*((' + num + ')(\\s*(,|and|&)\\s*(' + num + '))*|' + ord + ')\\s*[.!]?\\s*$', 'i').test(message);
+    }
+    function addAssistantReply(text, keepTogether) {
+        // A reply to "which listing?" (the visitor sent a number) carries the
+        // home's details and the sunlight question together: one bubble.
+        if (keepTogether) {
+            addMsg(text, 'assistant');
+            playReplyTone();
+            return;
+        }
         // A "5 more" batch continues the numbering (6., 7., ...). Keep the
         // shadow question in the same bubble there so the chat doesn't jump
         // to a second bubble while the visitor is still reading the list.
@@ -339,7 +352,7 @@
 
             var data = await res.json();
             var reply = data.reply || "Sorry, I couldn't get an answer just now.";
-            addAssistantReply(reply);
+            addAssistantReply(reply, looksLikeListingPick(message));
             conversation.push({ role: 'assistant', content: reply });
 
             if (data.disconnected) {
