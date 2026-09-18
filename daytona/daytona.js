@@ -203,6 +203,15 @@
     function addAssistantReply(text) {
         var paragraphs = text.split(/\n\n+/);
         var last = paragraphs[paragraphs.length - 1];
+        // The model sometimes runs the shadow question into the end of the
+        // previous paragraph (no blank line); split it out at "Want to see".
+        var runOn = last.search(/\S\s+Want to see how sunlight/i);
+        if (runOn > -1) {
+            var cut = last.search(/Want to see how sunlight/i);
+            paragraphs[paragraphs.length - 1] = last.slice(0, cut).trim();
+            paragraphs.push(last.slice(cut).trim());
+            last = paragraphs[paragraphs.length - 1];
+        }
         if (paragraphs.length > 1 && looksLikeShadowCheckFollowUp(last)) {
             var main = paragraphs.slice(0, -1).join('\n\n').trim();
             if (main) {
