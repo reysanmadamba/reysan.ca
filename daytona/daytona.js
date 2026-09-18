@@ -218,10 +218,14 @@
         var ord = '(the\\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|\\d{1,3}(st|nd|rd|th))(\\s+one)?';
         return new RegExp('^\\s*((' + num + ')(\\s*(,|and|&)\\s*(' + num + '))*|' + ord + ')\\s*[.!]?\\s*$', 'i').test(message);
     }
+    // The delayed, separate sunlight bubble is a one-time introduction: only
+    // the first results of the chat get it. Every later reply keeps the
+    // question at the bottom of the same bubble.
+    var shadowBubbleShown = false;
     function addAssistantReply(text, keepTogether) {
         // A reply to "which listing?" (the visitor sent a number) carries the
         // home's details and the sunlight question together: one bubble.
-        if (keepTogether) {
+        if (keepTogether || shadowBubbleShown) {
             addMsg(text, 'assistant');
             playReplyTone();
             return;
@@ -247,6 +251,7 @@
             last = paragraphs[paragraphs.length - 1];
         }
         if (paragraphs.length > 1 && looksLikeShadowCheckFollowUp(last)) {
+            shadowBubbleShown = true;
             var main = paragraphs.slice(0, -1).join('\n\n').trim();
             if (main) {
                 addMsg(main, 'assistant');
