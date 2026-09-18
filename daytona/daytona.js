@@ -128,7 +128,13 @@
         var label = (who === 'user' ? 'you' : 'dakota');
         div.innerHTML = '<span class="who">' + label + '</span>' + linkify(text);
         chatLog.appendChild(div);
-        chatLog.scrollTop = chatLog.scrollHeight;
+        if (who === 'assistant' && div.offsetHeight > chatLog.clientHeight) {
+            // A long reply (a batch of listings): line up its top edge so the
+            // reader starts at the first listing instead of the last one.
+            chatLog.scrollTop += div.getBoundingClientRect().top - chatLog.getBoundingClientRect().top - 8;
+        } else {
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
     }
 
     // ============================================================
@@ -201,6 +207,15 @@
         return /^want to see/i.test(p) && /sunlight/i.test(p);
     }
     function addAssistantReply(text) {
+        // A "5 more" batch continues the numbering (6., 7., ...). Keep the
+        // shadow question in the same bubble there so the chat doesn't jump
+        // to a second bubble while the visitor is still reading the list.
+        var firstNum = text.match(/(?:^|\n)\s*(\d+)\.\s/);
+        if (firstNum && parseInt(firstNum[1], 10) > 1) {
+            addMsg(text, 'assistant');
+            playReplyTone();
+            return;
+        }
         var paragraphs = text.split(/\n\n+/);
         var last = paragraphs[paragraphs.length - 1];
         // The model sometimes runs the shadow question into the end of the
