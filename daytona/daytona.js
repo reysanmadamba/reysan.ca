@@ -122,12 +122,18 @@
         });
     }
 
-    function addMsg(text, who) {
+    function addMsg(text, who, keepPosition) {
         var div = document.createElement('div');
         div.className = 'msg ' + who;
         var label = (who === 'user' ? 'you' : 'dakota');
+        // keepPosition: a late follow-up bubble must not yank the view down
+        // if the reader has scrolled up to read the message above it.
+        var wasAtBottom = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight < 40;
         div.innerHTML = '<span class="who">' + label + '</span>' + linkify(text);
         chatLog.appendChild(div);
+        if (keepPosition && !wasAtBottom) {
+            return;
+        }
         if (who === 'assistant' && div.offsetHeight > chatLog.clientHeight) {
             // A long reply (a batch of listings): line up its top edge so the
             // reader starts at the first listing instead of the last one.
@@ -234,7 +240,7 @@
                 playReplyTone();
             }
             setTimeout(function () {
-                addMsg(last.trim(), 'assistant');
+                addMsg(last.trim(), 'assistant', true);
                 playReplyTone();
             }, 3000);
             return;
