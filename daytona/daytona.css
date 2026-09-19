@@ -42,6 +42,16 @@
     border-color: var(--dt-orange-dark);
 }
 
+/* Long listing links have no spaces to break on, so they pushed the bubble
+   wider than the panel and added a sideways scrollbar. Let them wrap. */
+.dt-panel .chat-log {
+    overflow-x: hidden;
+}
+
+.dt-panel .chat-log .msg {
+    overflow-wrap: anywhere;
+}
+
 .dt-panel .chat-log .msg.assistant {
     background: var(--dt-orange-tint);
     border-color: var(--dt-orange);
