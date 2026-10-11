@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Metikuloso Cleaning Co. Residential and Airbnb cleaning in Sylvan Lake, Red Deer and nearby central Alberta towns.">
+<title>Metikuloso Cleaning Co.</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Schibsted+Grotesk:wght@400;500;700;800&display=swap">
+<style>
+/* Layout concept: a detergent-box label on a bathroom-tile wall. Chunky label type, starburst stickers,
+   and everything starts dusty until the visitor wipes it. */
+:root{
+  --bg:#F2F8FA; --grout:#DDEBF0; --card:#FFFFFF; --ink:#0E2A3B; --muted:#4C6878; --edge:#0E2A3B;
+  --lake:#1479B8; --lake-deep:#0C5C8F; --on-lake:#FFFFFF; --glove:#FFD23F; --on-glove:#0E2A3B;
+  --foam:#C9F0E4; --grime:rgba(112,88,48,.30); --field:#E9E4D6; --field-clean:#FFFFFF; --error:#B3261E;
+  --display:"Bowlby One","Arial Black",Impact,sans-serif;
+  --body:"Schibsted Grotesk","Segoe UI",Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0B1E2A; --grout:#12303F; --card:#11293A; --ink:#EAF4F7; --muted:#9DB7C4; --edge:#3E6278;
+  --lake:#0F6299; --lake-deep:#0A466F; --on-lake:#FFFFFF; --glove:#FFD23F; --on-glove:#0E2A3B;
+  --foam:#1D4A45; --grime:rgba(150,120,70,.30); --field:#2A2E26; --field-clean:#0B1E2A; --error:#FF8A80;
+  color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0B1E2A; --grout:#12303F; --card:#11293A; --ink:#EAF4F7; --muted:#9DB7C4; --edge:#3E6278;
+  --lake:#0F6299; --lake-deep:#0A466F; --on-lake:#FFFFFF; --glove:#FFD23F; --on-glove:#0E2A3B;
+  --foam:#1D4A45; --grime:rgba(150,120,70,.30); --field:#2A2E26; --field-clean:#0B1E2A; --error:#FF8A80;
+  color-scheme:dark }
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--bg);
+  background-image:linear-gradient(var(--grout) 2px,transparent 2px),linear-gradient(90deg,var(--grout) 2px,transparent 2px);
+  background-size:64px 64px;
+  color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.6;
+}
+h1,h2,h3{font-family:var(--display); font-weight:400; line-height:1; margin:0; text-wrap:balance}
+h2{font-size:clamp(1.9rem,4.4vw,3.1rem)}
+h3{font-size:1.3rem; line-height:1.15}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--glove); outline-offset:3px}
+.wrap{max-width:1120px; margin-inline:auto; padding-inline:20px}
+.sec{padding-block:clamp(56px,9vw,104px)}
+.label{font-size:.78rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--lake)}
+.sec-head{display:flex; flex-direction:column; gap:14px; max-width:40rem; margin-bottom:36px}
+.sec-head p{color:var(--muted)}
+
+/* header */
+.top{position:sticky; top:env(safe-area-inset-top,0px); z-index:20; background:var(--bg); border-bottom:2px solid var(--edge)}
+.top .wrap{display:flex; align-items:center; gap:20px; padding-block:12px}
+.logo{font-family:var(--display); font-size:1.25rem; text-decoration:none; line-height:1; display:flex; flex-direction:column; gap:3px}
+.logo small{font-family:var(--body); font-weight:800; font-size:.62rem; letter-spacing:.2em; text-transform:uppercase; color:var(--lake)}
+.nav{display:flex; gap:22px; margin-left:auto}
+.nav a{text-decoration:none; font-weight:700; font-size:.95rem; padding:2px 0;
+  background:linear-gradient(var(--glove),var(--glove)) no-repeat 0 92%/0 8px; transition:background-size .3s cubic-bezier(.6,.1,.2,1)}
+.nav a:hover,.nav a:focus-visible{background-size:100% 8px}
+.meter{display:flex; flex-direction:column; gap:4px; min-width:118px; font-size:.75rem; font-weight:800; letter-spacing:.04em; white-space:nowrap}
+.meter-bar{height:8px; border:2px solid var(--edge); border-radius:99px; overflow:hidden; background:var(--field)}
+.meter-bar i{display:block; height:100%; width:0; background:var(--lake); transition:width .5s}
+.meter.done .meter-bar i{background:var(--glove)}
+@media (max-width:760px){ .nav{display:none} .meter{margin-left:auto} }
+
+/* buttons */
+.btn{position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  font:800 1rem var(--body); text-decoration:none; color:var(--on-glove); background:var(--glove);
+  border:2px solid var(--on-glove); border-radius:99px; padding:13px 24px;
+  transition:transform .15s, box-shadow .15s}
+.btn::after{content:""; position:absolute; top:-20%; bottom:-20%; left:-40%; width:28%; background:rgba(255,255,255,.75);
+  transform:skewX(-20deg); transition:left .45s cubic-bezier(.6,.1,.2,1)}
+.btn:hover,.btn:focus-visible{transform:translateY(-3px); box-shadow:0 5px 0 var(--on-glove)}
+.btn:hover::after,.btn:focus-visible::after{left:120%}
+.btn:active{transform:translateY(2px) scale(.97); box-shadow:none}
+.btn.ghost{background:transparent; color:var(--on-lake); border-color:var(--on-lake)}
+.btn.ghost:hover,.btn.ghost:focus-visible{box-shadow:0 5px 0 var(--on-lake)}
+.btn.plain{background:var(--card); color:var(--ink); border-color:var(--edge)}
+
+/* hero */
+.hero{position:relative; overflow:hidden; background:var(--lake); color:var(--on-lake); border-bottom:2px solid var(--edge); touch-action:pan-y}
+.hero .wrap{position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); gap:32px; align-items:center;
+  padding-block:clamp(48px,8vw,96px) clamp(96px,13vw,150px)}
+.hero-copy{display:flex; flex-direction:column; gap:22px; align-items:flex-start}
+.hero .label{color:var(--glove)}
+.hero h1{font-size:clamp(2.7rem,8.2vw,6rem); line-height:.93}
+.hero h1 em{font-style:normal; color:var(--glove)}
+.hero p.lede{font-size:1.15rem; max-width:34rem}
+.cta{display:flex; flex-wrap:wrap; gap:12px}
+.sun{position:absolute; right:-70px; top:-70px; width:min(46vw,440px); aspect-ratio:1; border-radius:50%; background:var(--glove); z-index:0}
+.waves{position:absolute; left:0; right:0; bottom:-2px; width:100%; height:clamp(60px,10vw,120px); z-index:0; display:block}
+.burst{display:grid; place-items:center; text-align:center; background:var(--glove); color:var(--on-glove); border-radius:50%;
+  font-family:var(--display); line-height:1.02}
+.hero .burst{justify-self:center; width:clamp(150px,22vw,230px); aspect-ratio:1; font-size:clamp(1.25rem,2.6vw,1.9rem);
+  background:var(--card); color:var(--ink); transform:rotate(-9deg); transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.hero .burst .after{display:none}
+.hero.is-clean .burst{transform:rotate(6deg) scale(1.08)}
+.hero.is-clean .burst .before{display:none}
+.hero.is-clean .burst .after{display:block}
+#grime{position:absolute; inset:0; width:100%; height:100%; z-index:3; pointer-events:none; transition:opacity .6s}
+@media (max-width:760px){ .hero .wrap{grid-template-columns:minmax(0,1fr)} .hero .burst{justify-self:start} }
+
+/* dusty things: readable under the dust, wiped clean on hover, focus or tap */
+.dusty{position:relative; isolation:isolate}
+.js .dusty::after{content:""; position:absolute; inset:-2px; border-radius:inherit; pointer-events:none; z-index:2;
+  background:var(--dust,none), var(--grime); clip-path:inset(0 0 0 0); transition:clip-path .7s cubic-bezier(.6,.1,.2,1)}
+.js .dusty.clean::after{clip-path:inset(0 0 0 100%)}
+.js .dusty::before{content:""; position:absolute; top:-10px; bottom:-10px; left:0; width:10px; margin-left:-5px; border-radius:6px;
+  background:var(--glove); border:2px solid var(--on-glove); opacity:0; z-index:3; pointer-events:none}
+.js .dusty.clean::before{animation:sweep .7s cubic-bezier(.6,.1,.2,1)}
+@keyframes sweep{0%{left:0;opacity:1}92%{opacity:1}100%{left:100%;opacity:0}}
+.hint{display:inline-flex; align-items:center; gap:8px; font-size:.85rem; font-weight:700; color:var(--muted)}
+.hint::before{content:""; width:22px; height:10px; border-radius:3px; background:var(--glove); border:2px solid var(--edge)}
+
+/* services */
+.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px}
+.tile{background:var(--card); border:2px solid var(--edge); border-radius:12px; padding:26px 24px; display:flex; flex-direction:column; gap:12px;
+  transition:transform .25s}
+.tile.clean:hover{transform:translateY(-4px) rotate(-.6deg)}
+.tile svg{width:46px; height:46px}
+.tile p{color:var(--muted); font-size:.97rem}
+.tile ul{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; font-size:.93rem; font-weight:500}
+.tile li{display:flex; gap:9px; align-items:baseline}
+.tile li::before{content:""; flex:none; width:9px; height:9px; border-radius:50%; background:var(--lake)}
+
+/* turnover day */
+.band{background:var(--foam); border-block:2px solid var(--edge)}
+.day{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:0; border:2px solid var(--edge); border-radius:12px; overflow:hidden; background:var(--card)}
+.day li{list-style:none; padding:20px 18px; display:flex; flex-direction:column; gap:6px; border-right:2px solid var(--edge); border-bottom:2px solid var(--edge);
+  margin:0 -2px -2px 0; min-width:0; transition:background .25s,color .25s}
+.day{padding:0; margin:0}
+.day li:hover{background:var(--glove); color:var(--on-glove)}
+.day time{font-family:var(--display); font-size:1.5rem; line-height:1; font-variant-numeric:tabular-nums}
+.day span{font-size:.93rem; font-weight:500}
+
+/* about */
+.about{display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:clamp(28px,5vw,64px); align-items:center}
+.photo{aspect-ratio:4/5; max-width:100%; border:2px solid var(--edge); border-radius:12px; display:grid; place-items:center; text-align:center; padding:24px;
+  background:repeating-linear-gradient(45deg,var(--card) 0 18px,var(--grout) 18px 36px); font-weight:800; color:var(--muted)}
+.photo b{font-family:var(--display); font-weight:400; font-size:clamp(3rem,9vw,5.5rem); color:var(--lake); display:block; line-height:1}
+.bio{display:flex; flex-direction:column; gap:18px}
+.bio p{max-width:36rem}
+.towns{display:flex; flex-wrap:wrap; gap:8px; padding:0; margin:6px 0 0; list-style:none}
+.towns li{border:2px solid var(--edge); border-radius:99px; padding:4px 14px; font-size:.88rem; font-weight:700; background:var(--card); transition:background .2s,color .2s,transform .2s}
+.towns li:hover{background:var(--lake); color:var(--on-lake); transform:translateY(-2px)}
+.towns li.main{background:var(--glove); color:var(--on-glove)}
+@media (max-width:760px){ .about{grid-template-columns:minmax(0,1fr)} .photo{aspect-ratio:4/3} }
+
+/* reviews */
+.sample{align-self:flex-start; font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; border:2px dashed var(--edge); border-radius:6px; padding:3px 9px; color:var(--muted)}
+.quote{background:var(--card); border:2px solid var(--edge); border-radius:12px; padding:26px 24px; display:flex; flex-direction:column; gap:16px; margin:0}
+.quote blockquote{margin:0; font-size:1.05rem; font-weight:500}
+.quote figcaption{font-size:.9rem; color:var(--muted); font-weight:700; margin-top:auto}
+.stars{display:flex; gap:4px}
+.stars svg{width:22px; height:22px; fill:var(--glove); stroke:var(--edge); stroke-width:1.5; transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.quote.clean:hover .stars svg{transform:rotate(72deg) scale(1.2)}
+.quote.clean:hover .stars svg:nth-child(2){transition-delay:.05s}
+.quote.clean:hover .stars svg:nth-child(3){transition-delay:.1s}
+.quote.clean:hover .stars svg:nth-child(4){transition-delay:.15s}
+.quote.clean:hover .stars svg:nth-child(5){transition-delay:.2s}
+
+/* contact */
+.contact{display:grid; grid-template-columns:minmax(0,7fr) minmax(0,4fr); gap:clamp(24px,4vw,48px); align-items:start}
+.formcard{background:var(--card); border:2px solid var(--edge); border-radius:12px; padding:clamp(20px,4vw,34px)}
+form{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px}
+.f{display:flex; flex-direction:column; gap:6px; min-width:0}
+.f.full{grid-column:1/-1}
+.f label{font-size:.85rem; font-weight:800}
+.f input,.f select,.f textarea{font:500 16px var(--body); color:var(--ink); background:var(--field); border:2px solid var(--muted); border-radius:8px; padding:12px 13px; width:100%;
+  transition:background .35s,border-color .35s,box-shadow .35s}
+.f textarea{min-height:120px; resize:vertical}
+.f input:focus,.f select:focus,.f textarea:focus,.f .filled{background:var(--field-clean); border-color:var(--edge); outline:none}
+.f input:focus,.f select:focus,.f textarea:focus{box-shadow:0 0 0 4px var(--glove)}
+.f .err{font-size:.82rem; font-weight:700; color:var(--error); min-height:0}
+.f [aria-invalid="true"]{border-color:var(--error)}
+.form-foot{grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:14px}
+.form-foot small{color:var(--muted); font-size:.85rem}
+.sent{display:flex; flex-direction:column; gap:14px; align-items:flex-start}
+.sent .burst{width:110px; aspect-ratio:1; font-size:1.05rem; transform:rotate(-8deg)}
+.side{display:flex; flex-direction:column; gap:22px}
+.side dl{margin:0; display:flex; flex-direction:column; gap:16px}
+.side dt{font-size:.75rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--lake)}
+.side dd{margin:2px 0 0; font-weight:700; font-size:1.08rem; user-select:all; overflow-wrap:anywhere}
+.side dd.plain{user-select:auto; font-weight:500; font-size:1rem}
+@media (max-width:860px){ .contact{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:520px){ form{grid-template-columns:minmax(0,1fr)} }
+
+footer{border-top:2px solid var(--edge); background:var(--bg)}
+footer .wrap{padding-block:26px; display:flex; flex-wrap:wrap; gap:8px 24px; justify-content:space-between; font-size:.88rem; color:var(--muted); font-weight:500}
+
+/* cursor tool + bubbles */
+#tool{position:fixed; left:0; top:0; z-index:60; pointer-events:none; width:46px; height:46px; opacity:0; transition:opacity .2s; will-change:transform}
+#tool svg{position:absolute; inset:0; width:100%; height:100%; transition:transform .12s}
+#tool .squeegee{display:none}
+#tool.on-glass .squeegee{display:block}
+#tool.on-glass .sponge{display:none}
+#tool.press svg{transform:scale(.8,.7)}
+.bub{position:fixed; z-index:61; pointer-events:none; border-radius:50%; border:1.5px solid var(--lake);
+  background:radial-gradient(circle at 30% 28%,#fff 0 14%,rgba(160,215,245,.45) 40%,rgba(160,215,245,.15) 100%)}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important; animation:none!important} html{scroll-behavior:auto} }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#hero">Metikuloso<small>Cleaning Co.</small></a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#services">Services</a>
+      <a href="#about">About</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="meter" id="meter" role="status">
+      <span id="meter-text">Site 0% clean</span>
+      <div class="meter-bar"><i id="meter-fill"></i></div>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="hero" id="hero">
+  <div class="sun"></div>
+  <svg class="waves" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 50 Q150 10 300 50 T600 50 T900 50 T1200 50 V120 H0Z" fill="var(--lake-deep)"/>
+    <path d="M0 85 Q150 55 300 85 T600 85 T900 85 T1200 85 V120 H0Z" fill="var(--bg)"/>
+  </svg>
+  <div class="wrap">
+    <div class="hero-copy">
+      <p class="label">Sylvan Lake, Alberta · Homes &amp; Airbnbs</p>
+      <h1>We get the <em>grime</em> out.</h1>
+      <p class="lede">Metikuloso cleans houses and vacation rentals around Sylvan Lake and Red Deer. This window is filthy. Run your cursor or finger across it and see what we do.</p>
+      <div class="cta">
+        <a class="btn" href="#contact">Get a free quote</a>
+        <button class="btn ghost" id="auto" type="button">Clean it for me</button>
+      </div>
+    </div>
+    <div class="burst" data-burst aria-hidden="true">
+      <span class="before">Wipe<br>me!</span>
+      <span class="after">Spot-<br>less!</span>
+    </div>
+  </div>
+  <canvas id="grime" aria-hidden="true"></canvas>
+</section>
+
+<section class="sec" id="services">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="label">What we clean</p>
+      <h2>Four ways we can help</h2>
+      <p>Regular homes and short-term rentals make up most of our week. Every visit follows a written checklist, and we bring our own supplies.</p>
+      <span class="hint">These cards are dusty. Hover or tap to wipe them.</span>
+    </div>
+    <div class="tiles">
+      <article class="tile dusty" tabindex="0">
+        <svg viewBox="0 0 48 48" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M6 22 24 7l18 15v19H6Z" fill="var(--glove)"/><path d="M19 41V28h10v13"/></svg>
+        <h3>Residential cleaning</h3>
+        <p>Weekly, every two weeks, or monthly. Same two people each time.</p>
+        <ul><li>Kitchens and bathrooms</li><li>Dusting, floors, and vacuuming</li><li>Beds made, garbage out</li></ul>
+      </article>
+      <article class="tile dusty" tabindex="0">
+        <svg viewBox="0 0 48 48" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="24" width="38" height="12" rx="3" fill="var(--glove)"/><path d="M9 24v-8a3 3 0 0 1 3-3h24a3 3 0 0 1 3 3v8M5 36v5M43 36v5"/><rect x="13" y="18" width="9" height="6" rx="2"/><rect x="26" y="18" width="9" height="6" rx="2"/></svg>
+        <h3>Airbnb turnovers</h3>
+        <p>Guest-ready between checkout and check-in, including long weekends.</p>
+        <ul><li>Fresh linens and laundry</li><li>Restock soap, paper, and coffee</li><li>Photos sent to you when done</li></ul>
+      </article>
+      <article class="tile dusty" tabindex="0">
+        <svg viewBox="0 0 48 48" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M17 20h14l3 21H14Z" fill="var(--glove)"/><path d="M20 20v-7h8v7M28 13h6l4-4M38 16v.1M41 12v.1M41 20v.1"/></svg>
+        <h3>Deep clean</h3>
+        <p>The spring-clean visit, or the first visit before regular service starts.</p>
+        <ul><li>Inside oven and fridge</li><li>Baseboards and window tracks</li><li>Grout, vents, and light fixtures</li></ul>
+      </article>
+      <article class="tile dusty" tabindex="0">
+        <svg viewBox="0 0 48 48" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M8 18h32v22H8Z" fill="var(--glove)"/><path d="m8 18 5-9h22l5 9M24 9v9M19 27h10"/></svg>
+        <h3>Move-in and move-out</h3>
+        <p>An empty house cleaned top to bottom, for sellers, landlords, and new owners.</p>
+        <ul><li>Inside every cupboard and drawer</li><li>Walls spot-washed</li><li>Ready for the walkthrough</li></ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sec band" id="turnover">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="label">For Airbnb hosts</p>
+      <h2>Checkout at 11. Check-in at 4.</h2>
+      <p>Here is how a typical turnover day runs, so your next guests walk into a place that looks like the listing photos.</p>
+    </div>
+    <ol class="day">
+      <li><time>11:00</time><span>Guests check out. We arrive and note any damage.</span></li>
+      <li><time>11:15</time><span>Beds stripped, laundry started, dishes on.</span></li>
+      <li><time>12:00</time><span>Kitchen and bathrooms scrubbed and sanitized.</span></li>
+      <li><time>1:30</time><span>Dusting, floors, patio and hot tub area tidied.</span></li>
+      <li><time>2:45</time><span>Beds made, towels out, supplies restocked.</span></li>
+      <li><time>3:30</time><span>Photo walkthrough sent to you. Door locked.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec" id="about">
+  <div class="wrap about">
+    <div class="photo dusty" tabindex="0"><div><b>M</b>Photo of Raiza and Earl goes here</div></div>
+    <div class="bio">
+      <p class="label">Who we are</p>
+      <h2>Hi, we're Raiza and Earl.</h2>
+      <p>We run this business ourselves. When you book us, we are the two people who show up at your door, and we will be the same two people next time.</p>
+      <p>Most of our work is regular house cleaning for families in Sylvan Lake and Red Deer, and turnovers for Airbnb hosts around the lake. Summers here get busy, so we know what a same-day checkout and check-in feels like.</p>
+      <p>We clean the way we would want our own place cleaned. If we spot something that needs fixing, like a dripping tap or a burnt-out bulb, we tell you before a guest does.</p>
+      <div>
+        <p class="label">Where we work</p>
+        <ul class="towns">
+          <li class="main">Sylvan Lake</li><li class="main">Red Deer</li><li>Innisfail</li><li>Ponoka</li><li>Lacombe</li><li>Blackfalds</li><li>Penhold</li><li>Somewhere close? Ask us</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec band" id="reviews">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="label">Reviews</p>
+      <h2>What clients say</h2>
+      <span class="sample">Sample reviews. Replace with real ones.</span>
+    </div>
+    <div class="tiles">
+      <figure class="quote dusty" tabindex="0">
+        <div class="stars" role="img" aria-label="5 out of 5 stars"></div>
+        <blockquote>"Our lake house has never looked this good after a long weekend of guests. They even lined up the shoes by the door."</blockquote>
+        <figcaption>Airbnb host, Sylvan Lake</figcaption>
+      </figure>
+      <figure class="quote dusty" tabindex="0">
+        <div class="stars" role="img" aria-label="5 out of 5 stars"></div>
+        <blockquote>"They come every second Friday and I have stopped tidying before they arrive. That is the highest praise I have."</blockquote>
+        <figcaption>Homeowner, Red Deer</figcaption>
+      </figure>
+      <figure class="quote dusty" tabindex="0">
+        <div class="stars" role="img" aria-label="5 out of 5 stars"></div>
+        <blockquote>"Checkout at 11, new guests at 4, and the place was photo-ready by 3:30. Our cleanliness rating has been five stars since."</blockquote>
+        <figcaption>Vacation rental owner, Sylvan Lake</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="contact">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="label">Contact us</p>
+      <h2>Tell us about your place</h2>
+      <p>Send a few details and we will reply with a quote. No charge, no pressure.</p>
+    </div>
+    <div class="contact">
+      <div class="formcard dusty" id="formcard">
+        <form id="quote" novalidate>
+          <div class="f"><label for="name">Your name</label><input id="name" name="name" autocomplete="name" required><span class="err" id="name-err"></span></div>
+          <div class="f"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required><span class="err" id="email-err"></span></div>
+          <div class="f"><label for="phone">Phone (optional)</label><input id="phone" name="phone" type="tel" autocomplete="tel"></div>
+          <div class="f"><label for="town">Where is it?</label>
+            <select id="town" name="town"><option>Sylvan Lake</option><option>Red Deer</option><option>Innisfail</option><option>Ponoka</option><option>Lacombe</option><option>Blackfalds</option><option>Penhold</option><option>Somewhere else nearby</option></select></div>
+          <div class="f full"><label for="kind">What do you need?</label>
+            <select id="kind" name="kind"><option>Regular house cleaning</option><option>Airbnb or rental turnover</option><option>Deep clean</option><option>Move-in or move-out clean</option><option>Not sure yet</option></select></div>
+          <div class="f full"><label for="msg">Anything we should know?</label><textarea id="msg" name="msg" placeholder="Bedrooms, bathrooms, pets, how often, your next checkout date"></textarea></div>
+          <div class="form-foot">
+            <button class="btn" type="submit">Send my request</button>
+            <small>We reply within one business day.</small>
+          </div>
+        </form>
+        <div class="sent" id="sent" hidden>
+          <div class="burst" data-burst aria-hidden="true">All<br>clean!</div>
+          <h3 id="sent-title">Thanks!</h3>
+          <p>This form is a placeholder for now, so nothing was sent. Until it is connected, please call, text, or email us using the details on this page.</p>
+          <button class="btn plain" type="button" id="again">Fill it in again</button>
+        </div>
+      </div>
+      <aside class="side">
+        <dl>
+          <div><dt>Call or text</dt><dd>(403) 555-0123</dd></div>
+          <div><dt>Email</dt><dd>hello@metikuloso.example</dd></div>
+          <div><dt>Hours</dt><dd class="plain">Monday to Saturday, 8 am to 6 pm<br>Sunday turnovers by arrangement</dd></div>
+          <div><dt>Based in</dt><dd class="plain">Sylvan Lake, Alberta</dd></div>
+        </dl>
+        <button class="btn plain" type="button" id="redirty">Make the site dirty again</button>
+      </aside>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Metikuloso Cleaning Co.</span>
+    <span>Residential and Airbnb cleaning · Sylvan Lake and Red Deer, Alberta</span>
+  </div>
+</footer>
+
+<div id="tool" aria-hidden="true">
+  <svg class="sponge" viewBox="0 0 48 48"><rect x="6" y="14" width="36" height="24" rx="7" fill="#FFD23F" stroke="#0E2A3B" stroke-width="2.5"/><path d="M6 21a7 7 0 0 1 7-7h22a7 7 0 0 1 7 7v1H6Z" fill="#2FA98C" stroke="#0E2A3B" stroke-width="2.5"/><circle cx="16" cy="29" r="2" fill="#0E2A3B"/><circle cx="26" cy="32" r="1.6" fill="#0E2A3B"/><circle cx="34" cy="28" r="2.2" fill="#0E2A3B"/></svg>
+  <svg class="squeegee" viewBox="0 0 48 48"><rect x="21" y="16" width="6" height="28" rx="3" fill="#FFD23F" stroke="#0E2A3B" stroke-width="2.5"/><rect x="4" y="6" width="40" height="11" rx="4" fill="#FFFFFF" stroke="#0E2A3B" stroke-width="2.5"/><rect x="4" y="5" width="40" height="4" rx="2" fill="#0E2A3B"/></svg>
+</div>
+
+<script>
+(function(){
+  var root = document.documentElement; root.classList.add('js');
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = function(s){ return document.querySelector(s) };
+
+  // seeded random so the dirt looks the same on every repaint
+  function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; var t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296 } }
+
+  // starburst sticker shapes
+  var pts=[], n=16;
+  for(var i=0;i<n*2;i++){ var r=i%2?42:50, a=Math.PI*i/n; pts.push((50+r*Math.cos(a)).toFixed(1)+'% '+(50+r*Math.sin(a)).toFixed(1)+'%') }
+  document.querySelectorAll('[data-burst]').forEach(function(b){ b.style.borderRadius='0'; b.style.clipPath='polygon('+pts.join(',')+')' });
+
+  // review stars
+  var star='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.5 2.9 6.2 6.6.8-4.9 4.6 1.3 6.6L12 17.4l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8Z"/></svg>';
+  document.querySelectorAll('.stars').forEach(function(s){ s.innerHTML=star+star+star+star+star });
+
+  // dust texture for cards
+  (function(){
+    var c=document.createElement('canvas'); c.width=c.height=240; var x=c.getContext('2d'), R=rng(7);
+    for(var i=0;i<26;i++){ var g=x.createRadialGradient(0,0,0,0,0,1), px=R()*240, py=R()*240, rad=20+R()*50;
+      x.save(); x.translate(px,py); x.scale(rad,rad*(.5+R()*.6)); g.addColorStop(0,'rgba(96,74,38,.22)'); g.addColorStop(1,'rgba(96,74,38,0)'); x.fillStyle=g; x.beginPath(); x.arc(0,0,1,0,7); x.fill(); x.restore() }
+    for(i=0;i<900;i++){ x.fillStyle='rgba(70,52,24,'+(.12+R()*.35)+')'; x.beginPath(); x.arc(R()*240,R()*240,.4+R()*1.5,0,7); x.fill() }
+    try{ root.style.setProperty('--dust','url('+c.toDataURL()+')') }catch(e){}
+  })();
+
+  // bubbles
+  function bubbles(x,y,count,spread){
+    if(reduce) return;
+    for(var i=0;i<count;i++){
+      var b=document.createElement('span'), s=6+Math.random()*18; b.className='bub';
+      b.style.width=b.style.height=s+'px'; b.style.left=x+'px'; b.style.top=y+'px';
+      document.body.appendChild(b);
+      var dx=(Math.random()-.5)*spread*2, dy=-20-Math.random()*spread*1.4;
+      (function(b){ b.animate([{transform:'translate(-50%,-50%) scale(.3)',opacity:.95},{transform:'translate(calc(-50% + '+dx+'px),calc(-50% + '+dy+'px)) scale(1)',opacity:0}],
+        {duration:650+Math.random()*650,easing:'cubic-bezier(.2,.7,.3,1)'}).onfinish=function(){ b.remove() } })(b);
+    }
+  }
+  document.addEventListener('pointerdown',function(e){ bubbles(e.clientX,e.clientY,7,55) });
+  document.querySelectorAll('.btn').forEach(function(b){ b.addEventListener('pointerenter',function(){ var r=b.getBoundingClientRect(); bubbles(r.left+r.width/2,r.top,5,r.width/3) }) });
+
+  // cleanliness meter
+  var items=[].slice.call(document.querySelectorAll('.dusty')), heroPct=0, celebrated=false;
+  function meter(){
+    var done=items.filter(function(i){ return i.classList.contains('clean') }).length;
+    var s=Math.round((heroPct*.4+done/items.length*.6)*100);
+    $('#meter-fill').style.width=s+'%';
+    $('#meter-text').textContent = s>=100 ? 'Site is spotless' : 'Site '+s+'% clean';
+    $('#meter').classList.toggle('done',s>=100);
+    if(s>=100 && !celebrated){ celebrated=true; for(var i=0;i<6;i++) bubbles(innerWidth*(i+.5)/6,innerHeight*.55,8,110) }
+    if(s<100) celebrated=false;
+  }
+  function wipeItem(el){ if(el.classList.contains('clean')) return; el.classList.add('clean'); var r=el.getBoundingClientRect(); setTimeout(function(){ bubbles(r.right-20,r.top+r.height/2,6,50) },reduce?0:600); meter() }
+  items.forEach(function(el){ ['pointerenter','focusin','click'].forEach(function(ev){ el.addEventListener(ev,function(){ wipeItem(el) }) }) });
+
+  // hero: a dirty window you wipe
+  var hero=$('#hero'), cv=$('#grime'), ctx=cv.getContext('2d'), W=0, H=0, last=null, cleaned=false, running=false;
+  var track=document.createElement('canvas'); track.width=64; track.height=36; var tctx=track.getContext('2d',{willReadFrequently:true});
+  function paint(){
+    var r=hero.getBoundingClientRect(), d=Math.min(devicePixelRatio||1,2); W=r.width; H=r.height;
+    cv.width=Math.round(W*d); cv.height=Math.round(H*d); ctx.setTransform(d,0,0,d,0,0);
+    var R=rng(42), i, g;
+    ctx.globalCompositeOperation='source-over';
+    ctx.fillStyle='rgba(98,78,44,.46)'; ctx.fillRect(0,0,W,H);
+    for(i=0;i<Math.round(W*H/9000);i++){ var px=R()*W, py=R()*H, rad=50+R()*150;
+      g=ctx.createRadialGradient(px,py,0,px,py,rad); g.addColorStop(0,'rgba(58,42,18,'+(.14+R()*.2)+')'); g.addColorStop(1,'rgba(58,42,18,0)'); ctx.fillStyle=g; ctx.fillRect(px-rad,py-rad,rad*2,rad*2) }
+    for(i=0;i<Math.round(W*H/260);i++){ ctx.fillStyle='rgba(44,32,12,'+(.1+R()*.35)+')'; ctx.beginPath(); ctx.arc(R()*W,R()*H,.5+R()*2.2,0,7); ctx.fill() }
+    ctx.lineCap='round';
+    for(i=0;i<Math.round(W/70);i++){ var x=R()*W, y=R()*H*.5, len=60+R()*H*.5; g=ctx.createLinearGradient(0,y,0,y+len); g.addColorStop(0,'rgba(50,36,14,.32)'); g.addColorStop(1,'rgba(50,36,14,0)');
+      ctx.strokeStyle=g; ctx.lineWidth=3+R()*7; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+(R()-.5)*14,y+len); ctx.stroke() }
+    for(i=0;i<5;i++){ var fx=R()*W, fy=R()*H; ctx.strokeStyle='rgba(235,225,200,.13)'; ctx.lineWidth=2;
+      for(var k=1;k<6;k++){ ctx.beginPath(); ctx.ellipse(fx,fy,k*5,k*7,.5,0,7); ctx.stroke() } }
+    tctx.globalCompositeOperation='source-over'; tctx.fillStyle='#000'; tctx.fillRect(0,0,64,36);
+    last=null;
+  }
+  function stroke(c,x0,y0,x1,y1,w){ c.globalCompositeOperation='destination-out'; c.lineCap='round'; c.lineJoin='round'; c.lineWidth=w; c.beginPath(); c.moveTo(x0,y0); c.lineTo(x1,y1); c.stroke() }
+  function wipe(x,y,w){
+    var p=last||{x:x,y:y}; stroke(ctx,p.x,p.y,x+.01,y+.01,w);
+    stroke(tctx,p.x/W*64,p.y/H*36,x/W*64+.01,y/H*36+.01,Math.max(2,w/W*64));
+    last={x:x,y:y};
+  }
+  var pending=false;
+  function measure(){
+    if(pending||cleaned) return; pending=true;
+    requestAnimationFrame(function(){ pending=false; if(cleaned) return;
+      var d=tctx.getImageData(0,0,64,36).data, clear=0; for(var i=3;i<d.length;i+=4) if(d[i]<40) clear++;
+      heroPct=clear/2304; if(heroPct>.88 && !running) finish(); else meter() });
+  }
+  function finish(){
+    cleaned=true; running=false; heroPct=1; cv.style.opacity='0'; hero.classList.add('is-clean'); $('#auto').textContent='Make it dirty again';
+    var r=hero.getBoundingClientRect(); for(var i=0;i<4;i++) bubbles(r.left+r.width*(i+.5)/4,Math.min(r.bottom,innerHeight)-80,7,90);
+    meter();
+  }
+  function dirty(){ cleaned=false; running=false; heroPct=0; paint(); cv.style.opacity='1'; hero.classList.remove('is-clean'); $('#auto').textContent='Clean it for me'; meter() }
+  function autoClean(){
+    if(reduce){ finish(); return }
+    running=true; var bw=Math.max(110,H/4), rows=Math.ceil(H/(bw*.8)), path=[], i;
+    for(i=0;i<rows;i++){ var y=(i+.5)*H/rows; if(i%2){ path.push([W+40,y],[-40,y]) } else { path.push([-40,y],[W+40,y]) } }
+    var seg=[], total=0; for(i=1;i<path.length;i++){ var l=Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]); seg.push(l); total+=l }
+    function at(dist){ for(var i=0;i<seg.length;i++){ if(dist<=seg[i]){ var t=seg[i]?dist/seg[i]:0; return [path[i][0]+(path[i+1][0]-path[i][0])*t, path[i][1]+(path[i+1][1]-path[i][1])*t] } dist-=seg[i] } return path[path.length-1] }
+    var t0=performance.now(), dur=1500, prev=0; last=null;
+    (function step(now){ if(!running) return; var t=Math.min(1,(now-t0)/dur), e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2, dd=e*total;
+      for(var s=prev;s<=dd;s+=18){ var p=at(s); wipe(p[0],p[1],bw) } prev=dd; heroPct=e*.99; meter();
+      if(t<1) requestAnimationFrame(step); else finish() })(t0);
+  }
+  $('#auto').addEventListener('click',function(){ if(cleaned) dirty(); else if(!running) autoClean() });
+  hero.addEventListener('pointermove',function(e){ if(cleaned||running) return; var r=cv.getBoundingClientRect(); wipe(e.clientX-r.left,e.clientY-r.top,e.pointerType==='mouse'?96:72); measure() });
+  ['pointerleave','pointerup','pointercancel','pointerdown'].forEach(function(ev){ hero.addEventListener(ev,function(){ last=null }) });
+  paint();
+  if('ResizeObserver' in window){ var lw=W; new ResizeObserver(function(){ var w=hero.getBoundingClientRect().width; if(Math.abs(w-lw)>1){ lw=w; if(!cleaned){ heroPct=0; paint(); meter() } } }).observe(hero) }
+
+  $('#redirty').addEventListener('click',function(){ items.forEach(function(i){ i.classList.remove('clean') }); dirty(); hero.scrollIntoView({behavior:reduce?'auto':'smooth'}) });
+
+  // sponge / squeegee that follows the cursor
+  if(matchMedia('(hover:hover) and (pointer:fine)').matches && !reduce){
+    var tool=$('#tool'), tx=0, ty=0, cx=0, cy=0, rot=0, seen=false;
+    document.addEventListener('pointermove',function(e){ if(e.pointerType!=='mouse') return; tx=e.clientX; ty=e.clientY;
+      if(!seen){ seen=true; cx=tx; cy=ty; tool.style.opacity='1' }
+      tool.classList.toggle('on-glass',!!(e.target.closest && e.target.closest('#hero')) && !cleaned) });
+    document.addEventListener('pointerdown',function(){ tool.classList.add('press') });
+    document.addEventListener('pointerup',function(){ tool.classList.remove('press') });
+    document.documentElement.addEventListener('pointerleave',function(){ tool.style.opacity='0'; seen=false });
+    (function loop(){ var dx=tx-cx; cx+=dx*.28; cy+=(ty-cy)*.28; rot+=(Math.max(-28,Math.min(28,dx*.9))-rot)*.2;
+      tool.style.transform='translate('+(cx+10)+'px,'+(cy+12)+'px) rotate('+rot.toFixed(1)+'deg)'; requestAnimationFrame(loop) })();
+  }
+
+  // contact form: placeholder only, nothing is sent
+  var form=$('#quote'), sent=$('#sent');
+  form.querySelectorAll('input,textarea').forEach(function(el){ el.addEventListener('input',function(){ el.classList.toggle('filled',!!el.value.trim()); if(el.getAttribute('aria-invalid')){ el.removeAttribute('aria-invalid'); var er=$('#'+el.id+'-err'); if(er) er.textContent='' } }) });
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var name=$('#name'), email=$('#email'), ok=true;
+    function bad(el,msg){ el.setAttribute('aria-invalid','true'); $('#'+el.id+'-err').textContent=msg; if(ok) el.focus(); ok=false }
+    if(!name.value.trim()) bad(name,'Please add your name so we know who to reply to.');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) bad(email,'Enter an email like name@example.com.');
+    if(!ok) return;
+    $('#sent-title').textContent='Thanks, '+name.value.trim().split(/\s+/)[0]+'!';
+    form.hidden=true; sent.hidden=false;
+    var r=$('#formcard').getBoundingClientRect(); for(var i=0;i<3;i++) bubbles(r.left+r.width*(i+.5)/3,r.top+Math.min(r.height,260),9,100);
+  });
+  $('#again').addEventListener('click',function(){ form.reset(); form.querySelectorAll('.filled').forEach(function(el){ el.classList.remove('filled') }); sent.hidden=true; form.hidden=false; $('#name').focus() });
+
+  meter();
+})();
+</script>
+</body>
+</html>
