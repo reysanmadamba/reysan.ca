@@ -148,6 +148,23 @@ a{color:inherit}
 .towns li.main{background:var(--glove); color:var(--on-glove)}
 @media (max-width:760px){ .about{grid-template-columns:minmax(0,1fr)} .photo{aspect-ratio:4/3} }
 
+/* before / after drag slider */
+.ba{--pos:50%; position:relative; aspect-ratio:16/10; max-width:880px; border:2px solid var(--edge); border-radius:12px; overflow:hidden;
+  touch-action:pan-y; cursor:ew-resize; user-select:none; -webkit-user-select:none; background:var(--card)}
+.ba-img{position:absolute; inset:0; display:grid; padding:24px 6%; font-weight:800; color:var(--muted); text-align:center}
+.ba-img img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none}
+.ba-after{place-items:center end; background:repeating-linear-gradient(45deg,var(--card) 0 18px,var(--grout) 18px 36px)}
+.ba-before{place-items:center start; background:var(--dust,none),var(--field); clip-path:inset(0 calc(100% - var(--pos)) 0 0)}
+.ba-img p{max-width:12rem}
+.ba-tag{position:absolute; top:14px; z-index:1; font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; padding:4px 12px;
+  border-radius:99px; border:2px solid var(--on-glove); background:var(--glove); color:var(--on-glove)}
+.ba-before .ba-tag{left:14px}
+.ba-after .ba-tag{right:14px}
+.ba-handle{position:absolute; top:0; bottom:0; left:var(--pos); width:8px; margin-left:-4px; background:var(--glove); border-inline:2px solid var(--on-glove); z-index:3}
+.ba-handle svg{position:absolute; top:50%; left:50%; width:52px; height:52px; margin:-26px 0 0 -26px; transition:transform .2s cubic-bezier(.3,1.6,.5,1)}
+.ba:hover .ba-handle svg,.ba-handle:focus-visible svg{transform:scale(1.15)}
+.ba:active .ba-handle svg{transform:scale(.92)}
+
 /* reviews */
 .sample{align-self:flex-start; font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; border:2px dashed var(--edge); border-radius:6px; padding:3px 9px; color:var(--muted)}
 .quote{background:var(--card); border:2px solid var(--edge); border-radius:12px; padding:26px 24px; display:flex; flex-direction:column; gap:16px; margin:0}
@@ -209,6 +226,7 @@ footer .wrap{padding-block:26px; display:flex; flex-wrap:wrap; gap:8px 24px; jus
     <a class="logo" href="#hero">Metikuloso<small>Cleaning Co.</small></a>
     <nav class="nav" aria-label="Sections">
       <a href="#services">Services</a>
+      <a href="#results">Before &amp; after</a>
       <a href="#about">About</a>
       <a href="#reviews">Reviews</a>
       <a href="#contact">Contact</a>
@@ -257,7 +275,7 @@ footer .wrap{padding-block:26px; display:flex; flex-wrap:wrap; gap:8px 24px; jus
       <article class="tile dusty" tabindex="0">
         <svg viewBox="0 0 48 48" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true"><path d="M6 22 24 7l18 15v19H6Z" fill="var(--glove)"/><path d="M19 41V28h10v13"/></svg>
         <h3>Residential cleaning</h3>
-        <p>Weekly, every two weeks, or monthly. Same two people each time.</p>
+        <p>Weekly, every two weeks, or monthly. Booked on a schedule that suits you.</p>
         <ul><li>Kitchens and bathrooms</li><li>Dusting, floors, and vacuuming</li><li>Beds made, garbage out</li></ul>
       </article>
       <article class="tile dusty" tabindex="0">
@@ -300,13 +318,31 @@ footer .wrap{padding-block:26px; display:flex; flex-wrap:wrap; gap:8px 24px; jus
   </div>
 </section>
 
+<section class="sec" id="results">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="label">Before and after</p>
+      <h2>Drag to see the difference</h2>
+      <p>Slide the handle across to compare a room before we arrive and after we leave.</p>
+    </div>
+    <!-- To add real photos, put an <img> inside each .ba-img, for example <img src="img/kitchen-before.jpg" alt="Kitchen before cleaning">. Use two photos taken from the same spot. -->
+    <div class="ba" id="ba">
+      <div class="ba-img ba-after"><span class="ba-tag">After</span><p>After photo goes here</p></div>
+      <div class="ba-img ba-before"><span class="ba-tag">Before</span><p>Before photo goes here</p></div>
+      <div class="ba-handle" role="slider" tabindex="0" aria-label="Before and after comparison" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+        <svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="23" fill="#FFD23F" stroke="#0E2A3B" stroke-width="2.5"/><path d="M21 18l-8 8 8 8M31 18l8 8-8 8" fill="none" stroke="#0E2A3B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="sec" id="about">
   <div class="wrap about">
-    <div class="photo dusty" tabindex="0"><div><b>M</b>Photo of Raiza and Earl goes here</div></div>
+    <div class="photo dusty" tabindex="0"><div><b>M</b>Photo of Raiza, Earl and the team goes here</div></div>
     <div class="bio">
-      <p class="label">Who we are</p>
+      <p class="label">The owners and the team</p>
       <h2>Hi, we're Raiza and Earl.</h2>
-      <p>We run this business ourselves. When you book us, we are the two people who show up at your door, and we will be the same two people next time.</p>
+      <p>We own Metikuloso Cleaning Co., and we are a team. We work alongside our own crew of cleaners, and everyone who comes to your door follows the same checklist and the same standard we do.</p>
       <p>Most of our work is regular house cleaning for families in Sylvan Lake and Red Deer, and turnovers for Airbnb hosts around the lake. Summers here get busy, so we know what a same-day checkout and check-in feels like.</p>
       <p>We clean the way we would want our own place cleaned. If we spot something that needs fixing, like a dripping tap or a burnt-out bulb, we tell you before a guest does.</p>
       <div>
@@ -381,6 +417,7 @@ footer .wrap{padding-block:26px; display:flex; flex-wrap:wrap; gap:8px 24px; jus
           <div><dt>Call or text</dt><dd>(403) 555-0123</dd></div>
           <div><dt>Email</dt><dd>hello@metikuloso.example</dd></div>
           <div><dt>Hours</dt><dd class="plain">Monday to Saturday, 8 am to 6 pm<br>Sunday turnovers by arrangement</dd></div>
+          <div><dt>Instagram</dt><dd class="plain"><a href="https://www.instagram.com/metikulosocleaningco/" target="_blank" rel="noopener"><b>@metikulosocleaningco</b></a></dd></div>
           <div><dt>Based in</dt><dd class="plain">Sylvan Lake, Alberta</dd></div>
         </dl>
         <button class="btn plain" type="button" id="redirty">Make the site dirty again</button>
@@ -394,6 +431,7 @@ footer .wrap{padding-block:26px; display:flex; flex-wrap:wrap; gap:8px 24px; jus
   <div class="wrap">
     <span>© 2026 Metikuloso Cleaning Co.</span>
     <span>Residential and Airbnb cleaning · Sylvan Lake and Red Deer, Alberta</span>
+    <a href="https://www.instagram.com/metikulosocleaningco/" target="_blank" rel="noopener">Instagram @metikulosocleaningco</a>
   </div>
 </footer>
 
@@ -528,6 +566,19 @@ footer .wrap{padding-block:26px; display:flex; flex-wrap:wrap; gap:8px 24px; jus
     (function loop(){ var dx=tx-cx; cx+=dx*.28; cy+=(ty-cy)*.28; rot+=(Math.max(-28,Math.min(28,dx*.9))-rot)*.2;
       tool.style.transform='translate('+(cx+10)+'px,'+(cy+12)+'px) rotate('+rot.toFixed(1)+'deg)'; requestAnimationFrame(loop) })();
   }
+
+  // before / after: drag, tap or use arrow keys to move the divider
+  document.querySelectorAll('.ba').forEach(function(ba){
+    var h=ba.querySelector('.ba-handle'), pos=50, drag=false;
+    function set(p){ pos=Math.max(0,Math.min(100,p)); ba.style.setProperty('--pos',pos+'%'); h.setAttribute('aria-valuenow',Math.round(pos)) }
+    function from(e){ var r=ba.getBoundingClientRect(); set((e.clientX-r.left)/r.width*100) }
+    ba.addEventListener('pointerdown',function(e){ drag=true; try{ ba.setPointerCapture(e.pointerId) }catch(_){} from(e) });
+    ba.addEventListener('pointermove',function(e){ if(drag) from(e) });
+    ['pointerup','pointercancel'].forEach(function(ev){ ba.addEventListener(ev,function(){ drag=false }) });
+    h.addEventListener('keydown',function(e){
+      var k=e.key; if(k==='ArrowLeft'||k==='ArrowDown') set(pos-5); else if(k==='ArrowRight'||k==='ArrowUp') set(pos+5); else if(k==='Home') set(0); else if(k==='End') set(100); else return;
+      e.preventDefault() });
+  });
 
   // contact form: placeholder only, nothing is sent
   var form=$('#quote'), sent=$('#sent');
