@@ -105,18 +105,18 @@
     });
   });
 
-  // Body copy below is placeholder text.
+  // Body copy slots below are intentionally blank (non-breaking space).
   var REGIONS = {
     edmonton: {
       slug: 'greater-edmonton', name: 'Greater Edmonton', city: 'Edmonton', listingsLabel: 'Quick Possession Homes',
       showHomes: 'Show Homes in Edmonton & Ardrossan', hasNews: true,
       whyOrder: [['About Us', 'our-company'], ['Our Comfort Blueprint', 'comfort-blueprint-edm'], ['Daytona Cares', 'daytona-cares']],
       preApproved: 'pre-approved',
-      heroIntro: 'Placeholder',
+      heroIntro: ' ',
       promos: [
-        { title: 'Attention First-Time Homebuyers', text: 'Placeholder', img: 'edmonton/fthb-landing-page.png/2e6218a5fcbccdac71c5318737f7f6f8/fthb-landing-page.webp', href: '/built-for-first-time-buyers' },
-        { title: 'Now Open in Edgemont!', text: 'Placeholder', img: 'dh-edm-edgemont-flex-promo-box.png/2842f14fb47caecc0204c1cf45911ba1/dh-edm-edgemont-flex-promo-box.webp', href: '/greater-edmonton/homes/the-flex' },
-        { title: 'Townhomes Coming Soon!', text: 'Placeholder', img: 'edmonton/ambrea-announcement-promo-box.jpg/7b78fec0c7069a2ff182bb2358e338b8/ambrea-announcement-promo-box.webp', href: '/ambrea-at-the-orchards', tag: 'New Development' }
+        { title: 'Attention First-Time Homebuyers', text: ' ', img: 'edmonton/fthb-landing-page.png/2e6218a5fcbccdac71c5318737f7f6f8/fthb-landing-page.webp', href: '/built-for-first-time-buyers' },
+        { title: 'Now Open in Edgemont!', text: ' ', img: 'dh-edm-edgemont-flex-promo-box.png/2842f14fb47caecc0204c1cf45911ba1/dh-edm-edgemont-flex-promo-box.webp', href: '/greater-edmonton/homes/the-flex' },
+        { title: 'Townhomes Coming Soon!', text: ' ', img: 'edmonton/ambrea-announcement-promo-box.jpg/7b78fec0c7069a2ff182bb2358e338b8/ambrea-announcement-promo-box.webp', href: '/ambrea-at-the-orchards', tag: 'New Development' }
       ],
       buildImg: 'edmonton/dhi_alc_ocean_sh_living_room_apr_26.png/0a67fd79c60be78db09a8813bd53c2e6/dhi_alc_ocean_sh_living_room_apr_26.webp',
       comfortTitle: 'Find comfort in a Daytona home', comfortSub: 'Daytona Homes are crafted with care.',
@@ -135,11 +135,11 @@
       showHomes: 'Show Homes in Calgary & Cochrane', hasNews: false,
       whyOrder: [['About Us', 'our-company'], ['Our Comfort Blueprint', 'our-comfort-blueprint'], ['Daytona Cares', 'daytona-cares']],
       preApproved: 'pre-approved-cgy',
-      heroIntro: 'Placeholder',
+      heroIntro: ' ',
       promos: [
-        { title: 'Make Your Down Payment More Comfortable', text: 'Placeholder', img: 'calgary/daytona-comfort-pay-launch-07.26-v4.png/4373e8d3b132c98423b5678f205dd453/daytona-comfort-pay-launch-07.26-v4.webp', href: '/greater-calgary' },
-        { title: 'Attention First-Time Home Buyers!', text: 'Placeholder', img: 'edmonton/dh-gst-rebate-2026-%282%29.png/6b6e3c780545214347fc57479ef6a3f3/dh-gst-rebate-2026-%282%29.webp', href: '/built-for-first-time-buyers' },
-        { title: 'Townhomes Coming Soon', text: 'Placeholder', img: 'calgary/the-bowbank-promo-box.jpg/f6568975fe7f1dcd514e4bef4bf3d3f7/the-bowbank-promo-box.webp', href: '/greater-calgary', tag: 'New Development' }
+        { title: 'Make Your Down Payment More Comfortable', text: ' ', img: 'calgary/daytona-comfort-pay-launch-07.26-v4.png/4373e8d3b132c98423b5678f205dd453/daytona-comfort-pay-launch-07.26-v4.webp', href: '/greater-calgary' },
+        { title: 'Attention First-Time Home Buyers!', text: ' ', img: 'edmonton/dh-gst-rebate-2026-%282%29.png/6b6e3c780545214347fc57479ef6a3f3/dh-gst-rebate-2026-%282%29.webp', href: '/built-for-first-time-buyers' },
+        { title: 'Townhomes Coming Soon', text: ' ', img: 'calgary/the-bowbank-promo-box.jpg/f6568975fe7f1dcd514e4bef4bf3d3f7/the-bowbank-promo-box.webp', href: '/greater-calgary', tag: 'New Development' }
       ],
       buildImg: 'calgary/dhc_hea_palisade_sh_kitchen_vertical_apr_26.png/b76ca5f97a8a3d303f04fa0190a37c65/dhc_hea_palisade_sh_kitchen_vertical_apr_26.webp',
       comfortTitle: 'Find comfort in a Daytona home', comfortSub: 'Daytona Homes are crafted with care.',
@@ -158,11 +158,11 @@
       showHomes: 'Visit a showhome', hasNews: false,
       whyOrder: [['Our Comfort Blueprint', 'our-comfort-blueprint-wpg'], ['About Us', 'our-company'], ['Daytona Cares', 'daytona-cares']],
       preApproved: 'pre-approved-wpg',
-      heroIntro: 'Placeholder',
+      heroIntro: ' ',
       promos: [
-        { title: 'Celebrating our 1000th Homeowner!', text: 'Placeholder', img: 'winnipeg/wpg-1000-homeowner.png/4a37c966d901a1d17ff74378cd8950da/wpg-1000-homeowner.webp', href: '/winnipeg' },
-        { title: 'Solara Sales Centre Now Open!', text: 'Placeholder', img: 'winnipeg/solara-announcement-promo-box.jpg/262f426f43b7372da6122a9443898d40/solara-announcement-promo-box.webp', href: '/winnipeg' },
-        { title: 'Attention First-Time Home Buyers!', text: 'Placeholder', img: 'edmonton/dh-gst-rebate-2026-%282%29.png/6b6e3c780545214347fc57479ef6a3f3/dh-gst-rebate-2026-%282%29.webp', href: '/built-for-first-time-buyers' }
+        { title: 'Celebrating our 1000th Homeowner!', text: ' ', img: 'winnipeg/wpg-1000-homeowner.png/4a37c966d901a1d17ff74378cd8950da/wpg-1000-homeowner.webp', href: '/winnipeg' },
+        { title: 'Solara Sales Centre Now Open!', text: ' ', img: 'winnipeg/solara-announcement-promo-box.jpg/262f426f43b7372da6122a9443898d40/solara-announcement-promo-box.webp', href: '/winnipeg' },
+        { title: 'Attention First-Time Home Buyers!', text: ' ', img: 'edmonton/dh-gst-rebate-2026-%282%29.png/6b6e3c780545214347fc57479ef6a3f3/dh-gst-rebate-2026-%282%29.webp', href: '/built-for-first-time-buyers' }
       ],
       buildImg: 'edmonton/dhi_alc_ocean_sh_kitchen_apr_26.png/b538a4680195c04a5615df39a10ebfed/dhi_alc_ocean_sh_kitchen_apr_26.webp',
       comfortTitle: 'Homes crafted with care', comfortSub: 'This is our promise to you.',

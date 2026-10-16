@@ -25,7 +25,7 @@
     if (/^https?:/.test(path)) return path.indexOf(LIVE) === 0 ? ROOT + 'assets/img/' + clean(path.slice(LIVE.length)) : path;
     return ROOT + 'assets/img/' + clean(path.split('/').slice(-2).join('-'));
   }
-  function standin() { return 'Placeholder'; }
+  function standin() { return ' '; }   // empty copy slot: invisible, keeps the line
   function byId(list, id) { return (list || []).filter(function (x) { return x.id === id; })[0]; }
 
   /* ---------------- Local routes ---------------- */
@@ -186,7 +186,7 @@
         '<div class="social">' + R.social.map(function (s) {
           return '<a href="' + s[2] + '" target="_blank" rel="noopener" aria-label="' + s[1] + '"><i class="fab fa-' + s[0] + '"></i></a>';
         }).join('') + '</div></div></div>';
-      treaty = '<div class="treaty"><h3>' + esc(R.treaty) + '</h3><p>Placeholder</p></div>';
+      treaty = '<div class="treaty"><h3>' + esc(R.treaty) + '</h3><p>&nbsp;</p></div>';
     } else {
       middle = '<div class="footer-col"><h3>Regions</h3>' + Object.keys(D.regions).map(function (k) { return row(D.regions[k].name, home(k)); }).join('') + '</div>';
       contact = '<div class="footer-col"><h3>Get Connected</h3>' + Object.keys(D.regions).map(function (k) {
@@ -267,7 +267,7 @@
   }
   function consultant(context) {
     return '<aside class="consultant"><div class="avatar"><i class="fas fa-user"></i></div><div><h3>Sales Consultant</h3>' +
-      '<p>Placeholder</p><p><a href="tel:' + R.phone + '">' + R.phone + '</a></p></div>' +
+      '<p>&nbsp;</p><p><a href="tel:' + R.phone + '">' + R.phone + '</a></p></div>' +
       '<div class="consultant-actions">' + a('#contact-form', 'Request Appointment', 'btn') + a('#contact-form', 'Send a Message', 'btn outline') + '</div></aside>';
   }
   function showhomeStrip(title) {
@@ -365,7 +365,7 @@
   function office() {
     return '<section class="office wrap"><h2 class="section-title">' + esc(R.name) + ' head office</h2><div class="office-grid">' +
       '<p><b>Phone</b><br><a href="tel:' + R.phone + '">' + R.phone + '</a></p><p><b>Address</b><br>' + out(mapsUrl(R.address.join(', ')), R.address.map(esc).join('<br>')) + '</p>' +
-      '<p><b>Emergency After-Hours Number for Homeowners</b><br>Placeholder</p></div></section>';
+      '<p><b>Emergency After-Hours Number for Homeowners</b><br>&nbsp;</p></div></section>';
   }
   var I = {   // hero and section images, linked from the live site
     about: '14-web-or-mls-dsc_9242_hdr-1720821073.jpeg/024e772f33bf816b5e2df8ff3eda1829/14-web-or-mls-dsc_9242_hdr-1720821073.webp',
@@ -854,7 +854,7 @@
     if (!s) return notFound();
     document.title = s.title + ' | Daytona Homes';
     var cid = communityId(s.community);
-    var hours = [['Monday to Thursday', 'Placeholder'], ['Friday', 'Placeholder'], ['Saturday, Sunday and holidays', 'Placeholder']];
+    var hours = [['Monday to Thursday', '&nbsp;'], ['Friday', '&nbsp;'], ['Saturday, Sunday and holidays', '&nbsp;']];
     return detailHero(s.title, [['Home', home(RKEY)], [R.showHomes, rp('visit-a-showhome')], s.title], s.image,
         (s.community ? '<span class="region-tag">' + esc(s.community) + '</span>' : '') + (s.type ? '<p class="feat">' + esc(s.type) + '</p>' : '') +
         (s.address ? '<p class="addr"><i class="fas fa-map-marker"></i>' + out(mapsUrl(s.address + ', ' + R.city), esc(s.address)) + '</p>' : '') +
@@ -871,8 +871,8 @@
     var more = (X.posts || []).filter(function (o) { return o.id !== p.id; }).slice(0, 3);
     return '<article class="article wrap">' + crumbs([['Home', home(RKEY)], ['News', rp('blog')], p.title]) + '<h1>' + esc(p.title) + '</h1>' +
         '<img class="article-img" src="' + img(p.image) + '" alt="">' +
-        '<div class="prose"><p>' + standin('this article') + '</p><h2>Placeholder</h2><p>' + standin('the first point of the article') + '</p>' +
-        '<h2>Placeholder</h2><p>' + standin('the second point of the article') + '</p></div>' + a(rp('blog'), '<i class="fas fa-arrow-left"></i> All news', 'btn outline') + '</article>' +
+        '<div class="prose"><p>' + standin('this article') + '</p><h2>&nbsp;</h2><p>' + standin('the first point of the article') + '</p>' +
+        '<h2>&nbsp;</h2><p>' + standin('the second point of the article') + '</p></div>' + a(rp('blog'), '<i class="fas fa-arrow-left"></i> All news', 'btn outline') + '</article>' +
       '<section class="section wrap"><h2 class="section-title">More news</h2>' + grid(more.map(postCard), 'archive') + '</section>';
   }
 
