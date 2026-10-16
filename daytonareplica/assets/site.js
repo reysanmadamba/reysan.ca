@@ -25,7 +25,7 @@
     if (/^https?:/.test(path)) return path.indexOf(LIVE) === 0 ? ROOT + 'assets/img/' + clean(path.slice(LIVE.length)) : path;
     return ROOT + 'assets/img/' + clean(path.split('/').slice(-2).join('-'));
   }
-  function standin(topic) { return 'Stand-in text about ' + topic + '. Replace with the approved Daytona copy.'; }
+  function standin() { return 'Placeholder'; }
   function byId(list, id) { return (list || []).filter(function (x) { return x.id === id; })[0]; }
 
   /* ---------------- Local routes ---------------- */
@@ -39,7 +39,7 @@
   function communityId(name) { var c = (X.communities || []).filter(function (c) { return c.title === name; })[0]; return c ? c.id : null; }
 
   function logo(href) {
-    return '<a class="logo" href="' + href + '"><img src="' + img(LIVE + '/img/favicons/favicon-192x192.png') + '" alt="" width="44" height="44">' +
+    return '<a class="logo notranslate" translate="no" href="' + href + '"><img src="' + img(LIVE + '/img/favicons/favicon-192x192.png') + '" alt="" width="44" height="44">' +
       '<span><b>Daytona</b><i>HOMES</i></span><span class="sr-only"> Homes</span></a>';
   }
 
@@ -56,15 +56,18 @@
   }
 
   /* ---------------- Navigation ---------------- */
-  var LANGS = ['English', 'Chinese (Traditional)', 'Chinese (Simplified)', 'Vietnamese', 'Filipino', 'Arabic', 'Urdu', 'Amharic', 'Somali', 'Hindi', 'Punjabi', 'Spanish', 'French'];
+  var LANGS = [['en', 'English'], ['zh-TW', 'Chinese (Traditional)'], ['zh-CN', 'Chinese (Simplified)'], ['vi', 'Vietnamese'], ['tl', 'Filipino'], ['ar', 'Arabic'],
+    ['ur', 'Urdu'], ['am', 'Amharic'], ['so', 'Somali'], ['hi', 'Hindi'], ['pa', 'Punjabi'], ['es', 'Spanish'], ['fr', 'French']];
+  var LANG_KEY = 'daytona-replica:lang';
   var LABEL_SLUG = {
     'About Us': 'our-company', 'Our Comfort Blueprint': 'comfort-blueprint', 'Daytona Cares': 'daytona-cares',
     'Daytona Homes X Virtuo': 'virtuo', 'Daytona x Virtuo': 'virtuo', 'News': 'blog', 'Mortgage and Approval Process': 'get-pre-approved',
     'Referral Rewards': 'referral-program', 'Realtor Program': 'realtor-program', 'List & Save': 'list-and-save', 'Solara': 'solara'
   };
   function lang() {
-    return '<div class="lang"><i class="fas fa-language"></i><select aria-label="Select Language">' +
-      LANGS.map(function (l) { return '<option>' + l + '</option>'; }).join('') + '</select></div>';
+    var current = currentLang();
+    return '<div class="lang notranslate" translate="no"><i class="fas fa-language"></i><select class="lang-select" aria-label="Select Language">' +
+      LANGS.map(function (l) { return '<option value="' + l[0] + '"' + (l[0] === current ? ' selected' : '') + '>' + l[1] + '</option>'; }).join('') + '</select></div>';
   }
   function navLink(label, href, current) {
     return '<a class="nav-link' + (current ? ' current' : '') + '" href="' + esc(href) + '">' + esc(label) + '</a>';
@@ -123,6 +126,47 @@
       '</div>';
   }
 
+  /* ---------------- Translation ----------------
+     Same approach as GTranslate on the live site: Google Translate rewrites the page text in the browser.
+     Needs internet; offline (or if Google can't be reached) the page simply stays in English. */
+  function currentLang() {
+    try { return localStorage.getItem(LANG_KEY) || 'en'; } catch (e) { return 'en'; }
+  }
+  function setGoogCookie(code) {
+    var gone = code === 'en' ? ';expires=Thu, 01 Jan 1970 00:00:00 GMT' : '';
+    var value = code === 'en' ? '' : '/en/' + code;
+    [location.hostname, '.' + location.hostname, ''].forEach(function (d) {
+      document.cookie = 'googtrans=' + value + ';path=/' + (d ? ';domain=' + d : '') + gone;
+    });
+  }
+  function setLang(code) {
+    try { code === 'en' ? localStorage.removeItem(LANG_KEY) : localStorage.setItem(LANG_KEY, code); } catch (e) { /* private mode */ }
+    setGoogCookie(code);
+    location.reload();
+  }
+  function startTranslation() {
+    var code = currentLang();
+    if (code === 'en') { setGoogCookie('en'); return; }
+    setGoogCookie(code);
+    var holder = document.createElement('div');
+    holder.id = 'gt-el';
+    document.body.appendChild(holder);
+    window.daytonaTranslateInit = function () {
+      new window.google.translate.TranslateElement({ pageLanguage: 'en', autoDisplay: false }, 'gt-el');
+      // Cookies don't work on file:// pages, so also pick the language in Google's hidden menu.
+      var tries = 0, timer = setInterval(function () {
+        var combo = document.querySelector('.goog-te-combo');
+        if (combo && combo.options.length > 1) {
+          clearInterval(timer);
+          if (combo.value !== code) { combo.value = code; combo.dispatchEvent(new Event('change')); }
+        } else if (++tries > 50) clearInterval(timer);
+      }, 100);
+    };
+    var script = document.createElement('script');
+    script.src = 'https://translate.google.com/translate_a/element.js?cb=daytonaTranslateInit';
+    document.head.appendChild(script);
+  }
+
   /* ---------------- Footer ---------------- */
   function legal() {
     return a(cp('privacy-policy'), 'Privacy Policy') + a(cp('bill-s-211-report'), 'Bill S-211 Report') + '<span>&copy; 2026 Daytona Homes. All Rights Reserved</span>';
@@ -142,7 +186,7 @@
         '<div class="social">' + R.social.map(function (s) {
           return '<a href="' + s[2] + '" target="_blank" rel="noopener" aria-label="' + s[1] + '"><i class="fab fa-' + s[0] + '"></i></a>';
         }).join('') + '</div></div></div>';
-      treaty = '<div class="treaty"><h3>' + esc(R.treaty) + '</h3><p>[Stand-in] The approved land acknowledgement for ' + esc(R.treaty) + ' goes here.</p></div>';
+      treaty = '<div class="treaty"><h3>' + esc(R.treaty) + '</h3><p>Placeholder</p></div>';
     } else {
       middle = '<div class="footer-col"><h3>Regions</h3>' + Object.keys(D.regions).map(function (k) { return row(D.regions[k].name, home(k)); }).join('') + '</div>';
       contact = '<div class="footer-col"><h3>Get Connected</h3>' + Object.keys(D.regions).map(function (k) {
@@ -223,7 +267,7 @@
   }
   function consultant(context) {
     return '<aside class="consultant"><div class="avatar"><i class="fas fa-user"></i></div><div><h3>Sales Consultant</h3>' +
-      '<p>Stand-in consultant details for ' + esc(context) + '.</p><p><a href="tel:' + R.phone + '">' + R.phone + '</a></p></div>' +
+      '<p>Placeholder</p><p><a href="tel:' + R.phone + '">' + R.phone + '</a></p></div>' +
       '<div class="consultant-actions">' + a('#contact-form', 'Request Appointment', 'btn') + a('#contact-form', 'Send a Message', 'btn outline') + '</div></aside>';
   }
   function showhomeStrip(title) {
@@ -299,7 +343,7 @@
 
   /* ---------------- Content pages (about, programs, contact, corporate...) ---------------- */
   function split(h, topic, image, flip, cta) {
-    return '<section class="split' + (flip ? ' flip' : '') + '"><div><h2>' + esc(h) + '</h2><p>' + standin(topic) + '</p><p>' + standin(topic) + '</p>' +
+    return '<section class="split' + (flip ? ' flip' : '') + '"><div><h2>' + esc(h) + '</h2><p>' + standin(topic) + '</p>' +
       (cta ? a(cta[1], esc(cta[0]), 'btn') : '') + '</div><div class="split-img"><img loading="lazy" src="' + img(image || HERO_IMG) + '" alt=""></div></section>';
   }
   function accordion(h, items) {
@@ -316,12 +360,12 @@
     return '<section class="cta"><h2>' + esc(h) + '</h2><p>' + standin(topic) + '</p>' + a(href, esc(label), 'btn') + '</section>';
   }
   function textSections(heads) {
-    return '<section class="prose wrap">' + heads.map(function (h) { return '<h2>' + esc(h) + '</h2><p>' + standin(h.toLowerCase()) + '</p><p>' + standin(h.toLowerCase()) + '</p>'; }).join('') + '</section>';
+    return '<section class="prose wrap">' + heads.map(function (h) { return '<h2>' + esc(h) + '</h2><p>' + standin(h.toLowerCase()) + '</p>'; }).join('') + '</section>';
   }
   function office() {
     return '<section class="office wrap"><h2 class="section-title">' + esc(R.name) + ' head office</h2><div class="office-grid">' +
       '<p><b>Phone</b><br><a href="tel:' + R.phone + '">' + R.phone + '</a></p><p><b>Address</b><br>' + out(mapsUrl(R.address.join(', ')), R.address.map(esc).join('<br>')) + '</p>' +
-      '<p><b>Emergency After-Hours Number for Homeowners</b><br>[Stand-in number]</p></div></section>';
+      '<p><b>Emergency After-Hours Number for Homeowners</b><br>Placeholder</p></div></section>';
   }
   var I = {   // hero and section images, linked from the live site
     about: '14-web-or-mls-dsc_9242_hdr-1720821073.jpeg/024e772f33bf816b5e2df8ff3eda1829/14-web-or-mls-dsc_9242_hdr-1720821073.webp',
@@ -697,7 +741,7 @@
       test: function (h, v) { var m = h.months; return m != null && (v === 'now' ? m === 0 : v === '3-months' ? m < 3 : v === '3-6-months' ? m >= 3 && m <= 6 : m > 6); } });
     var view = listView({ name: 'filters', items: all, fields: fields, card: homeCard, nouns: ['Move-in ready home', 'Move-in ready homes'],
       sorts: ['price-asc', 'price-desc', 'size-asc', 'size-desc'].concat(hasPossession ? ['possession'] : []) });
-    return { html: pageHero('Move-in ready', trailFor('Move-in ready'), 'Stand-in intro: a few lines about quick possession homes in ' + R.city + ' go here.',
+    return { html: pageHero('Move-in ready', trailFor('Move-in ready'), standin(),
         'corporate/comfort-commercial-stills/livingroom-1080x1080.jpg/26f2b6c0dbe14260345c48c7ba405a55/livingroom-1080x1080.webp') + view.html +
         cta('Build with Daytona', 'building a customized home instead', 'Learn about building with us', rp('getting-started')), mount: view.mount };
   }
@@ -797,7 +841,7 @@
     var shows = (X.showhomes || []).filter(function (s) { return s.community === c.title; });
     var ready = regionListings().filter(function (h) { return h.community === c.title; });
     return detailHero(c.title, [['Home', home(RKEY)], ['Communities', rp('communities')], c.title], c.image,
-        (c.area ? '<span class="region-tag">' + esc(c.area) + '</span>' : '') + '<h2 class="sub">About the community</h2><p>' + standin('life in ' + c.title) + '</p><p>' + standin('nearby parks, schools and amenities') + '</p>' +
+        (c.area ? '<span class="region-tag">' + esc(c.area) + '</span>' : '') + '<h2 class="sub">About the community</h2><p>' + standin() + '</p>' +
         '<div class="btn-row">' + a('#contact-form', 'Request Appointment', 'btn') + '</div>') +
       '<section class="section wrap">' + consultant(c.title) + '</section>' +
       (shows.length ? '<section class="section wrap"><h2 class="section-title">Visit our showhome</h2>' + grid(shows.map(showhomeCard)) + '</section>' : '') +
@@ -810,7 +854,7 @@
     if (!s) return notFound();
     document.title = s.title + ' | Daytona Homes';
     var cid = communityId(s.community);
-    var hours = [['Monday to Thursday', '[Stand-in hours]'], ['Friday', '[Stand-in hours]'], ['Saturday, Sunday and holidays', '[Stand-in hours]']];
+    var hours = [['Monday to Thursday', 'Placeholder'], ['Friday', 'Placeholder'], ['Saturday, Sunday and holidays', 'Placeholder']];
     return detailHero(s.title, [['Home', home(RKEY)], [R.showHomes, rp('visit-a-showhome')], s.title], s.image,
         (s.community ? '<span class="region-tag">' + esc(s.community) + '</span>' : '') + (s.type ? '<p class="feat">' + esc(s.type) + '</p>' : '') +
         (s.address ? '<p class="addr"><i class="fas fa-map-marker"></i>' + out(mapsUrl(s.address + ', ' + R.city), esc(s.address)) + '</p>' : '') +
@@ -827,8 +871,8 @@
     var more = (X.posts || []).filter(function (o) { return o.id !== p.id; }).slice(0, 3);
     return '<article class="article wrap">' + crumbs([['Home', home(RKEY)], ['News', rp('blog')], p.title]) + '<h1>' + esc(p.title) + '</h1>' +
         '<img class="article-img" src="' + img(p.image) + '" alt="">' +
-        '<div class="prose"><p>' + standin('this article') + '</p><h2>Section heading</h2><p>' + standin('the first point of the article') + '</p>' +
-        '<h2>Section heading</h2><p>' + standin('the second point of the article') + '</p></div>' + a(rp('blog'), '<i class="fas fa-arrow-left"></i> All news', 'btn outline') + '</article>' +
+        '<div class="prose"><p>' + standin('this article') + '</p><h2>Placeholder</h2><p>' + standin('the first point of the article') + '</p>' +
+        '<h2>Placeholder</h2><p>' + standin('the second point of the article') + '</p></div>' + a(rp('blog'), '<i class="fas fa-arrow-left"></i> All news', 'btn outline') + '</article>' +
       '<section class="section wrap"><h2 class="section-title">More news</h2>' + grid(more.map(postCard), 'archive') + '</section>';
   }
 
@@ -855,6 +899,8 @@
   var mainEl = app.querySelector('main');
   if (view.mount) view.mount(mainEl);
   mountCalculator(mainEl);
+  app.addEventListener('change', function (e) { if (e.target.classList.contains('lang-select')) setLang(e.target.value); });
+  startTranslation();
 
   var bannerKey = 'daytona-replica:banner-closed';
   var banner = app.querySelector('.banner');

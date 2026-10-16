@@ -479,3 +479,8 @@ body.menu-open .mobile-menu { transform: none; visibility: visible; }
   .page-hero + .section, .page-hero + .split, .page-hero + .comfort, .page-hero + .form-block, .page-hero + .accordion, .page-hero + .prose { margin-top: 14rem; }
   .page-hero.plain + .prose { margin-top: 0; }
 }
+
+/* Google Translate: keep its toolbar, tooltips and highlight out of the design */
+#gt-el, .goog-te-banner-frame, iframe.skiptranslate, .VIpgJd-ZVi9od-ORHb-OEVmcd, .VIpgJd-ZVi9od-aZ2wEe-wOHMyf, .VIpgJd-yAWNEb-L7lbkb, #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+body { top: 0 !important; }
+.goog-text-highlight { background: none !important; box-shadow: none !important; }
