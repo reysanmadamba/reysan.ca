@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Highlevel Diner — Dashboard</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,600&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="dashboard.css" />
+</head>
+
+<body>
+
+    <header class="dash-header">
+        <a class="dash-logo" href="../"><img src="../img/highlevel-logo.png" alt="Highlevel Diner" /></a>
+        <span class="dash-label">Dashboard</span>
+        <div class="dash-header-actions">
+            <a class="link-btn" href="../" target="_blank" rel="noopener">View website</a>
+            <button class="link-btn" id="signOut" hidden>Sign out</button>
+        </div>
+    </header>
+
+    <main class="dash-main">
+
+        <!-- LOGIN -->
+        <section class="panel login" id="loginView" hidden>
+            <h1>Sign in</h1>
+            <p class="muted">Update your hours, menu and art wall on the Highlevel Diner website.</p>
+            <form id="loginForm">
+                <label>Email <input type="email" id="loginEmail" autocomplete="username" required /></label>
+                <label>Password <input type="password" id="loginPassword" autocomplete="current-password" required /></label>
+                <button class="btn" type="submit" id="loginBtn">Sign in</button>
+                <p class="error" id="loginError" hidden></p>
+            </form>
+        </section>
+
+        <!-- NO ACCESS -->
+        <section class="panel" id="noAccessView" hidden>
+            <h1>No access</h1>
+            <p class="muted" id="noAccessMsg"></p>
+        </section>
+
+        <!-- DASHBOARD -->
+        <div id="appView" hidden>
+            <nav class="tabs" role="tablist">
+                <button class="tab" role="tab" data-tab="hours" aria-selected="true">Hours</button>
+                <button class="tab" role="tab" data-tab="menu" aria-selected="false">Menu</button>
+                <button class="tab" role="tab" data-tab="art" aria-selected="false">Art</button>
+            </nav>
+
+            <p class="error" id="contentError" hidden></p>
+            <p class="notice" id="firstTimeNotice" hidden>
+                This is what's on the website right now. Make your changes, then press <strong>Save changes</strong>
+                to publish them.
+            </p>
+
+            <!-- HOURS -->
+            <section class="panel" id="tab-hours" role="tabpanel">
+                <h2>Hours of operation</h2>
+                <p class="muted">Untick <strong>Open</strong> for days you're closed.</p>
+                <div class="hours-list" id="hoursList"></div>
+                <div class="preview">
+                    <span class="preview-label">Shows on the website as</span>
+                    <span id="hoursPreview"></span>
+                </div>
+            </section>
+
+            <!-- MENU -->
+            <section class="panel" id="tab-menu" role="tabpanel" hidden>
+                <h2>Menu</h2>
+                <p class="muted">Tap a section to open it. Leave a price empty if the section has one price for
+                    everything (like cocktails).</p>
+                <div class="menu-sections" id="menuSections"></div>
+                <div class="add-section">
+                    <button class="btn-outline" type="button" id="addSection">+ Add a menu section</button>
+                </div>
+            </section>
+
+            <!-- ART -->
+            <div id="tab-art" role="tabpanel" hidden>
+                <section class="panel">
+                    <h2>Add a piece</h2>
+                    <form class="upload" id="uploadForm">
+                        <label class="drop" id="drop">
+                            <img id="preview" alt="Selected artwork preview" hidden />
+                            <span id="dropText">Tap to choose an image<br /><small>JPG, PNG or WebP</small></span>
+                            <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" />
+                        </label>
+                        <div class="upload-fields">
+                            <label>Title <input id="titleInput" maxlength="120" /></label>
+                            <label>Artist's name <input id="artistInput" maxlength="80" /></label>
+                            <label>Description <small>(optional)</small>
+                                <textarea id="descInput" rows="3" maxlength="600"></textarea>
+                            </label>
+                            <label class="check"><input type="checkbox" id="publishInput" checked /> Show on the
+                                website right away</label>
+                            <button class="btn" type="submit" id="uploadBtn">Upload art</button>
+                            <p class="error" id="uploadError" hidden></p>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="panel">
+                    <h2>Art wall <span class="count" id="count"></span></h2>
+                    <p class="error" id="listError" hidden></p>
+                    <p class="muted empty" id="emptyMsg" hidden>No art yet. Upload the first piece above.</p>
+                    <div class="grid" id="grid"></div>
+                </section>
+            </div>
+        </div>
+
+        <p class="muted loading" id="loadingView">Loading…</p>
+    </main>
+
+    <!-- SAVE BAR (hours + menu) -->
+    <div class="save-bar" id="saveBar" hidden>
+        <span id="saveStatus">You have unsaved changes</span>
+        <div class="save-actions">
+            <button class="link-btn" type="button" id="discardBtn">Undo changes</button>
+            <button class="btn" type="button" id="saveBtn">Save changes</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" hidden></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+    <script src="../content.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+
+</html>

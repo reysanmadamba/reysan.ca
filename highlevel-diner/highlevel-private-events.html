@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Highlevel Diner — Private Events</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="highlevel.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <!-- <a class="nav-logo" href="./">Highlevel Diner</a> -->
+        <a class="nav-logo" href="./">
+            <img src="img/highlevel-logo.png" alt="Highlevel Diner" style="height: 40px; width: auto;" />
+        </a>
+
+        <!-- hamburger -->
+        <div class="nav-toggle" id="navToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <!-- desktop nav -->
+        <ul class="nav-links">
+            <li><a href="./">HOME</a></li>
+            <li><a href="highlevel-menus.html">MENUS</a></li>
+            <li><a href="highlevel-find-us.html">Find Us</a></li>
+            <li><a href="highlevel-art.html">Art</a></li>
+            <li><a href="highlevel-our-story.html">Our Story</a></li>
+            <li><a href="highlevel-private-events.html">Private Events</a></li>
+            <li><a href="highlevel-catering.html">Catering</a></li>
+            <li>
+                <a href="#" onclick="openReservationFromNav(event)">
+                    Reserve Online
+                </a>
+            </li>
+        </ul>
+
+        <a class="nav-order-btn" href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+            target="_blank">Order Online</a>
+    </nav>
+
+    <!-- 🔴 MOBILE OVERLAY MENU -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-close" id="navClose">&times;</div>
+
+        <ul>
+            <li><a href="./">Home</a></li>
+            <li><a href="highlevel-menus.html">Menus</a></li>
+            <li><a href="highlevel-find-us.html">Find Us</a></li>
+            <li><a href="highlevel-art.html">Art</a></li>
+            <li><a href="highlevel-our-story.html">Our Story</a></li>
+            <li><a href="highlevel-private-events.html">Private Events</a></li>
+            <li><a href="highlevel-catering.html">Catering</a></li>
+            <li>
+                <a href="#" onclick="openReservationFromNav(event)">
+                    Reserve Online
+                </a>
+            </li>
+        </ul>
+
+        <a class="mobile-order-btn" href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+            target="_blank">Order Online</a>
+    </div>
+
+    <!-- WORK IN PROGRESS: replace this section with the real Private Events content -->
+    <div class="wip">
+        <i class="fa-solid fa-champagne-glasses wip-icon"></i>
+        <div class="art-hero-title">Private Events</div>
+        <h1>Work in Progress</h1>
+        <p>We're still cooking this page up. Check back soon, or come say hi at the diner in the meantime!</p>
+        <div class="cta-row">
+            <a class="cta-btn cta-black" href="./">Back Home</a>
+            <a class="cta-btn cta-red" href="highlevel-menus.html">See Our Menu</a>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>10912 88 Ave NW, Edmonton, AB T6G 0Z1</p>
+        <p>+1 (780) 433-0993 | info@highleveldiner.com</p>
+        <p data-hours="footer">Tuesday to Sunday: 8am – 9pm | Closed Mondays</p>
+        <p><a href="#">Join our team</a></p>
+        <p><a href="#">Links</a> &nbsp; <a href="#">Employee Portal</a></p>
+        <div class="social-icons">
+            <!-- <a href="#"><i class="fa-solid fa-link"></i></a> -->
+            <a href="https://www.instagram.com/highleveldiner/" target="_blank"><i
+                    class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.facebook.com/highleveldineryeg" target="_blank"><i
+                    class="fa-brands fa-facebook-f"></i></a>
+            <!-- <a href="#"><i class="fa-brands fa-tripadvisor"></i></a> -->
+            <!-- <a href="#"><i class="fa-solid fa-link"></i></a> -->
+        </div>
+        <div class="footer-divider"></div>
+        <div class="footer-subscribe">
+            <input type="text" placeholder="Name" />
+            <input type="email" placeholder="Email" />
+            <button class="subscribe-btn">Subscribe</button>
+        </div>
+        <p class="footer-fine">Opt in to receive news and updates.</p>
+    </footer>
+
+
+    <!-- RESERVATION MODAL -->
+    <div id="reservationModal" class="res-modal">
+        <div class="res-modal-content">
+            <span class="res-close">&times;</span>
+
+            <iframe id="toastFrame" src="" width="100%" height="600px" style="border:none;">
+            </iframe>
+
+            <!-- fallback message -->
+            <div id="fallbackMsg" style="display:none; text-align:center; padding:20px;">
+                <p>Unable to load reservation here.</p>
+                <button onclick="openToastDirect()">Open Reservation Page</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="content.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Highlevel Diner — Find Us</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="highlevel.css" />
+    <link rel="stylesheet" href="highlevel-findus.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <!-- <a class="nav-logo" href="./">Highlevel Diner</a> -->
+        <a class="nav-logo" href="./">
+            <img src="img/highlevel-logo.png" alt="Highlevel Diner" style="height: 40px; width: auto;" />
+        </a>
+
+        <div class="nav-toggle" id="navToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <ul class="nav-links">
+            <li><a href="./">HOME</a></li>
+            <li><a href="highlevel-menus.html">MENUS</a></li>
+            <li><a href="highlevel-find-us.html" class="active">FIND US</a></li>
+            <li><a href="highlevel-our-story.html">Our Story</a></li>
+            <li><a href="highlevel-private-events.html">Private Events</a></li>
+            <li><a href="highlevel-catering.html">Catering</a></li>
+            <li>
+                <a href="#" onclick="openReservationFromNav(event)">Reserve Online</a>
+            </li>
+        </ul>
+
+        <a class="nav-order-btn" href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+            target="_blank">Order Online</a>
+    </nav>
+
+    <!-- MOBILE OVERLAY MENU -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-close" id="navClose">&times;</div>
+        <ul>
+            <li><a href="./">Home</a></li>
+            <li><a href="highlevel-menus.html">Menus</a></li>
+            <li><a href="highlevel-find-us.html">Find Us</a></li>
+            <li><a href="highlevel-art.html">Art</a></li>
+            <li><a href="highlevel-our-story.html">Our Story</a></li>
+            <li><a href="highlevel-private-events.html">Private Events</a></li>
+            <li><a href="highlevel-catering.html">Catering</a></li>
+            <li><a href="#" onclick="openReservationFromNav(event)">Reserve Online</a></li>
+        </ul>
+        <a class="mobile-order-btn" href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+            target="_blank">Order Online</a>
+    </div>
+
+    <!-- ── HERO IMAGE ── -->
+    <div class="findus-hero">
+        <!-- Replace src with your own photo -->
+        <div class="findus-hero-placeholder">
+            <span>TO DO: UPLOAD PHOTO HERE</span>
+        </div>
+        <!-- <img src="img/findus-hero.jpg" alt="Highlevel Diner interior" /> -->
+    </div>
+
+    <!-- ── DIRECTIONS HEADER ── -->
+    <div class="findus-header">
+        <h1>Discover Convenient Ways to Reach<br />Highlevel Diner</h1>
+    </div>
+
+    <!-- ── DIRECTIONS CONTENT ── -->
+    <div class="findus-directions">
+
+        <h2>Getting to Highlevel Diner</h2>
+
+        <div class="direction-block">
+            <h3>From Whyte Ave:</h3>
+            <p>
+                We're just a short walk or drive from Whyte Ave. Head south on 109 Street,
+                turn right on 88 Ave NW and you'll find us on the left side. Look for the
+                yellow building — you can't miss it.
+            </p>
+        </div>
+
+        <div class="direction-block">
+            <h3>From the LRT:</h3>
+            <p>
+                Take the Valley Line LRT to the Mill Creek-Bonnie Doon station. Head west along
+                88 Ave NW for about 10 minutes and Highlevel Diner will be on your right.
+            </p>
+        </div>
+
+        <div class="direction-block">
+            <h3>From Rideshares:</h3>
+            <p>
+                Rideshares like Uber and Lyft can drop you off right at our door.
+                Simply enter "Highlevel Diner, 10912 88 Ave NW, Edmonton" as your destination
+                and you'll be here in no time.
+            </p>
+        </div>
+
+        <div class="direction-block">
+            <h3>Convenient Street Parking:</h3>
+            <p>
+                Street parking is available along 88 Ave NW and the surrounding side streets.
+                You'll find plenty of spots nearby, making it easy to park and enjoy your visit.
+            </p>
+        </div>
+
+        <div class="direction-block">
+            <h3>On-Site Parking:</h3>
+            <p>
+                We also offer on-site parking for our customers. Pull into our dedicated parking area
+                and you'll be steps away from a delicious meal.
+            </p>
+        </div>
+
+    </div>
+
+    <!-- ── INFO PANEL: HOURS / CONTACT / LOCATION ── -->
+    <div class="findus-info-panel">
+
+        <div class="info-col">
+            <h4>Hours</h4>
+            <table class="hours-table" data-hours="table">
+                <tr>
+                    <td>Monday</td>
+                    <td>Closed</td>
+                </tr>
+                <tr>
+                    <td>Tuesday</td>
+                    <td>8am – 9pm</td>
+                </tr>
+                <tr>
+                    <td>Wednesday</td>
+                    <td>8am – 9pm</td>
+                </tr>
+                <tr>
+                    <td>Thursday</td>
+                    <td>8am – 9pm</td>
+                </tr>
+                <tr>
+                    <td>Friday</td>
+                    <td>8am – 9pm</td>
+                </tr>
+                <tr>
+                    <td>Saturday</td>
+                    <td>8am – 9pm</td>
+                </tr>
+                <tr>
+                    <td>Sunday</td>
+                    <td>8am – 9pm</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="info-col">
+            <h4>Contact</h4>
+            <p><a href="tel:+17804330993">(780) 433-0993</a></p>
+            <p><a href="mailto:info@highleveldiner.com">info@highleveldiner.com</a></p>
+            <p><a href="#">Join our team</a></p>
+
+            <h4 style="margin-top: 32px;">Location</h4>
+            <p>
+                <a href="https://maps.google.com/?q=10912+88+Ave+NW,+Edmonton,+AB" target="_blank">
+                    10912 88 Ave NW,<br />Edmonton, AB T6G 0Z1
+                </a>
+            </p>
+        </div>
+
+    </div>
+
+    <!-- ── GOOGLE MAP ── -->
+    <div class="findus-map-section">
+
+        <!-- Static map image placeholder — replace with your own or use embed below -->
+        <div class="map-row">
+
+            <!-- Left: area context image (optional) -->
+            <div class="map-context-placeholder">
+                <!-- Replace with: <img src="img/map-context.jpg" alt="Area map" /> -->
+                <span>TO DO: UPLOAD IMAGE OF LOCATION HERE</span>
+            </div>
+
+            <!-- Right: Google Maps embed -->
+            <div class="map-embed">
+                <!--
+                    To get your embed URL:
+                    1. Go to maps.google.com
+                    2. Search "10912 88 Ave NW Edmonton"
+                    3. Click Share → Embed a map → Copy HTML
+                    4. Paste the <iframe> here and remove this comment
+                -->
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2372.123456789!2d-113.5184!3d53.5196!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x53a021b4c6b4f5f5%3A0xplaceholderid!2s10912+88+Ave+NW%2C+Edmonton%2C+AB+T6G+0Z1!5e0!3m2!1sen!2sca!4v1234567890"
+                    width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade">
+                </iframe>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── FIND US ONLINE ── -->
+    <div class="findus-online">
+        <h3>Find Us Online</h3>
+        <div class="findus-social">
+            <a href="https://www.instagram.com/highleveldiner/" target="_blank">
+                <i class="fa-brands fa-instagram"></i>
+            </a>
+            <a href="https://www.facebook.com/highleveldineryeg" target="_blank">
+                <i class="fa-brands fa-facebook-f"></i>
+            </a>
+            <!-- Add more icons as needed -->
+            <!-- <a href="#"><i class="fa-brands fa-tripadvisor"></i></a> -->
+            <!-- <a href="#"><i class="fa-solid fa-link"></i></a> -->
+        </div>
+    </div>
+
+    <!-- ── NAVIGATION VIDEO ── -->
+    <div class="findus-nav-video">
+        <h3>Navigation Map to Highlevel Diner</h3>
+        <div class="video-wrapper">
+            <!--
+                To embed a YouTube video:
+                1. Open your video on YouTube
+                2. Click Share → Embed
+                3. Copy the <iframe> src URL
+                4. Replace YOUR_VIDEO_ID below with the actual video ID
+                   e.g. https://www.youtube.com/embed/dQw4w9WgXcQ
+            -->
+            <div class="video-placeholder">
+                <span>&#9654; TO DO: PASTE EMBED LOCATION VIDEO HERE</span>
+                <!-- Replace this div with your iframe: -->
+                <!--
+                <iframe
+                    src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+                    width="100%"
+                    height="100%"
+                    style="border:0;"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+                </iframe>
+                -->
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>10912 88 Ave NW, Edmonton, AB T6G 0Z1</p>
+        <p>+1 (780) 433-0993 | info@highleveldiner.com</p>
+        <p data-hours="footer">Tuesday to Sunday: 8am – 9pm | Closed Mondays</p>
+        <p><a href="#">Join our team</a></p>
+        <p><a href="#">Links</a> &nbsp; <a href="#">Employee Portal</a></p>
+        <!-- <div class="social-icons">
+            <a href="https://www.instagram.com/highleveldiner/" target="_blank">
+                <i class="fa-brands fa-instagram"></i>
+            </a>
+            <a href="https://www.facebook.com/highleveldineryeg" target="_blank">
+                <i class="fa-brands fa-facebook-f"></i>
+            </a>
+        </div> -->
+        <div class="footer-divider"></div>
+        <div class="footer-subscribe">
+            <input type="text" placeholder="Name" />
+            <input type="email" placeholder="Email" />
+            <button class="subscribe-btn">Subscribe</button>
+        </div>
+        <p class="footer-fine">Opt in to receive news and updates.</p>
+    </footer>
+
+    <!-- RESERVATION MODAL -->
+    <div id="reservationModal" class="res-modal">
+        <div class="res-modal-content">
+            <span class="res-close">&times;</span>
+            <iframe id="toastFrame" src="" width="100%" height="600px" style="border:none;"></iframe>
+            <div id="fallbackMsg" style="display:none; text-align:center; padding:20px;">
+                <p>Unable to load reservation here.</p>
+                <button onclick="openToastDirect()">Open Reservation Page</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="content.js"></script>
+    <script src="main.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Highlevel Diner — Menus</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Kaushan+Script&family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="highlevel.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <!-- <a class="nav-logo" href="./">Highlevel Diner</a> -->
+        <a class="nav-logo" href="./">
+            <img src="img/highlevel-logo.png" alt="Highlevel Diner" style="height: 40px; width: auto;" />
+        </a>
+        <!-- hamburger -->
+        <div class="nav-toggle" id="navToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <!-- desktop nav -->
+        <ul class="nav-links">
+            <li><a href="./">HOME</a></li>
+            <li><a href="highlevel-menus.html">MENUS</a></li>
+            <li><a href="highlevel-find-us.html">Find Us</a></li>
+            <li><a href="highlevel-art.html">Art</a></li>
+            <li><a href="highlevel-our-story.html">Our Story</a></li>
+            <li><a href="highlevel-private-events.html">Private Events</a></li>
+            <li><a href="highlevel-catering.html">Catering</a></li>
+            <li>
+                <a href="#" onclick="openReservationFromNav(event)">
+                    Reserve Online
+                </a>
+            </li>
+        </ul>
+
+        <a class="nav-order-btn" href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+            target="_blank">Order Online</a>
+    </nav>
+
+    <!-- 🔴 MOBILE OVERLAY MENU -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-close" id="navClose">&times;</div>
+
+        <ul>
+            <li><a href="./">Home</a></li>
+            <li><a href="highlevel-menus.html">Menus</a></li>
+            <li><a href="highlevel-find-us.html">Find Us</a></li>
+            <li><a href="highlevel-art.html">Art</a></li>
+            <li><a href="highlevel-our-story.html">Our Story</a></li>
+            <li><a href="highlevel-private-events.html">Private Events</a></li>
+            <li><a href="highlevel-catering.html">Catering</a></li>
+            <li>
+                <a href="#" onclick="openReservationFromNav(event)">
+                    Reserve Online
+                </a>
+            </li>
+        </ul>
+
+        <a class="mobile-order-btn" href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+            target="_blank">Order Online</a>
+    </div>
+
+    <!-- MENUS HERO -->
+    <div class="menus-hero">
+        <h1>Experience Quality and Community at Our Highlevel Diner</h1>
+        <p>Our offerings reflect our commitment to quality, community, and intention.</p>
+        <p data-hours="inline">Tuesday to Sunday: 8am — 9pm · Closed Mondays</p>
+        <p>Happy Hour: 2pm — 7pm Daily</p>
+        <!-- DELIVERY -->
+        <div class="delivery-row">
+            <span class="delivery-label">Delivery:</span>
+            <a class="delivery-btn" href="https://www.ubereats.com/ca/store/highlevel-diner/onZJ_hCMWtu5_-MLGnILXA"
+                target="_blank" rel="noopener">Uber Eats</a>
+            <!-- TODO: replace # with the Highlevel Diner SkipTheDishes link -->
+            <a class="delivery-btn" href="#" target="_blank" rel="noopener">Skip</a>
+        </div>
+        <div class="menus-hero-divider"></div>
+    </div>
+
+    <!-- HERO IMAGE -->
+    <div class="menus-hero-img">
+        <img src="img/cover.jpg" alt="HighLevel Diner Hero">
+    </div>
+    <!-- SUPPORTING LOCAL -->
+    <div class="supporting-local">
+        <h3>Lorem Ipsum</h3>
+        <p>
+            <strong>Highlevel Diner: </strong>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur
+            pharetra nec mauris nec volutpat. Sed fringilla ornare enim ut varius. Praesent et sem a tellus interdum
+            dictum ac eu libero.
+        </p>
+        <div class="supporting-divider"></div>
+    </div>
+
+    <!-- ── MENU JUMP LINKS ── -->
+    <div class="menu-jump">
+        <a href="#breakfast">Breakfast &amp; Brunch</a>
+        <a href="#happy-hour">Happy Hour</a>
+        <a href="#cocktails">Cocktails</a>
+        <a href="#beer">Beer</a>
+        <a href="#wine">Wine</a>
+        <a href="#coffee">Coffee &amp; Hot Drinks</a>
+        <a href="#cold-drinks">Cold Drinks</a>
+    </div>
+
+    <!-- ── DIETARY LEGEND ── -->
+    <div class="menu-legend">
+        <span><span class="diet-tag gf">GF</span> is or can be Gluten Free</span>
+        <span><span class="diet-tag vg">V</span> is or can be Vegan</span>
+    </div>
+
+    <!-- Replaced by the saved menu from the dashboard, when there is one -->
+    <div id="menuContent">
+
+    <!-- ══════════════════════════════════════════
+         BREAKFAST & BRUNCH
+         ══════════════════════════════════════════ -->
+
+    <!-- ── BENEDICTS ── -->
+    <div class="menu-section" id="breakfast">
+        <div class="menu-section-title">Breakfast &amp; Brunch</div>
+        <div class="menu-section-title" style="margin-top:16px;">Benedicts <span class="diet-tag gf">GF</span></div>
+        <div class="menu-section-sub">Price includes choice of one side</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Classic</span>
+                    <span class="menu-item-price">$19</span>
+                </div>
+                <div class="menu-item-desc">Four Whistle Farms back bacon</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Margherita</span>
+                    <span class="menu-item-price">$18.50</span>
+                </div>
+                <div class="menu-item-desc">Tomato &amp; fresh basil</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Florentine</span>
+                    <span class="menu-item-price">$18.50</span>
+                </div>
+                <div class="menu-item-desc">Creamy spinach</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Got Beef</span>
+                    <span class="menu-item-price">$20.50</span>
+                </div>
+                <div class="menu-item-desc">Local short rib</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Miss Piggy</span>
+                    <span class="menu-item-price">$19.50</span>
+                </div>
+                <div class="menu-item-desc">House BBQ pulled pork</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Canadian Sushi</span>
+                    <span class="menu-item-price">$19.50</span>
+                </div>
+                <div class="menu-item-desc">Smoked salmon</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Fungus Amongus</span>
+                    <span class="menu-item-price">$18.50</span>
+                </div>
+                <div class="menu-item-desc">Roasted mushrooms</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── OMELETTES & CLASSICS ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Omelettes &amp; Classics</div>
+        <div class="menu-section-sub">Omelettes &amp; Sammie include choice of one side</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Farmers Omelette <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$18.50</span>
+                </div>
+                <div class="menu-item-desc">Bacon, potato, onion, cheddar</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Veggie Omelette <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$18.50</span>
+                </div>
+                <div class="menu-item-desc">Ask your server for our current offering</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Breakfast Special <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$15.50</span>
+                </div>
+                <div class="menu-item-desc">2 eggs any style, hash, multigrain toast, choice of bacon or sausage</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Sammie <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$14.50</span>
+                </div>
+                <div class="menu-item-desc">Fried egg, lettuce, tomato, maple garlic aioli, with choice of sausage,
+                    back, strip or triple smoked bacon on a toasted English muffin</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Buttermilk Pancakes</span>
+                    <span class="menu-item-price">$15</span>
+                </div>
+                <div class="menu-item-desc">Stack of 3! Choice of plain | wild blueberry | chocolate chip</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Cinnamon Buns</span>
+                    <span class="menu-item-price">$6</span>
+                </div>
+                <div class="menu-item-desc">Straight up bun $6 | 2oz cream cheese icing $1 | 2oz caramel sauce $1 |
+                    six pack $33</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── RANCHEROS ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Rancheros</div>
+        <div class="menu-section-sub">&nbsp;</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Huevos <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$18.50</span>
+                </div>
+                <div class="menu-item-desc">Fried eggs, refried beans, brown rice, corn tortillas, zesty tomato sauce,
+                    cheddar</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Vegan <span class="diet-tag vg">V</span> <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$18.50</span>
+                </div>
+                <div class="menu-item-desc">Refried beans, brown rice, corn tortillas, zesty tomato sauce, vegan cheese,
+                    side of guac</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── BOWLS & LIGHTER ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Bowls &amp; Lighter Fare</div>
+        <div class="menu-section-sub">&nbsp;</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Bowl of Berries <span class="diet-tag vg">V</span> <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$9.50</span>
+                </div>
+                <div class="menu-item-desc">Bowl of fresh berries</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Local Yogurt &amp; Berries <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$9.50</span>
+                </div>
+                <div class="menu-item-desc">Bowl of local yogurt &amp; fresh seasonal berries</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">House Granola &amp; Berries <span class="diet-tag vg">V</span> <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$9.50</span>
+                </div>
+                <div class="menu-item-desc">With skim, 2% milk $9.50 | with almond / oat / soy milk $10.50 | with local
+                    yogurt $11.50 | add wild blueberries $1.95</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Hot Steel Cut Oats <span class="diet-tag vg">V</span> <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$8.50</span>
+                </div>
+                <div class="menu-item-desc">With skim milk $8.50 | with almond / oat / soy milk $9.50 | add wild
+                    blueberries $1.95</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Green Salad <span class="diet-tag vg">V</span> <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$9 / $13</span>
+                </div>
+                <div class="menu-item-desc">Cherry tomato, grapes, pickled onion, crispy quinoa, citrus chia dressing
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Tabouleh <span class="diet-tag vg">V</span></span>
+                    <span class="menu-item-price">$9 / $13</span>
+                </div>
+                <div class="menu-item-desc">Chopped parsley, tomato, cucumber, bulgar wheat, olives</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── KID'S CHOICE ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Kid's Choice</div>
+        <div class="menu-section-sub">&nbsp;</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Kid's Cakes</span>
+                    <span class="menu-item-price">$10</span>
+                </div>
+                <div class="menu-item-desc">2 mini buttermilk pancakes (plain | blueberry | chocolate chip) with 2pc
+                    bacon or 1 sausage</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Kid's Breakfast <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$10</span>
+                </div>
+                <div class="menu-item-desc">1 egg, 1 slice toast, hash, 2pc bacon or 1pc sausage</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── SIDE CHOICES ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Side Choices</div>
+        <div class="menu-section-sub">&nbsp;</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Hashbrowns <span class="diet-tag vg">V</span> <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$4</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Multigrain Toast <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$4</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Sausage 2pcs <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$5.50</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Bacon 3pcs <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$4.75</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Back Bacon 2pcs <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$4.50</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Local Yogurt <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$4</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Fresh Berries <span class="diet-tag vg">V</span> <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$4.25</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Sliced Local Tomatoes <span class="diet-tag vg">V</span> <span class="diet-tag gf">GF</span></span>
+                    <span class="menu-item-price">$4</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         DRINKS
+         ══════════════════════════════════════════ -->
+
+    <!-- ── HAPPY HOUR ── -->
+    <div class="happy-hour" id="happy-hour">
+        <h2>Happy Hours</h2>
+        <p class="happy-hour-time">2pm – 7pm Daily</p>
+        <p class="happy-hour-deal">6oz House Wine · Pints · 1oz Highballs <span>$7.00</span></p>
+
+        <h3>Daily Drink Specials</h3>
+        <div class="specials-grid">
+            <div class="special">
+                <h4>Tequila Tuesday</h4>
+                <p>Any 1oz tequila cocktail $7.50</p>
+            </div>
+            <div class="special">
+                <h4>Wine Down Wednesday</h4>
+                <p>Any bottle of wine $38.00</p>
+            </div>
+            <div class="special">
+                <h4>Thirsty Thursday</h4>
+                <p>Canadian craft beer $6.50 / 355ml · $7.50 / 473ml</p>
+            </div>
+            <div class="special">
+                <h4>T.G.I. Friday</h4>
+                <p>1oz cocktails $7.50 · 2oz cocktails $10.50</p>
+            </div>
+            <div class="special">
+                <h4>Caesar Saturdays</h4>
+                <p>Caesars &amp; Micheladas $7.50 · Pitchers $25.00</p>
+            </div>
+            <div class="special">
+                <h4>Siesta Sunday</h4>
+                <p>Sangria $9.50 · Pitchers $26.00</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 1OZ COCKTAILS ── -->
+    <div class="menu-section" id="cocktails">
+        <div class="menu-section-title">Drinks</div>
+        <div class="menu-section-title" style="margin-top:16px;">1oz Cocktails</div>
+        <div class="menu-section-sub">$9.50</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Margarita</span></div>
+                <div class="menu-item-desc">(Lime / Mango / Strawberry) Tequila, triple sec &amp; lime juice, blended
+                    with ice</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Daiquiri</span></div>
+                <div class="menu-item-desc">(Banana / Mango / Strawberry) White rum, simple syrup, lime juice, blended
+                    with ice</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Highlevel Caesar</span></div>
+                <div class="menu-item-desc">Vodka, Clamato, lime, house pickles, house hot sauce</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Michelada</span></div>
+                <div class="menu-item-desc">Mexi beer, Clamato, lime, house hot sauce, Worcestershire</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Gin-gin Mule</span></div>
+                <div class="menu-item-desc">Gin, fresh mint, local ginger beer, lime juice</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Creamsicle</span></div>
+                <div class="menu-item-desc">Vodka, orange soda, vanilla syrup, whipped cream</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Accidental Beach</span></div>
+                <div class="menu-item-desc">Mango purée, pineapple juice, crème de bananes, coconut rum, blended with
+                    ice</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Paloma</span></div>
+                <div class="menu-item-desc">Tequila, lime, grapefruit juice, club soda</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── 2OZ COCKTAILS ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">2oz Cocktails</div>
+        <div class="menu-section-sub">$12.50</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Blue Hawaiian</span></div>
+                <div class="menu-item-desc">Rum, pineapple juice, blue curaçao</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Berry Mojito</span></div>
+                <div class="menu-item-desc">Rum, muddled berries, fresh mint, lime juice, simple syrup, soda, rocks
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Sangria</span></div>
+                <div class="menu-item-desc">(Red / White) House wine, apricot brandy, fruit juice</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Mimosa</span></div>
+                <div class="menu-item-desc">(Orange / Cranberry / Lychee) with prosecco</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Espresso Martini</span></div>
+                <div class="menu-item-desc">Vodka, Kahlua, espresso</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Old Fashioned</span></div>
+                <div class="menu-item-desc">Canadian whiskey, bitters, simple syrup, orange peel, rocks</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Long Island Iced Tea</span></div>
+                <div class="menu-item-desc">Triple sec, gin, vodka, rum, lemon juice &amp; cola</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Red Lotus</span></div>
+                <div class="menu-item-desc">Vodka, lychee juice, cranberry &amp; soda</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Dark &amp; Stormy</span></div>
+                <div class="menu-item-desc">Dark rum, ginger beer, lime juice, rocks</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── MOCKTAILS ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Mocktails</div>
+        <div class="menu-section-sub">$6.50</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Blue Crush</span></div>
+                <div class="menu-item-desc">Wild blueberries, lemonade, simple syrup, rocks</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Fuzzy Mojito</span></div>
+                <div class="menu-item-desc">Muddled berries, fresh mint, lime juice, simple syrup, soda, rocks</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Colada Fizz</span></div>
+                <div class="menu-item-desc">Pineapple, coconut syrup, soda, rocks</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Virgin Caesar</span></div>
+                <div class="menu-item-desc">Clamato, lime, house hot sauce, house pickles, rocks</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── HIGHBALLS ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Highlevel Highballs</div>
+        <div class="menu-section-sub">1oz $7.95 · 2oz $9.95</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Courvoisier VS Cognac</span>
+                    <span class="menu-item-price">1oz $10.25</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Macallan Amber Single Malt Scotch</span>
+                    <span class="menu-item-price">1oz $10.25</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Taylor Fladgate Port</span>
+                    <span class="menu-item-price">2oz $8.50</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── DRAFT & CANADIAN BEER ── -->
+    <div class="menu-section" id="beer">
+        <div class="menu-section-title">Draft</div>
+        <div class="menu-section-sub">Rotating taps, ask your server · 12oz $6.50 / 16oz $7.95</div>
+
+        <div class="menu-section-title" style="margin-top:28px;">Canadian Beer</div>
+        <div class="menu-section-sub">&nbsp;</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Alley Kat Aprikat</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Wheat ale / 473ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Alley Kat Main Squeeze</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Grapefruit ale / 473ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Alley Kat Scona Gold</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Kolsch / 473ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Bent Stick Love Potion 109</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Prickly pear &amp; grapefruit ale / 473ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Bent Stick Hay-Maker</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Wheated pilsner / 473ml / 4.8%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Blindman Longshadows</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">IPA / 473ml / 7.1%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Blindman River</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Session ale / 473ml / 4.4%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Broken Spoke Original Cider</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">355ml / 6%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Grizzly Paw Rutting Elk</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Red ale / 341ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Grizzly Paw Beaver Tail</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Raspberry ale / 341ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Jasper Brewing Crisp Pils</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Pilsner / 355ml / 4.8%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Jasper Brewing Trail</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Session IPA / 355ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Sea Change Prairie Fairy</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Blackberry ale / 473ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Sea Change DeathWave</span>
+                    <span class="menu-item-price">$7.00</span>
+                </div>
+                <div class="menu-item-desc">Non-alc lager / 355ml / 0.5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Steam Whistle</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Pilsner / 473ml / 5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">SYC Phantom Buzz</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Pale ale / 473ml / 0.5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">SYC Pineapple FOMO</span>
+                    <span class="menu-item-price">$9.00</span>
+                </div>
+                <div class="menu-item-desc">Sour / 473ml / 5.2%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Whistler Brewing Forager</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">GF lager / 330ml / 5%</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── INTERNATIONAL BEER ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">International Beer</div>
+        <div class="menu-section-sub">&nbsp;</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Coors Light</span>
+                    <span class="menu-item-price">$7.00</span>
+                </div>
+                <div class="menu-item-desc">Lager / 341ml / 4% / USA</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Erdinger Dunkel</span>
+                    <span class="menu-item-price">$9.50</span>
+                </div>
+                <div class="menu-item-desc">Dark wheat ale / 500ml / 5.3% / Germany</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Erdinger Weissbrau</span>
+                    <span class="menu-item-price">$9.50</span>
+                </div>
+                <div class="menu-item-desc">Wheat ale / 500ml / 5.3% / Germany</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Guinness</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Stout / 440ml / 4.2% / Ireland</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Modelo Especial</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Mexican lager / 355ml / 4.5%</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Stella Artois</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Lager / 330ml / 5% / Belgium</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Stiegl Radler</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Grapefruit lager / 500ml / 2.5% / Austria</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Strongbow</span>
+                    <span class="menu-item-price">$8.00</span>
+                </div>
+                <div class="menu-item-desc">Apple cider / 330ml / 5.3% / England</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Zywiec</span>
+                    <span class="menu-item-price">$9.50</span>
+                </div>
+                <div class="menu-item-desc">Pale lager / 500ml / 5.5% / Poland</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── WINE ── -->
+    <div class="menu-section" id="wine">
+        <div class="menu-section-title">Wine</div>
+        <div class="menu-section-sub">&nbsp;</div>
+
+        <div class="wine-wrap">
+            <table class="wine-table">
+                <thead>
+                    <tr>
+                        <th>House Wines</th>
+                        <th>6oz</th>
+                        <th>9oz</th>
+                        <th>.5 Litre</th>
+                        <th>Litre</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Gato Negro</strong><span>Sauvignon Blanc / Chile</span></td>
+                        <td>9.5</td><td>13.5</td><td>25</td><td>40</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gato Negro</strong><span>Cabernet Sauvignon / Chile</span></td>
+                        <td>9.5</td><td>13.5</td><td>25</td><td>40</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="wine-table">
+                <thead>
+                    <tr>
+                        <th>White Wines</th>
+                        <th>6oz</th>
+                        <th>9oz</th>
+                        <th>.5 Litre</th>
+                        <th>Bottle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Wente Morning Fog</strong><span>Chardonnay / USA</span></td>
+                        <td>11</td><td>16</td><td>31.5</td><td>47</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Bollini</strong><span>Pinot Grigio / Italy</span></td>
+                        <td>12</td><td>18</td><td>34</td><td>48</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Oyster Bay</strong><span>Sauvignon Blanc / New Zealand</span></td>
+                        <td>12.5</td><td>18.5</td><td>35</td><td>50</td>
+                    </tr>
+                    <!-- TODO: confirm Dirty Laundry Riesling prices (not readable in menu photo) -->
+                    <tr>
+                        <td><strong>Dirty Laundry</strong><span>Riesling / Canada</span></td>
+                        <td>12.5</td><td>18.5</td><td>35</td><td>50</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dirty Laundry Hush</strong><span>Rosé / Canada</span></td>
+                        <td>12.5</td><td>18.5</td><td>35</td><td>50</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="wine-table">
+                <thead>
+                    <tr>
+                        <th>Red Wines</th>
+                        <th>6oz</th>
+                        <th>9oz</th>
+                        <th>.5 Litre</th>
+                        <th>Bottle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Bleasdale</strong><span>Malbec / Australia</span></td>
+                        <td>11</td><td>16</td><td>31.5</td><td>47</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gnarly Head</strong><span>Old Vine Zinfandel / USA</span></td>
+                        <td>10</td><td>15</td><td>28</td><td>42</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Amalaya</strong><span>Malbec / Argentina</span></td>
+                        <td>10.5</td><td>15.75</td><td>29.5</td><td>45</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Evel</strong><span>Douro / Portugal</span></td>
+                        <td>12.5</td><td>18.5</td><td>35</td><td>50</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ironstone</strong><span>Petite Sirah / USA</span></td>
+                        <td>11.5</td><td>17</td><td>32</td><td>48</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="wine-table">
+                <thead>
+                    <tr>
+                        <th>Sparkling Wine</th>
+                        <th>6oz</th>
+                        <th></th>
+                        <th></th>
+                        <th>Bottle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Canella</strong><span>Prosecco / Veneto</span></td>
+                        <td>10.5</td><td></td><td></td><td>40</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ── HOT DRINKS ── -->
+    <div class="menu-section" id="coffee">
+        <div class="menu-section-title">Hot Drinks</div>
+        <div class="menu-section-sub">&nbsp;</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Coffee / Tea</span>
+                    <span class="menu-item-price">$4.25</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Espresso</span>
+                    <span class="menu-item-price">$3.25</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Americano</span>
+                    <span class="menu-item-price">$4.75</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Cappuccino</span>
+                    <span class="menu-item-price">$5.00</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Latte</span>
+                    <span class="menu-item-price">$5.25</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Bowl Latte</span>
+                    <span class="menu-item-price">$6.75</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Chai Latte</span>
+                    <span class="menu-item-price">$5.95</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Mocha</span>
+                    <span class="menu-item-price">$6.75</span>
+                </div>
+                <div class="menu-item-desc">Chocolate whip</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">London Fog</span>
+                    <span class="menu-item-price">$5.00</span>
+                </div>
+                <div class="menu-item-desc">Earl Grey tea, steamed milk, vanilla syrup</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Hot Chocolate</span>
+                    <span class="menu-item-price">$5.50</span>
+                </div>
+                <div class="menu-item-desc">Chocolate whip</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Specialty Tea</span>
+                    <span class="menu-item-price">$4.50</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Hot Cran / Apple Cider</span>
+                    <span class="menu-item-price">$5.75</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── BOOZY COFFEE ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Boozy Coffee</div>
+        <div class="menu-section-sub">$8.50 · 1oz, topped with whipped cream</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">House Special</span></div>
+                <div class="menu-item-desc">Baileys &amp; Kahlua</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Turner Tribute</span></div>
+                <div class="menu-item-desc">Dark rum &amp; crème de cacao</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Spanish</span></div>
+                <div class="menu-item-desc">Brandy &amp; Kahlua</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Nutcracker</span></div>
+                <div class="menu-item-desc">Frangelico &amp; Amaretto</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Monte Cristo</span></div>
+                <div class="menu-item-desc">Grand Marnier &amp; Kahlua</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">William O'Tell</span></div>
+                <div class="menu-item-desc">Baileys &amp; Frangelico</div>
+            </div>
+
+        </div>
+
+        <div class="menu-section-title" style="margin-top:36px;">Hot &amp; Boozy</div>
+        <div class="menu-section-sub">1oz · $9.50</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Toe Warmer</span></div>
+                <div class="menu-item-desc">Hot chocolate, choice of liquor, whipped cream</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header"><span class="menu-item-name">Blueberry Tea</span></div>
+                <div class="menu-item-desc">Grand Marnier, Amaretto &amp; Earl Grey tea</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── COLD DRINKS ── -->
+    <div class="menu-section" id="cold-drinks">
+        <div class="menu-section-title">Cold Drinks</div>
+        <div class="menu-section-sub">&nbsp;</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Homebrewed Iced Tea</span>
+                    <span class="menu-item-price">$4.75</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Fruit Spritzer</span>
+                    <span class="menu-item-price">$5.50</span>
+                </div>
+                <div class="menu-item-desc">(Pear / Peach / Apricot nectar) &amp; soda</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Fruit Nectar</span>
+                    <span class="menu-item-price">$4.00</span>
+                </div>
+                <div class="menu-item-desc">(Pear / Peach / Apricot)</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Twilight Zone</span>
+                    <span class="menu-item-price">$5.25</span>
+                </div>
+                <div class="menu-item-desc">Lime juice &amp; soda</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Mandarin Fruit Punch</span>
+                    <span class="menu-item-price">$5.50</span>
+                </div>
+                <div class="menu-item-desc">Cranberry, lychee &amp; soda</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Lemonade</span>
+                    <span class="menu-item-price">$4.25</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Fevertree Ginger Beer</span>
+                    <span class="menu-item-price">$5.00</span>
+                </div>
+                <div class="menu-item-desc">Premium ginger beer (non-alcoholic)</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Vietnamese Style Iced Coffee</span>
+                    <span class="menu-item-price">$5.50</span>
+                </div>
+                <div class="menu-item-desc">Espresso, condensed milk, milk, ice</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Iced Latte</span>
+                    <span class="menu-item-price">$5.75</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Iced Mocha</span>
+                    <span class="menu-item-price">$5.95</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Milk</span>
+                    <span class="menu-item-price">SM $3.75 / LG $4.75</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Chocolate Milk</span>
+                    <span class="menu-item-price">SM $3.95 / LG $4.95</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Perrier Sparkling Water</span>
+                    <span class="menu-item-price">$4.00</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Earth Group Canned Spring Water</span>
+                    <span class="menu-item-price">$3.50</span>
+                </div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Juice</span>
+                    <span class="menu-item-price">SM $4.25 / LG $5.25</span>
+                </div>
+                <div class="menu-item-desc">Orange / apple / tomato / grapefruit / cranberry / lychee / pineapple /
+                    Clamato</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Soda Pop</span>
+                    <span class="menu-item-price">$3.95</span>
+                </div>
+                <div class="menu-item-desc">Pepsi / Diet Pepsi / 7-Up / Ginger Ale / Orange Crush</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── SMOOTHIES ── -->
+    <div class="menu-section">
+        <div class="menu-section-title">Smoothies</div>
+        <div class="menu-section-sub">Oat, almond or soy milk available for an additional $1.00</div>
+        <div class="menu-grid">
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Fruit Frappa</span>
+                    <span class="menu-item-price">$6.50</span>
+                </div>
+                <div class="menu-item-desc">Choose one fruit: strawberry / mango / banana / wild blueberry, with orange
+                    juice, yogurt, honey &amp; ice blend. 2 fruits add 50 cents · 3 or more fruits add $1</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Island Cooler</span>
+                    <span class="menu-item-price">$6.75</span>
+                </div>
+                <div class="menu-item-desc">Banana, lemon, pineapple, coconut cream &amp; blended ice</div>
+            </div>
+
+            <div class="menu-item">
+                <div class="menu-item-header">
+                    <span class="menu-item-name">Fruit Shake</span>
+                    <span class="menu-item-price">$7.00</span>
+                </div>
+                <div class="menu-item-desc">Strawberries, banana, pear nectar &amp; ice blend</div>
+            </div>
+
+        </div>
+    </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>10912 88 Ave NW, Edmonton, AB T6J 1P9</p>
+        <p>+1 (780) 433-0993 | info@highleveldiner.com</p>
+        <p data-hours="footer">Tuesday to Sunday: 8am – 9pm | Closed Mondays</p>
+        <p><a href="#">Join our team</a></p>
+        <p><a href="#">Links</a> &nbsp; <a href="#">Employee Portal</a></p>
+        <div class="social-icons">
+            <!-- <a href="#"><i class="fa-solid fa-link"></i></a> -->
+            <a href="https://www.instagram.com/highleveldiner/" target="_blank"><i
+                    class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.facebook.com/highleveldineryeg" target="_blank"><i
+                    class="fa-brands fa-facebook-f"></i></a>
+            <!-- <a href="#"><i class="fa-brands fa-tripadvisor"></i></a> -->
+            <!-- <a href="#"><i class="fa-solid fa-link"></i></a> -->
+        </div>
+        <div class="footer-divider"></div>
+        <div class="footer-subscribe">
+            <input type="text" placeholder="Name" />
+            <input type="email" placeholder="Email" />
+            <button class="subscribe-btn">Subscribe</button>
+        </div>
+        <p class="footer-fine">Opt in to receive news and updates.</p>
+    </footer>
+
+
+
+    <div id="reservationModal" class="res-modal">
+        <div class="res-modal-content">
+            <span class="res-close">&times;</span>
+
+            <iframe id="toastFrame" src="" width="100%" height="600px" style="border:none;"></iframe>
+
+            <div id="fallbackMsg" style="display:none; text-align:center; padding:20px;">
+                <p>Unable to load reservation here.</p>
+                <button onclick="openToastDirect()">Open Reservation Page</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="content.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>

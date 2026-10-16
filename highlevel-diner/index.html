@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Highlevel Diner — Home</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="highlevel.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <!-- <a class="nav-logo" href="./">Highlevel Diner</a> -->
+        <a class="nav-logo" href="./">
+            <img src="img/highlevel-logo.png" alt="Highlevel Diner" style="height: 40px; width: auto;" />
+        </a>
+
+        <!-- hamburger -->
+        <div class="nav-toggle" id="navToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <!-- desktop nav -->
+        <ul class="nav-links">
+            <li><a href="./">HOME</a></li>
+            <li><a href="highlevel-menus.html">MENUS</a></li>
+            <li><a href="highlevel-find-us.html">Find Us</a></li>
+            <li><a href="highlevel-art.html">Art</a></li>
+            <li><a href="highlevel-our-story.html">Our Story</a></li>
+            <li><a href="highlevel-private-events.html">Private Events</a></li>
+            <li><a href="highlevel-catering.html">Catering</a></li>
+            <li>
+                <a href="#" onclick="openReservationFromNav(event)">
+                    Reserve Online
+                </a>
+            </li>
+        </ul>
+
+        <a class="nav-order-btn" href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+            target="_blank">Order Online</a>
+    </nav>
+
+    <!-- 🔴 MOBILE OVERLAY MENU -->
+    <div class="mobile-menu" id="mobileMenu">
+        <div class="mobile-close" id="navClose">&times;</div>
+
+        <ul>
+            <li><a href="./">Home</a></li>
+            <li><a href="highlevel-menus.html">Menus</a></li>
+            <li><a href="highlevel-find-us.html">Find Us</a></li>
+            <li><a href="highlevel-art.html">Art</a></li>
+            <li><a href="highlevel-our-story.html">Our Story</a></li>
+            <li><a href="highlevel-private-events.html">Private Events</a></li>
+            <li><a href="highlevel-catering.html">Catering</a></li>
+            <li>
+                <a href="#" onclick="openReservationFromNav(event)">
+                    Reserve Online
+                </a>
+            </li>
+        </ul>
+
+        <a class="mobile-order-btn" href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+            target="_blank">Order Online</a>
+    </div>
+
+    <!-- HERO -->
+    <!-- HERO -->
+    <div class="hero">
+        <img src="img/cover.jpg" alt="Highlevel exterior" />
+    </div>
+
+    <!-- INTRO -->
+    <div class="intro">
+        <h1>Honest, Local, Heartfelt Food.<br /></h1>
+        <p class="address year">since 1982</p>
+        <div class="intro-divider"></div>
+        <div class="cta-row">
+            <a class="cta-btn cta-black" href="highlevel-menus.html">Our Menu</a>
+            <a class="cta-btn cta-red"
+                href="https://order.toasttab.com/online/highlevel-diner-10912-88-ave-nw?source_id=3"
+                target="_blank">Order Online</a>
+        </div>
+        <!-- DELIVERY -->
+        <div class="delivery-row">
+            <span class="delivery-label">Delivery:</span>
+            <a class="delivery-btn" href="https://www.ubereats.com/ca/store/highlevel-diner/onZJ_hCMWtu5_-MLGnILXA"
+                target="_blank" rel="noopener">Uber Eats</a>
+            <!-- TODO: replace # with the Highlevel Diner SkipTheDishes link -->
+            <a class="delivery-btn" href="#" target="_blank" rel="noopener">Skip</a>
+        </div>
+    </div>
+
+    <!-- HOURS -->
+    <div class="hours">
+        <div data-hours="lines">
+            <p>Tuesday to Sunday &nbsp; 8am – 9pm</p>
+            <p>Closed Mondays</p>
+        </div>
+        <p>Brunch Served on Saturday &amp; Sunday</p>
+    </div>
+    <div class="divider"></div>
+
+    <!-- PHOTO GRID -->
+    <div class="photo-grid">
+        <div class="top-left">
+            <img src="img/card1.jpg" alt="" />
+            <!-- <div class="photo-placeholder tall">Image</div> -->
+        </div>
+        <div class="top-right">
+            <img src="img/card2.jpg" alt="" />
+            <!-- <div class="photo-placeholder tall">Image</div> -->
+        </div>
+        <div class="bottom-row">
+            <img src="img/card3.jpg" alt="" />
+            <!-- <div class="photo-placeholder short">Image</div> -->
+            <img src="img/card4.jpg" alt="" />
+            <!-- <div class="photo-placeholder short">Image</div> -->
+            <img src="img/card5.jpg" alt="" />
+            <!-- <div class="photo-placeholder short">Image</div> -->
+        </div>
+    </div>
+
+    <!-- RESERVATION -->
+    <div id="reservationSection" class="reservation-box">
+        <h3>Make a Reservation</h3>
+        <div class="reservation-controls">
+            <input id="resDate" type="date" class="res-field" />
+            <input id="resTime" type="time" class="res-field" />
+            <input id="resPeople" type="number" class="res-field" min="1" value="2" />
+        </div>
+        <button class="find-table-btn" onclick="openReservation()">Find a Table</button>
+    </div>
+
+    <!-- CULTURE -->
+    <div class="culture-section">
+        <h2>Blending Culture, Coffee &amp; Delicious Food</h2>
+        <img src="img/card6.jpg" alt="Food spread" class="culture-img" />
+        <!-- <div class="culture-img-placeholder">Image</div> -->
+        <p class="culture-caption">
+            Highlevel Diner is Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur pharetra nec mauris
+            nec volutpat. Sed fringilla ornare enim ut varius. Praesent et sem a tellus interdum dictum ac eu libero.
+        </p>
+        <a class="learn-more-btn" href="highlevel-our-story.html">Learn More</a>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>10912 88 Ave NW, Edmonton, AB T6G 0Z1</p>
+        <p>+1 (780) 433-0993 | info@highleveldiner.com</p>
+        <p data-hours="footer">Tuesday to Sunday: 8am – 9pm | Closed Mondays</p>
+        <p><a href="#">Join our team</a></p>
+        <p><a href="#">Links</a> &nbsp; <a href="#">Employee Portal</a></p>
+        <div class="social-icons">
+            <!-- <a href="#"><i class="fa-solid fa-link"></i></a> -->
+            <a href="https://www.instagram.com/highleveldiner/" target="_blank"><i
+                    class="fa-brands fa-instagram"></i></a>
+            <a href="https://www.facebook.com/highleveldineryeg" target="_blank"><i
+                    class="fa-brands fa-facebook-f"></i></a>
+            <!-- <a href="#"><i class="fa-brands fa-tripadvisor"></i></a> -->
+            <!-- <a href="#"><i class="fa-solid fa-link"></i></a> -->
+        </div>
+        <div class="footer-divider"></div>
+        <div class="footer-subscribe">
+            <input type="text" placeholder="Name" />
+            <input type="email" placeholder="Email" />
+            <button class="subscribe-btn">Subscribe</button>
+        </div>
+        <p class="footer-fine">Opt in to receive news and updates.</p>
+    </footer>
+
+
+    <!-- RESERVATION MODAL -->
+    <div id="reservationModal" class="res-modal">
+        <div class="res-modal-content">
+            <span class="res-close">&times;</span>
+
+            <iframe id="toastFrame" src="" width="100%" height="600px" style="border:none;">
+            </iframe>
+
+            <!-- fallback message -->
+            <div id="fallbackMsg" style="display:none; text-align:center; padding:20px;">
+                <p>Unable to load reservation here.</p>
+                <button onclick="openToastDirect()">Open Reservation Page</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="content.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>
