@@ -104,6 +104,7 @@ function show(view) {
 function selectTab(name) {
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
     for (const t of ['hours', 'menu', 'art']) $(`tab-${t}`).hidden = t !== name;
+    document.body.dataset.tab = name; // CSS hides the hours/menu save bar on the Art tab
     try { localStorage.setItem('hl-dash-tab', name); } catch { /* storage blocked */ }
 }
 
