@@ -10,6 +10,8 @@ const SUPABASE_URL = 'https://kuxukkknasjlfpahcled.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-fVzlBpMI2AoynUYjOyvwA_0FkivXts';
 const API = 'https://reysan-ca-backend-77ah.vercel.app/api';
 const MAX_SIDE = 1600;
+const TABS = ['hours', 'menu', 'art', 'account'];
+const MIN_PASSWORD = 8;
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
@@ -103,8 +105,8 @@ function show(view) {
 
 function selectTab(name) {
     document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
-    for (const t of ['hours', 'menu', 'art']) $(`tab-${t}`).hidden = t !== name;
-    document.body.dataset.tab = name; // CSS hides the hours/menu save bar on the Art tab
+    for (const t of TABS) $(`tab-${t}`).hidden = t !== name;
+    document.body.dataset.tab = name; // CSS hides the hours/menu save bar on the Art and Account tabs
     try { localStorage.setItem('hl-dash-tab', name); } catch { /* storage blocked */ }
 }
 
@@ -156,7 +158,9 @@ async function start() {
     show('appView');
     let tab = 'hours';
     try { tab = localStorage.getItem('hl-dash-tab') || tab; } catch { /* storage blocked */ }
-    selectTab(['hours', 'menu', 'art'].includes(tab) ? tab : 'hours');
+    selectTab(TABS.includes(tab) ? tab : 'hours');
+    $('accountEmail').textContent = data.session.user?.email || '';
+    $('accountUsername').value = data.session.user?.email || '';
     loadContent();
     loadPieces();
 }
@@ -480,6 +484,49 @@ $('addSection').addEventListener('click', () => {
     markDirty();
     renderMenuEditor();
     $('menuSections').lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+/* ================= account: change password ================= */
+$('showPasswords').addEventListener('change', (e) => {
+    for (const id of ['currentPassword', 'newPassword', 'confirmPassword']) $(id).type = e.target.checked ? 'text' : 'password';
+});
+
+$('passwordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showError('passwordError');
+    const current = $('currentPassword').value;
+    const next = $('newPassword').value;
+    const confirmNext = $('confirmPassword').value;
+
+    if (!current || !next || !confirmNext) return showError('passwordError', 'Fill in all three fields.');
+    if (next.length < MIN_PASSWORD) return showError('passwordError', `The new password needs at least ${MIN_PASSWORD} characters.`);
+    if (next !== confirmNext) return showError('passwordError', 'The new passwords don’t match.');
+    if (next === current) return showError('passwordError', 'The new password is the same as the current one.');
+
+    $('passwordBtn').disabled = true;
+    $('passwordBtn').textContent = 'Updating…';
+    try {
+        // Re-check the current password first, so someone at an unlocked
+        // computer can't change it.
+        const { data } = await supabase.auth.getSession();
+        const email = data.session?.user?.email;
+        if (!email) throw new Error('Please sign in again.');
+        const { error: checkError } = await supabase.auth.signInWithPassword({ email, password: current });
+        if (checkError) throw new Error('Your current password is incorrect.');
+
+        const { error } = await supabase.auth.updateUser({ password: next });
+        if (error) throw new Error(error.message || 'Couldn’t update the password. Try again.');
+
+        $('passwordForm').reset();
+        $('showPasswords').dispatchEvent(new Event('change'));
+        $('accountUsername').value = email;
+        toast('Password updated. Use the new one next time you sign in.');
+    } catch (err) {
+        showError('passwordError', err.message);
+    } finally {
+        $('passwordBtn').disabled = false;
+        $('passwordBtn').textContent = 'Update password';
+    }
 });
 
 /* ================= art ================= */

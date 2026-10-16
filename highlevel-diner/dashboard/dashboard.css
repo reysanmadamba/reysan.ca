@@ -877,15 +877,42 @@ textarea:focus {
     gap: 8px;
 }
 
-body:not([data-tab="art"]):has(.save-bar:not([hidden])) .dash-main {
+body:not([data-tab="art"]):not([data-tab="account"]):has(.save-bar:not([hidden])) .dash-main {
     padding-bottom: 120px;
 }
 
 /* The save bar and first-visit note are about hours + menu; unsaved edits
    are kept while on the Art tab and the bar returns on the other tabs. */
 body[data-tab="art"] .save-bar,
-body[data-tab="art"] #firstTimeNotice {
+body[data-tab="art"] #firstTimeNotice,
+body[data-tab="account"] .save-bar,
+body[data-tab="account"] #firstTimeNotice {
     display: none;
+}
+
+/* ══════════ Account ══════════ */
+.account-form {
+    max-width: 420px;
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.account-form .sub-heading {
+    font-size: 15px;
+    margin: 0 0 14px;
+}
+
+.hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-3);
+}
+
+.account-form .check {
+    margin-bottom: 18px;
 }
 
 .toast {
@@ -900,6 +927,9 @@ body[data-tab="art"] #firstTimeNotice {
     padding: 10px 16px;
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-lg);
+    width: max-content;
+    max-width: calc(100% - 32px);
+    text-align: center;
 }
 
 /* ══════════ Responsive ══════════ */

@@ -49,6 +49,7 @@
                 <button class="tab" role="tab" data-tab="hours" aria-selected="true">Hours</button>
                 <button class="tab" role="tab" data-tab="menu" aria-selected="false">Menu</button>
                 <button class="tab" role="tab" data-tab="art" aria-selected="false">Art</button>
+                <button class="tab" role="tab" data-tab="account" aria-selected="false">Account</button>
             </nav>
 
             <p class="error" id="contentError" hidden></p>
@@ -110,6 +111,31 @@
                     <div class="grid" id="grid"></div>
                 </section>
             </div>
+
+            <!-- ACCOUNT -->
+            <section class="panel" id="tab-account" role="tabpanel" hidden>
+                <h2>Account</h2>
+                <p class="muted">Signed in as <strong id="accountEmail"></strong></p>
+
+                <form class="account-form" id="passwordForm" autocomplete="on">
+                    <h3 class="sub-heading">Change password</h3>
+                    <input type="email" id="accountUsername" autocomplete="username" hidden />
+                    <label>Current password
+                        <input type="password" id="currentPassword" autocomplete="current-password" />
+                    </label>
+                    <label>New password
+                        <input type="password" id="newPassword" autocomplete="new-password" minlength="8" />
+                        <small class="hint">At least 8 characters. A short sentence is easy to remember and hard
+                            to guess.</small>
+                    </label>
+                    <label>Confirm new password
+                        <input type="password" id="confirmPassword" autocomplete="new-password" />
+                    </label>
+                    <label class="check small"><input type="checkbox" id="showPasswords" /> Show passwords</label>
+                    <button class="btn" type="submit" id="passwordBtn">Update password</button>
+                    <p class="error" id="passwordError" hidden></p>
+                </form>
+            </section>
         </div>
 
         <p class="muted loading" id="loadingView">Loading…</p>
