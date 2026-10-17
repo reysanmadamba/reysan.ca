@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ChowKeni · Filipino Cuisine, Buffet & Catering in Edmonton</title>
+<meta name="description" content="ChowKeni: Pampanga's best Filipino cuisine and catering, at 5359 Calgary Trail NW, Edmonton. Friday and Saturday dinner buffets with live singers, Sunday brunch buffet, $29.99.">
+<meta property="og:title" content="ChowKeni · Buffet nights in Edmonton">
+<meta property="og:description" content="Good food, good music, great company. Filipino buffet and catering on Calgary Trail.">
+<meta property="og:image" content="img/catering-spread.jpg">
+<meta name="theme-color" content="#D7261E">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Karla:ital,wght@0,400;0,500;0,700;0,800;1,400&family=Damion&display=swap">
+<style>
+/* Layout concept: Buffet Night at a fiesta theatre. A chasing-bulb marquee for the weekend buffets and live
+   singers, ticket stubs for the line-up, and the buffet line as chafing dishes whose lids lift.
+   ChowKeni red from the chef logo, poster gold, warm cream paper. */
+:root{
+  --red:#D7261E; --red-deep:#A3150F; --gold:#FFC21A; --gold-deep:#E39400; --cream:#FFF6E6; --paper:#FFFCF6;
+  --ink:#2A1308; --muted:#6C4A35; --line:#F0D7AE; --leaf:#2F7D3A; --on-red:#FFF7EA;
+  --display:"Alfa Slab One","Rockwell Extra Bold","Georgia",serif;
+  --body:"Karla","Segoe UI",Helvetica,Arial,sans-serif;
+  --script:"Damion","Brush Script MT",cursive;
+  --shadow:0 2px 0 rgba(42,19,8,.06), 0 22px 44px -24px rgba(120,30,10,.45);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%; display:block}
+html{scroll-behavior:smooth; scroll-padding-top:84px}
+body{margin:0; background:var(--cream); color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.6; overflow-x:hidden}
+h1,h2,h3{font-family:var(--display); font-weight:400; line-height:1.02; margin:0; text-wrap:balance}
+h2{font-size:clamp(2.2rem,5.4vw,3.8rem); color:var(--red)}
+h3{font-size:1.4rem; line-height:1.1}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--gold-deep); outline-offset:3px; border-radius:6px}
+main{overflow-x:clip}
+.wrap{max-width:1180px; margin-inline:auto; padding-inline:20px}
+.sec{padding-block:clamp(64px,9vw,112px)}
+.script{font-family:var(--script); font-weight:400; color:var(--gold-deep); font-size:1.7rem; line-height:1}
+.eyebrow{font-weight:800; font-size:.8rem; letter-spacing:.16em; text-transform:uppercase; color:var(--red-deep)}
+.lede{font-size:1.14rem; color:var(--muted); max-width:38rem}
+.head{display:grid; gap:12px; margin-bottom:40px; max-width:46rem}
+.btn{display:inline-flex; align-items:center; gap:10px; padding:14px 22px; border-radius:999px; font:800 1rem var(--body); text-decoration:none; border:2px solid transparent; cursor:pointer; transition:transform .15s, box-shadow .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn.red{background:var(--red); color:var(--on-red); box-shadow:0 6px 0 var(--red-deep)}
+.btn.red:hover{box-shadow:0 8px 0 var(--red-deep)}
+.btn.gold{background:var(--gold); color:var(--ink); box-shadow:0 6px 0 var(--gold-deep)}
+.btn.gold:hover{box-shadow:0 8px 0 var(--gold-deep)}
+.btn.line{border-color:currentColor; color:var(--red); background:transparent}
+.btn svg{width:18px; height:18px}
+
+/* header */
+.top{position:sticky; top:0; z-index:40; background:var(--paper); border-bottom:3px solid var(--red)}
+.top .wrap{display:flex; align-items:center; gap:18px; padding-block:8px}
+.brand{display:flex; align-items:center; gap:10px; text-decoration:none}
+.brand img{width:78px; height:auto}
+.brand span{display:grid; line-height:1}
+.brand b{font-family:var(--display); font-weight:400; font-size:1.5rem; color:var(--red)}
+.brand small{font-size:.66rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:4px}
+.nav{display:flex; align-items:center; gap:4px; margin-left:auto}
+.nav a{text-decoration:none; font-weight:700; color:var(--ink); padding:9px 13px; border-radius:999px}
+.nav a:hover{background:#FFE9C2}
+.nav .btn{margin-left:6px; padding:11px 18px}
+.toggle{display:none; margin-left:auto; width:46px; height:46px; border-radius:50%; border:0; background:var(--red); color:var(--on-red); cursor:pointer}
+.toggle svg{width:22px; height:22px; margin:auto}
+
+/* marquee hero */
+.hero{background:var(--red); color:var(--on-red); position:relative; overflow:hidden; padding-block:clamp(36px,5vw,64px) clamp(56px,7vw,88px)}
+.hero::before{content:""; position:absolute; inset:0; background:radial-gradient(circle at 15% 10%, rgba(255,194,26,.35), transparent 45%), radial-gradient(circle at 90% 80%, rgba(0,0,0,.25), transparent 50%); pointer-events:none}
+.hero .wrap{position:relative; display:grid; grid-template-columns:1.1fr .9fr; gap:clamp(28px,5vw,56px); align-items:center}
+.marquee{position:relative; padding:clamp(26px,4vw,44px); border-radius:26px; background:var(--red-deep); box-shadow:inset 0 0 0 3px #7E0F0A, 0 30px 60px -30px rgba(0,0,0,.6)}
+.marquee::before{content:""; position:absolute; inset:0; border-radius:26px; padding:14px; pointer-events:none;
+  background:radial-gradient(circle, #FFF4C8 0 3.5px, #FFC21A 4.5px, rgba(255,194,26,.35) 7px, transparent 9px) 0 0/26px 26px;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude}
+@media (prefers-reduced-motion: no-preference){ .marquee::before{animation:chase 1.2s steps(2) infinite} @keyframes chase{to{background-position:13px 13px}} }
+.marquee .script{color:var(--gold); font-size:clamp(1.6rem,3vw,2.2rem)}
+.hero h1{font-size:clamp(2.8rem,6.6vw,5.4rem); color:#fff; margin-block:10px 16px; text-shadow:0 4px 0 #7E0F0A}
+.hero h1 em{font-style:normal; color:var(--gold)}
+.hero .lede{color:#FFE3D6; font-size:1.15rem}
+.times{display:flex; flex-wrap:wrap; gap:8px; margin-top:20px}
+.times span{background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.35); border-radius:999px; padding:6px 13px; font-weight:700; font-size:.92rem}
+.ctas{display:flex; flex-wrap:wrap; gap:14px; margin-top:26px}
+.collage{position:relative; min-height:460px}
+.collage img{position:absolute; object-fit:cover; border-radius:20px; border:6px solid var(--paper); box-shadow:0 24px 44px -20px rgba(0,0,0,.55)}
+.collage .a{width:62%; aspect-ratio:1; left:0; top:4%; rotate:-4deg}
+.collage .b{width:52%; aspect-ratio:4/3; right:0; top:0; rotate:5deg}
+.collage .c{width:50%; aspect-ratio:1; right:6%; bottom:0; rotate:-2deg}
+.burst{position:absolute; left:22%; bottom:2%; width:150px; height:150px; display:grid; place-items:center; text-align:center; z-index:2; color:var(--ink); font-family:var(--display); line-height:.9; rotate:-10deg;
+  background:var(--gold); clip-path:polygon(50% 0,61% 13%,77% 6%,79% 23%,96% 26%,88% 41%,100% 54%,86% 63%,90% 80%,73% 81%,65% 97%,50% 88%,35% 97%,27% 81%,10% 80%,14% 63%,0 54%,12% 41%,4% 26%,21% 23%,23% 6%,39% 13%)}
+.burst b{font-size:2.1rem; display:block} .burst small{font-family:var(--body); font-weight:800; font-size:.7rem; letter-spacing:.1em; text-transform:uppercase}
+@media (prefers-reduced-motion: no-preference){ .burst{animation:wobble 3s ease-in-out infinite} @keyframes wobble{50%{rotate:-4deg; scale:1.05}} }
+.scallop{height:22px; background:radial-gradient(circle at 50% 0, var(--red) 11px, transparent 12px) 0 0/28px 22px repeat-x; margin-top:-1px}
+
+/* weekend tickets */
+.tickets{display:grid; grid-template-columns:repeat(3,1fr); gap:22px}
+.ticket{position:relative; background:var(--paper); border-radius:18px; box-shadow:var(--shadow); display:grid; grid-template-rows:auto 1fr; overflow:hidden; border:2px solid var(--line)}
+.ticket .tophalf{padding:22px 22px 18px; background:var(--c, var(--red)); color:#fff; position:relative}
+.ticket .tophalf::after{content:""; position:absolute; left:0; right:0; bottom:-9px; height:18px; background:radial-gradient(circle, var(--paper) 7px, transparent 8px) 0 0/22px 18px repeat-x}
+.ticket .day{font-family:var(--display); font-size:2.2rem; line-height:1}
+.ticket .kind{font-weight:800; letter-spacing:.12em; text-transform:uppercase; font-size:.8rem; opacity:.9}
+.ticket .time{display:inline-block; margin-top:10px; background:rgba(0,0,0,.18); padding:4px 12px; border-radius:999px; font-weight:800}
+.ticket .bottom{padding:24px 22px 22px; display:grid; gap:10px; align-content:start}
+.ticket .bottom .script{font-size:1.5rem}
+.ticket .bottom b{font-family:var(--display); font-weight:400; font-size:1.6rem; color:var(--ink); line-height:1}
+.ticket .bottom p{color:var(--muted); font-size:.95rem}
+.ticket .tonight{position:absolute; top:16px; right:-34px; rotate:35deg; background:var(--gold); color:var(--ink); font-weight:800; font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; padding:5px 40px; display:none}
+.ticket.today .tonight{display:block}
+.ticket.today{border-color:var(--gold); box-shadow:0 0 0 4px rgba(255,194,26,.4), var(--shadow)}
+.fri{--c:#C31F7A} .sat{--c:#2A55B8} .sun{--c:var(--leaf)}
+.small-note{margin-top:18px; color:var(--muted); font-size:.9rem}
+.price-row{display:flex; flex-wrap:wrap; gap:18px; align-items:center; margin-top:30px; padding:20px 24px; border-radius:18px; background:var(--gold); box-shadow:0 6px 0 var(--gold-deep)}
+.price-row b{font-family:var(--display); font-weight:400; font-size:2.4rem; line-height:1; color:var(--red-deep)}
+.price-row p{font-weight:700; max-width:36rem}
+
+/* buffet line */
+.line-bg{background:var(--paper); border-block:2px solid var(--line)}
+.stations{display:grid; grid-template-columns:repeat(3,1fr); gap:22px}
+.station{position:relative; background:#fff; border-radius:18px; border:2px solid var(--line); padding:18px; display:grid; gap:12px; align-content:start}
+.dish{position:relative; height:120px; display:grid; place-items:end center; cursor:pointer; border:0; background:none; padding:0; width:100%}
+.dish .pan{width:88%; height:44px; border-radius:6px 6px 14px 14px; background:linear-gradient(#E9EDF2, #B6BEC8); box-shadow:inset 0 3px 0 rgba(255,255,255,.7), 0 6px 0 #8E97A3; position:relative; overflow:hidden}
+.dish .pan::before{content:""; position:absolute; left:6%; right:6%; top:4px; height:16px; border-radius:50%; background:var(--food, #C9752B); box-shadow:inset 0 -3px 0 rgba(0,0,0,.15)}
+.dish .lid{position:absolute; left:10%; right:10%; bottom:36px; height:70px; border-radius:50% 50% 8px 8px / 100% 100% 8px 8px; background:linear-gradient(115deg, #F7F9FB, #C3CBD5 45%, #E8ECF1 60%, #9EA8B4);
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.08), 0 3px 0 #8E97A3; transition:transform .5s cubic-bezier(.3,1.5,.5,1); transform-origin:85% 100%}
+.dish .lid::before{content:""; position:absolute; left:calc(50% - 14px); top:-10px; width:28px; height:14px; border-radius:8px 8px 3px 3px; background:var(--red)}
+.dish .steam{position:absolute; bottom:44px; width:10px; height:40px; border-radius:50%; background:rgba(255,255,255,.95); filter:blur(5px); opacity:0}
+.dish .steam:nth-of-type(1){left:38%} .dish .steam:nth-of-type(2){left:50%} .dish .steam:nth-of-type(3){left:62%}
+.station.open .dish .lid{transform:translate(18px,-46px) rotate(18deg)}
+@media (prefers-reduced-motion: no-preference){ .station.open .dish .steam{animation:steam 2.2s ease-out infinite} .station.open .dish .steam:nth-of-type(2){animation-delay:.6s} .station.open .dish .steam:nth-of-type(3){animation-delay:1.2s}
+  @keyframes steam{0%{opacity:0; translate:0 10px} 30%{opacity:.8} 100%{opacity:0; translate:0 -40px; scale:1.6}} }
+.station h3{color:var(--red); display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.station h3 small{font-family:var(--body); font-weight:700; font-size:.8rem; color:var(--muted)}
+.station ul{list-style:none; padding:0; margin:0; display:grid; gap:6px; max-height:0; overflow:hidden; transition:max-height .5s ease}
+.station.open ul{max-height:260px}
+.station li{display:flex; gap:10px; align-items:center; font-weight:500}
+.station li::before{content:""; width:9px; height:9px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 2px var(--gold-deep); flex:none}
+.station .peek{font-size:.86rem; color:var(--muted)}
+.station.open .peek{display:none}
+.lift-all{margin-top:26px}
+
+/* kitchen gallery */
+.kitchen .wrap{display:grid; grid-template-columns:.9fr 1.1fr; gap:clamp(30px,5vw,64px); align-items:center}
+.kitchen .copy{display:grid; gap:16px}
+.kitchen .copy p{color:var(--muted); font-size:1.06rem}
+.badge-row{display:flex; flex-wrap:wrap; gap:12px; align-items:center}
+.stars{display:inline-flex; align-items:center; gap:10px; background:#fff; border:2px solid var(--line); padding:10px 16px; border-radius:14px; font-weight:800}
+.stars b{font-family:var(--display); font-weight:400; font-size:1.8rem; color:var(--red); line-height:1}
+.dishes{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+.dishes figure{margin:0; position:relative; border-radius:16px; overflow:hidden; aspect-ratio:1; box-shadow:var(--shadow)}
+.dishes figure:nth-child(1){grid-column:span 2; grid-row:span 2; aspect-ratio:auto}
+.dishes img{width:100%; height:100%; object-fit:cover; transition:scale .5s}
+.dishes figure:hover img{scale:1.06}
+.dishes figcaption{position:absolute; left:10px; bottom:10px; background:var(--paper); color:var(--ink); font-weight:800; font-size:.85rem; padding:4px 11px; border-radius:999px}
+
+/* catering */
+.catering{background:var(--ink); color:#FFEFD9; position:relative; overflow:hidden}
+.catering .wrap{display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(28px,5vw,60px); align-items:center}
+.catering h2{color:var(--gold)}
+.catering .lede{color:#E9CFB2}
+.catering .photo{position:relative}
+.catering .photo img{border-radius:22px; aspect-ratio:4/3; object-fit:cover; width:100%; border:6px solid #3D2214}
+.catering .photo .script{position:absolute; left:18px; bottom:-18px; background:var(--red); color:#fff; padding:8px 18px; border-radius:12px; rotate:-3deg; font-size:1.6rem}
+.quote{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:24px; background:rgba(255,255,255,.05); border:1.5px solid rgba(255,255,255,.14); border-radius:18px; padding:20px}
+.quote label{display:grid; gap:5px; font-weight:700; font-size:.85rem; color:#F3DDBF}
+.quote .full{grid-column:1/-1}
+input, select, textarea{font:inherit; font-size:1rem; padding:11px 12px; border-radius:10px; border:2px solid transparent; background:#fff; color:var(--ink); width:100%}
+input:focus, select:focus, textarea:focus{outline:none; border-color:var(--gold)}
+.quote .fine{font-size:.82rem; color:#C9AE8E; font-weight:400}
+
+/* visit */
+.visit .wrap{display:grid; grid-template-columns:1fr 1.1fr; gap:28px; align-items:stretch}
+.card{background:var(--paper); border:2px solid var(--line); border-radius:20px; padding:24px}
+.card + .card{margin-top:18px}
+.card h3{color:var(--red); margin-bottom:10px}
+.card p, .card li{color:var(--muted)}
+.card a{font-weight:800; color:var(--red-deep)}
+.card ul{list-style:none; padding:0; margin:0; display:grid; gap:8px}
+.map{border-radius:20px; overflow:hidden; border:3px solid var(--red); min-height:440px}
+.map iframe{width:100%; height:100%; min-height:440px; border:0; display:block}
+.poster{display:flex; gap:16px; align-items:center}
+.poster img{width:92px; border-radius:10px; box-shadow:var(--shadow)}
+
+/* footer */
+.foot{background:var(--red); color:var(--on-red); padding-block:46px 26px}
+.foot .wrap{display:grid; grid-template-columns:auto 1fr auto; gap:28px; align-items:center}
+.foot .logo-tile{background:#fff; border-radius:18px; padding:10px 14px}
+.foot .logo-tile img{width:130px}
+.foot .script{color:var(--gold); font-size:2rem}
+.foot p, .foot a{color:#FFE3D6}
+.foot nav{display:grid; gap:4px}
+.foot nav a{text-decoration:none; font-weight:700}
+.foot .fine{grid-column:1/-1; border-top:1px solid rgba(255,255,255,.2); padding-top:16px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:.85rem}
+
+.reveal{opacity:0; translate:0 24px; transition:opacity .6s, translate .6s}
+.reveal.in{opacity:1; translate:0 0}
+@media (prefers-reduced-motion: reduce){ .reveal{opacity:1; translate:none; transition:none} html{scroll-behavior:auto} }
+
+@media (max-width: 1000px){
+  .nav{display:none; position:absolute; top:100%; left:0; right:0; flex-direction:column; align-items:stretch; background:var(--paper); padding:10px 20px 20px; border-bottom:3px solid var(--red)}
+  .nav.open{display:flex}
+  .nav a{padding:12px}
+  .nav .btn{margin:8px 0 0; justify-content:center}
+  .toggle{display:grid}
+  .stations{grid-template-columns:1fr 1fr}
+}
+@media (max-width: 860px){
+  .hero .wrap, .kitchen .wrap, .catering .wrap, .visit .wrap{grid-template-columns:1fr}
+  .collage{min-height:400px; max-width:520px; width:100%; margin-inline:auto}
+  .tickets{grid-template-columns:1fr; max-width:520px; margin-inline:auto}
+  .foot .wrap{grid-template-columns:1fr}
+}
+@media (max-width: 560px){
+  body{font-size:16px}
+  .brand img{width:62px}
+  .brand b{font-size:1.25rem}
+  .brand small{font-size:.58rem}
+  .collage{min-height:330px}
+  .burst{width:120px; height:120px; left:30%}
+  .burst b{font-size:1.7rem}
+  .quote{grid-template-columns:1fr}
+  .dishes{grid-template-columns:1fr 1fr}
+  .dishes figure:nth-child(1){grid-column:span 2; grid-row:auto; aspect-ratio:4/3}
+  .dishes figure:last-child{grid-column:span 2; aspect-ratio:2/1}
+  .stations{grid-template-columns:1fr 1fr; gap:12px}
+  .station{padding:12px}
+  .dish{height:84px}
+  .dish .lid{height:50px; bottom:30px}
+  .dish .pan{height:34px}
+  .station h3{font-size:1.1rem; flex-direction:column; gap:2px}
+  .station.open .dish .lid{transform:translate(12px,-30px) rotate(18deg)}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="ChowKeni home">
+      <img src="img/logo.png" alt="ChowKeni chef logo" width="78" height="58">
+      <span><b>ChowKeni</b><small>Filipino Cuisine &amp; Buffet</small></span>
+    </a>
+    <button class="toggle" data-nav-toggle aria-expanded="false" aria-controls="nav" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <nav class="nav" id="nav" data-nav aria-label="Main">
+      <a href="#weekend">Buffet nights</a><a href="#buffet">The buffet</a><a href="#kitchen">Our kitchen</a><a href="#catering">Catering</a><a href="#visit">Visit</a>
+      <a class="btn red" href="tel:+15875210507">Call (587) 521-0507</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <div class="marquee reveal in">
+      <p class="script">Good food · Good music · Great company!</p>
+      <h1>Buffet nights on <em>Calgary Trail.</em></h1>
+      <p class="lede">Pampanga's best Filipino cuisine, plus Western favourites, all-you-can-eat with live singers on the weekend. Bring the barkada.</p>
+      <div class="times"><span>Fri · Dinner from 6 PM</span><span>Sat · Dinner from 6 PM</span><span>Sun · Brunch 11 AM – 3 PM</span></div>
+      <div class="ctas">
+        <a class="btn gold" href="tel:+15875210507">Reserve a table</a>
+        <a class="btn line" style="color:#fff" href="#buffet">Peek at the buffet</a>
+      </div>
+    </div>
+    <div class="collage reveal in">
+      <img class="a" src="img/caldereta.jpg" alt="Caldereta with peppers and potatoes">
+      <img class="b" src="img/catering-spread.jpg" alt="A ChowKeni buffet line under warm lamps">
+      <img class="c" src="img/carioca.jpg" alt="Carioca, glazed rice balls on a banana leaf">
+      <div class="burst"><span><b>$29.99</b><small>All you can eat</small></span></div>
+    </div>
+  </div>
+</section>
+<div class="scallop" aria-hidden="true"></div>
+
+<section class="sec" id="weekend">
+  <div class="wrap">
+    <div class="head reveal">
+      <span class="eyebrow">This weekend at ChowKeni South</span>
+      <h2>Pick your night.</h2>
+      <p class="lede">Every weekend, the chafing dishes come out and the mic goes on.</p>
+    </div>
+    <div class="tickets">
+      <article class="ticket fri reveal" data-day="5">
+        <span class="tonight">Tonight!</span>
+        <div class="tophalf"><span class="kind">Happy</span><div class="day">Friday</div><span class="kind">Dinner buffet</span><br><span class="time">Starts 6 PM</span></div>
+        <div class="bottom"><span class="script">with singers</span><b>Vaidi &amp; Dainty</b><p>Dinner buffet with live music. Come hungry, stay for the encore.</p></div>
+      </article>
+      <article class="ticket sat reveal" data-day="6">
+        <span class="tonight">Tonight!</span>
+        <div class="tophalf"><span class="kind">Happy</span><div class="day">Saturday</div><span class="kind">Dinner buffet</span><br><span class="time">Starts 6 PM</span></div>
+        <div class="bottom"><span class="script">with singer</span><b>Angelica</b><p>Saturday night, full buffet line and a voice to match.</p></div>
+      </article>
+      <article class="ticket sun reveal" data-day="0">
+        <span class="tonight">Today!</span>
+        <div class="tophalf"><span class="kind">Happy</span><div class="day">Sunday</div><span class="kind">Brunch buffet</span><br><span class="time">11 AM – 3 PM</span></div>
+        <div class="bottom"><span class="script">lazy Sunday, full plates</span><b>Family brunch</b><p>A slower, sunnier buffet for the whole family.</p></div>
+      </article>
+    </div>
+    <div class="price-row reveal"><b>$29.99</b><p>One price, all you can eat: soup, street food, dim sum, noodles, rice, mains, dessert, drinks and a fresh salad bar.</p></div>
+    <p class="small-note">Singers from our latest buffet poster. Line-ups can change, so check our Facebook for this week's.</p>
+  </div>
+</section>
+
+<section class="sec line-bg" id="buffet">
+  <div class="wrap">
+    <div class="head reveal">
+      <span class="eyebrow">The buffet line</span>
+      <h2>Lift a lid.</h2>
+      <p class="lede">Tap a tray to see what's inside. Nine stations, one plate (okay, three plates).</p>
+    </div>
+    <div class="stations" data-stations>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#E7B66A" aria-label="Open the soup station"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Soup <small>2 items</small></h3><p class="peek">Wonton, lomi…</p><ul><li>Wonton soup</li><li>Lomi overload</li></ul></article>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#D9822B" aria-label="Open the street food station"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Street food <small>6 items</small></h3><p class="peek">Kwek kwek, fishball…</p><ul><li>Kikiam</li><li>Chicharap</li><li>Fishball</li><li>Kwek kwek</li><li>Tempura</li><li>Mango with alamang</li></ul></article>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#F2E3C4" aria-label="Open the dim sum station"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Dim sum <small>3 items</small></h3><p class="peek">Siopao, siomai…</p><ul><li>Siopao</li><li>Siomai</li><li>Dumpling</li></ul></article>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#E9B455" aria-label="Open the noodle station"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Noodles <small>3 items</small></h3><p class="peek">Pancit, alfredo…</p><ul><li>Pancit mix</li><li>Alfredo</li><li>Seafood pasta</li></ul></article>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#F0CB7A" aria-label="Open the rice station"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Rice <small>3 items</small></h3><p class="peek">Yangchow, garlic…</p><ul><li>Yangchow</li><li>Garlic rice</li><li>Spicy chow rice</li></ul></article>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#8B3B1B" aria-label="Open the main dish station"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Main dish <small>6 items</small></h3><p class="peek">Balbacua, caldereta…</p><ul><li>Balbacua</li><li>Caldereta kambing</li><li>Dinuguan</li><li>Fish fillet</li><li>Fried chicken</li><li>Breaded pork</li></ul></article>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#F4A9C4" aria-label="Open the dessert station"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Dessert <small>4 items</small></h3><p class="peek">Palitaw, bilo-bilo…</p><ul><li>Ice cream</li><li>Palitaw</li><li>Bilo-bilo</li><li>Carioca</li></ul></article>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#9FD69B" aria-label="Open the drinks station"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Drinks <small>4 items</small></h3><p class="peek">Buko pandan, gulaman…</p><ul><li>Buko pandan</li><li>Black gulaman</li><li>Melon</li><li>Pop</li></ul></article>
+      <article class="station reveal"><button class="dish" type="button" aria-expanded="false" style="--food:#7DBA5B" aria-label="Open the salad bar"><span class="steam"></span><span class="steam"></span><span class="steam"></span><span class="lid"></span><span class="pan"></span></button><h3>Salad bar <small>fresh</small></h3><p class="peek">Fresh &amp; healthy…</p><ul><li>Fresh greens &amp; vegetables</li><li>Toppings &amp; dressings</li></ul></article>
+    </div>
+    <button class="btn red lift-all" type="button" data-lift-all>Lift every lid</button>
+  </div>
+</section>
+
+<section class="sec kitchen" id="kitchen">
+  <div class="wrap">
+    <div class="copy reveal">
+      <span class="eyebrow">Our kitchen</span>
+      <h2>Pampanga's best, in Edmonton.</h2>
+      <p>Pampanga is known as the culinary capital of the Philippines, and that's the cooking we bring to Calgary Trail: rich stews, proper dinuguan, sticky sweet kakanin, and Western favourites for the whole table.</p>
+      <p>Dine in for the buffet, or let us bring the whole spread to your party.</p>
+      <div class="badge-row">
+        <span class="stars"><b>94%</b> recommend us · 66 reviews</span>
+        <a class="btn red" href="https://www.facebook.com/profile.php?id=100069382271614" target="_blank" rel="noopener">See us on Facebook</a>
+      </div>
+    </div>
+    <div class="dishes reveal">
+      <figure><img src="img/buffet-tray.jpg" alt="A full tray from the ChowKeni buffet line" loading="lazy"><figcaption>Straight from the buffet line</figcaption></figure>
+      <figure><img src="img/balbacua.jpg" alt="Balbacua with a long green chili" loading="lazy"><figcaption>Balbacua</figcaption></figure>
+      <figure><img src="img/dinuguan.jpg" alt="Dinuguan with green chili" loading="lazy"><figcaption>Dinuguan</figcaption></figure>
+      <figure><img src="img/palitaw.jpg" alt="Palitaw with coconut and sesame" loading="lazy"><figcaption>Palitaw</figcaption></figure>
+      <figure><img src="img/bilo-bilo.jpg" alt="Bilo-bilo in coconut milk" loading="lazy"><figcaption>Bilo-bilo</figcaption></figure>
+      <figure><img src="img/carioca.jpg" alt="Carioca skewers" loading="lazy"><figcaption>Carioca</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec catering" id="catering">
+  <div class="wrap">
+    <div class="photo reveal"><img src="img/catering-spread.jpg" alt="A ChowKeni catering buffet with warm lamps and white linens" loading="lazy"><span class="script">We bring the fiesta</span></div>
+    <div class="reveal">
+      <span class="eyebrow" style="color:var(--gold)">Catering food services</span>
+      <h2 style="margin-block:12px 14px">Your party, our buffet line.</h2>
+      <p class="lede">Birthdays, christenings, office lunches, family reunions. Tell us the date and the headcount and we'll plan the trays, the chafing dishes and the leftovers.</p>
+      <form class="quote" data-quote data-email="rogel.reyes27@yahoo.com">
+        <label>Your name<input name="name" required autocomplete="name"></label>
+        <label>Phone<input name="phone" type="tel" required autocomplete="tel"></label>
+        <label>Event type<select name="type"><option>Birthday</option><option>Christening</option><option>Wedding</option><option>Office / corporate</option><option>Family reunion</option><option>Other</option></select></label>
+        <label>Event date<input name="date" type="date" required></label>
+        <label>Guests<input name="guests" type="number" min="10" step="5" value="40" required></label>
+        <label>Pickup or delivered?<select name="mode"><option>Delivered &amp; set up</option><option>Pickup</option><option>Not sure yet</option></select></label>
+        <label class="full">Favourites or notes<textarea name="notes" rows="3" placeholder="Lechon? Pancit for long life? Allergies?"></textarea></label>
+        <div class="full" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center"><button class="btn gold" type="submit">Request a quote</button><a class="btn line" style="color:#FFEFD9" href="tel:+15875210507">Or call us</a></div>
+        <p class="full fine">Opens your email app with these details addressed to ChowKeni.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<section class="sec visit" id="visit">
+  <div class="wrap">
+    <div>
+      <div class="head reveal" style="margin-bottom:24px"><span class="eyebrow">Visit</span><h2>ChowKeni South</h2></div>
+      <div class="card reveal"><h3>Find us</h3><p>5359 Calgary Trail NW<br>Edmonton, AB</p><p style="margin-top:10px"><a href="https://www.google.com/maps/dir/?api=1&destination=5359+Calgary+Trail+NW+Edmonton+AB" target="_blank" rel="noopener">Get directions →</a></p></div>
+      <div class="card reveal"><h3>Buffet times</h3><ul><li><b style="color:var(--ink)">Friday</b> · dinner buffet from 6 PM</li><li><b style="color:var(--ink)">Saturday</b> · dinner buffet from 6 PM</li><li><b style="color:var(--ink)">Sunday</b> · brunch buffet 11 AM – 3 PM</li></ul><p style="margin-top:10px; font-size:.9rem">Call for regular dining hours, takeout and big-group reservations.</p></div>
+      <div class="card reveal"><h3>Talk to us</h3><ul><li>Call: <a href="tel:+15875210507">(587) 521-0507</a></li><li>Email: <a href="mailto:rogel.reyes27@yahoo.com">rogel.reyes27@yahoo.com</a></li><li>Facebook: <a href="https://www.facebook.com/profile.php?id=100069382271614" target="_blank" rel="noopener">ChowKeni</a></li></ul>
+        <div class="poster" style="margin-top:14px"><img src="img/buffet-poster.jpg" alt="ChowKeni weekend buffet poster" loading="lazy"><p style="font-size:.92rem">Latest poster: Happy Friday, Saturday &amp; Sunday buffets, only $29.99.</p></div>
+      </div>
+    </div>
+    <div class="map reveal"><iframe title="Map to ChowKeni, 5359 Calgary Trail NW, Edmonton" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=5359%20Calgary%20Trail%20NW%2C%20Edmonton%2C%20AB&z=15&output=embed"></iframe></div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="logo-tile"><img src="img/logo.png" alt="ChowKeni" width="130" height="98"></div>
+    <div>
+      <p class="script">Good food, good vibes, see you all!</p>
+      <p style="margin-top:6px">5359 Calgary Trail NW, Edmonton · <a href="tel:+15875210507">(587) 521-0507</a></p>
+    </div>
+    <nav aria-label="Footer"><a href="#weekend">Buffet nights</a><a href="#buffet">The buffet</a><a href="#catering">Catering</a><a href="#visit">Visit</a></nav>
+    <div class="fine"><span>© <span data-year>2026</span> ChowKeni · Pampanga's best Filipino cuisine &amp; catering</span><span>Sample site by <a href="https://reysan.ca">reysan.ca</a></span></div>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const toggle = $('[data-nav-toggle]'), nav = $('[data-nav]');
+  toggle.addEventListener('click', () => { const o = nav.classList.toggle('open'); toggle.setAttribute('aria-expanded', o); });
+  nav.addEventListener('click', e => { if (e.target.closest('a')) { nav.classList.remove('open'); toggle.setAttribute('aria-expanded', false); } });
+
+  // mark today's buffet, in Edmonton time (Sun=0 .. Sat=6)
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Edmonton', weekday: 'short', hour: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).map(x => [x.type, x.value]));
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday), hr = +p.hour;
+  const live = (day === 5 || day === 6) || (day === 0 && hr < 15);
+  if (live) $$(`.ticket[data-day="${day}"]`).forEach(t => t.classList.add('today'));
+
+  // chafing dish lids
+  const stations = $$('.station');
+  const setOpen = (st, open) => { st.classList.toggle('open', open); $('.dish', st).setAttribute('aria-expanded', open); };
+  stations.forEach(st => $('.dish', st).addEventListener('click', () => setOpen(st, !st.classList.contains('open'))));
+  const all = $('[data-lift-all]');
+  all.addEventListener('click', () => {
+    const open = !stations.every(s => s.classList.contains('open'));
+    stations.forEach((s, i) => setTimeout(() => setOpen(s, open), open ? i * 90 : 0));
+    all.textContent = open ? 'Put the lids back' : 'Lift every lid';
+  });
+
+  // catering quote: composes an email in the visitor's own mail app
+  const q = $('[data-quote]');
+  const t = new Date(); t.setDate(t.getDate() + 3); q.date.min = t.toISOString().slice(0, 10);
+  q.addEventListener('submit', e => {
+    e.preventDefault();
+    const d = new FormData(q);
+    const when = new Date(d.get('date') + 'T12:00').toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    const body = [`Hi ChowKeni! I'd like a catering quote.`, '', `Event: ${d.get('type')}`, `Date: ${when}`, `Guests: ${d.get('guests')}`, `Service: ${d.get('mode')}`, `Name: ${d.get('name')}`, `Phone: ${d.get('phone')}`, '', d.get('notes') || ''].join('\n');
+    location.href = `mailto:${q.dataset.email}?subject=${encodeURIComponent(`Catering quote – ${d.get('type')}, ${d.get('guests')} guests`)}&body=${encodeURIComponent(body)}`;
+  });
+
+  $$('[data-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
+  $$('.reveal:not(.in)').forEach(el => io.observe(el));
+})();
+</script>
+</body>
+</html>
