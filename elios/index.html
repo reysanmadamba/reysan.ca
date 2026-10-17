@@ -8,7 +8,8 @@
 <meta property="og:description" content="Good food. Good vibes. Filipino comfort food in south Edmonton.">
 <meta property="og:image" content="img/lechon-kawali.jpg">
 <title>Elio's – A Feast of Filipino Favourites</title>
-<link rel="icon" type="image/png" href="img/mark-dark.png">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800&family=Jost:wght@400;500;600&family=Caveat:wght@500;700&family=Noto+Sans+Tagalog&display=swap">
@@ -69,7 +70,8 @@ a{color:inherit}
 .top{position:sticky; top:0; z-index:30; background:var(--felt-deep); color:var(--felt-ink); border-bottom:1px solid rgba(255,255,255,.08)}
 .top .wrap{display:flex; align-items:center; gap:24px; padding-block:12px}
 .brand{display:flex; align-items:center; gap:12px; text-decoration:none}
-.brand img{width:34px; height:auto}
+.tile{background:#fff; box-sizing:content-box}
+.brand img{width:30px; height:auto; padding:3px}
 .brand b{font-family:var(--sans); font-weight:500; font-size:1.45rem; letter-spacing:.08em; line-height:1}
 .brand small{display:block; font-size:.58rem; letter-spacing:.16em; text-transform:uppercase; color:var(--felt-muted); margin-top:4px}
 .nav{display:flex; gap:26px; margin-left:auto; align-items:center}
@@ -100,7 +102,7 @@ a{color:inherit}
 .board .p3{width:42%; height:46%; right:5%; bottom:0; transform:rotate(-3deg)}
 .tape{position:absolute; width:96px; height:28px; background:rgba(237,227,204,.78); top:-12px; left:50%; translate:-50% 0; rotate:-4deg; box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .seal{position:absolute; left:4%; bottom:4%; width:108px; height:108px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #9A2E2A, var(--seal) 60%, #5A1414); display:grid; place-items:center; box-shadow:0 6px 16px rgba(0,0,0,.35); rotate:-12deg; z-index:4}
-.seal img{width:46px; opacity:.85; filter:drop-shadow(0 1px 0 rgba(0,0,0,.4))}
+.seal img{width:38px; padding:3px}
 .seal span{position:absolute; inset:0; display:grid; place-items:center}
 .seal svg{position:absolute; inset:6px; width:calc(100% - 12px); height:calc(100% - 12px)}
 .seal text{font-family:var(--sans); font-size:10.5px; letter-spacing:.22em; fill:var(--seal-ink); text-transform:uppercase}
@@ -136,7 +138,7 @@ a{color:inherit}
 .badge.real{background:var(--seal); color:var(--seal-ink)}
 .badge.hot{background:var(--sun); color:#1A1A17}
 .feast{grid-column:1/-1; margin-top:26px; display:grid; grid-template-columns:auto 1fr auto; gap:22px; align-items:center; background:var(--felt); color:var(--felt-ink); border-radius:6px; padding:22px 26px}
-.feast img{width:64px}
+.feast img{width:56px; padding:5px}
 .feast h4{margin:0 0 4px; font-family:var(--serif); font-size:1.45rem}
 .feast p{color:var(--felt-muted); font-size:.95rem}
 .feast .price{font-family:var(--serif); font-size:1.6rem; font-weight:800; color:var(--sun); white-space:nowrap}
@@ -219,7 +221,7 @@ a{color:inherit}
 /* footer */
 .foot{padding-block:48px 36px}
 .foot .wrap{display:flex; flex-wrap:wrap; gap:28px; align-items:center; justify-content:space-between}
-.foot img{width:120px}
+.foot img{width:110px; padding:16px}
 .foot .tag{font-family:var(--hand); font-size:1.8rem; color:var(--sun)}
 .foot nav{display:flex; gap:20px; flex-wrap:wrap}
 .foot nav a{text-decoration:none; color:var(--felt-muted)}
@@ -256,7 +258,7 @@ a{color:inherit}
   .careers .wrap{grid-template-columns:1fr}
   .board{height:380px}
   .seal{width:84px; height:84px}
-  .seal img{width:36px}
+  .seal img{width:30px; padding:2px}
   .family .duo{height:300px}
   .polaroid{padding:8px 8px 34px}
   .polaroid figcaption{font-size:1.1rem}
@@ -273,7 +275,7 @@ a{color:inherit}
 <header class="top">
   <div class="wrap">
     <a class="brand" href="#top" aria-label="Elio's home">
-      <img src="img/mark-light.png" alt="" width="34" height="43">
+      <img class="tile" src="img/mark.png" alt="" width="34" height="43">
       <span><b>ELIO'S</b><small>A Feast of Filipino Favourites</small></span>
     </a>
     <button class="menu-toggle" aria-expanded="false" aria-controls="nav" aria-label="Open menu">
@@ -312,7 +314,7 @@ a{color:inherit}
       <figure class="polaroid p3"><img src="img/desserts.jpg" alt="Buko pandan and ube tapioca desserts"><figcaption>buko pandan + ube</figcaption></figure>
       <div class="seal" aria-hidden="true">
         <svg viewBox="0 0 100 100"><defs><path id="c" d="M50 50m-38 0a38 38 0 1 1 76 0a38 38 0 1 1-76 0"/></defs><text><textPath href="#c">Kain na · Edmonton · Kain na · YEG ·</textPath></text></svg>
-        <span><img src="img/mark-light.png" alt=""></span>
+        <span><img class="tile" src="img/mark.png" alt=""></span>
       </div>
     </div>
   </div>
@@ -384,7 +386,7 @@ a{color:inherit}
         <article class="dish" data-cat="sweets"><div class="dish-top"><h4>Calamansi Juice</h4><span class="dots"></span><span class="price">$5</span></div><p>Fresh Philippine lime, lightly sweetened. Hot or iced.</p></article>
 
         <div class="feast" data-cat="all">
-          <img src="img/mark-light.png" alt="">
+          <img class="tile" src="img/mark.png" alt="">
           <div>
             <h4>The Elio's Feast (boodle fight)</h4>
             <p>For 4 to 6. Lechon kawali, chicken inasal, pancit, lumpia, grilled vegetables and a mountain of garlic rice on banana leaves. Eat with your hands. Book 24 hours ahead.</p>
@@ -421,7 +423,7 @@ a{color:inherit}
     <div class="notebook reveal">
       <div class="page left">
         <div class="logo-stage">
-          <img src="img/logo-dark.png" alt="Elio's logo: a smiling face under a salakot hat shaped like Mount Matutum, with the sun and three stars of the Philippine flag" class="logo-img">
+          <img src="img/logo.png" alt="Elio's logo: a smiling face under a salakot hat shaped like Mount Matutum, with the sun and three stars of the Philippine flag" class="logo-img">
           <button class="hotspot" style="left:44%; top:28%" data-step="0" aria-pressed="true" aria-label="The salakot">1</button>
           <button class="hotspot" style="left:22%; top:44%" data-step="1" aria-pressed="false" aria-label="Mount Matutum">2</button>
           <button class="hotspot" style="left:62%; top:21%" data-step="2" aria-pressed="false" aria-label="Sun and stars">3</button>
@@ -530,7 +532,7 @@ a{color:inherit}
 
 <footer class="foot felt">
   <div class="wrap">
-    <img src="img/logo-light.png" alt="Elio's – A Feast of Filipino Favourites" width="120" height="194">
+    <img class="tile" src="img/logo.png" alt="Elio's – A Feast of Filipino Favourites" width="120" height="194">
     <div>
       <p class="tag">Good food. Good vibes.</p>
       <p style="color:var(--felt-muted)">335 Parsons Rd SW, Edmonton, AB</p>
