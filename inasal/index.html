@@ -58,7 +58,7 @@ main{overflow-x:clip}
 .promo{background:linear-gradient(90deg, #C53A08, var(--ember), #C53A08); color:#1A0A02; text-align:center; font-weight:700; font-size:.92rem; padding:8px 16px}
 .promo b{font-family:var(--display); font-weight:900; font-size:1.15rem; letter-spacing:.04em}
 .promo.monday{background:linear-gradient(90deg, var(--gold), #FFE08A, var(--gold))}
-.top{position:sticky; top:0; z-index:40; background:rgba(20,17,15,.88); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border-bottom:1px solid var(--line)}
+.top{position:sticky; top:0; z-index:40; background:rgba(20,17,15,.97); border-bottom:1px solid var(--line)}
 .top .wrap{display:flex; align-items:center; gap:18px; padding-block:10px}
 .brand{display:flex; align-items:center; gap:12px; text-decoration:none}
 .brand img{width:48px; height:48px; border-radius:50%; box-shadow:0 0 0 2px var(--gold), 0 0 22px -4px var(--ember)}
@@ -496,26 +496,38 @@ main{overflow-x:clip}
   // rising embers
   const cv = $('#embers');
   if (cv && !calm) {
-    const ctx = cv.getContext('2d'); let W, H, parts = [], run = true;
-    const size = () => { const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2); W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); };
-    const spawn = () => ({ x: Math.random() * W, y: H + 10, vy: .4 + Math.random() * 1.2, vx: (Math.random() - .5) * .4, r: .8 + Math.random() * 2.2, life: 0, max: 200 + Math.random() * 260, hue: 18 + Math.random() * 22 });
+    // glow is pre-drawn once into small sprites; per-frame shadowBlur was what made the page lag
+    const ctx = cv.getContext('2d'); let W, H, parts = [], visible = true, raf = 0;
+    const sprites = [22, 32, 40].map(h => {
+      const s = document.createElement('canvas'); s.width = s.height = 32; const g = s.getContext('2d');
+      const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grad.addColorStop(0, `hsla(${h},100%,85%,1)`); grad.addColorStop(.25, `hsla(${h},100%,60%,.9)`); grad.addColorStop(1, `hsla(${h},100%,50%,0)`);
+      g.fillStyle = grad; g.fillRect(0, 0, 32, 32); return s;
+    });
+    const size = () => { const r = cv.getBoundingClientRect(); W = r.width; H = r.height; cv.width = Math.round(W); cv.height = Math.round(H); };
+    const spawn = () => ({ x: Math.random() * W, y: H + 10, vy: .4 + Math.random() * 1.2, vx: (Math.random() - .5) * .4, s: 6 + Math.random() * 10, life: 0, max: 200 + Math.random() * 260, img: sprites[Math.random() * 3 | 0] });
     size(); addEventListener('resize', size);
     const tick = () => {
-      if (!run) return;
+      raf = 0;
+      if (!visible || document.hidden) return;
       ctx.clearRect(0, 0, W, H);
-      if (parts.length < Math.min(90, W / 12)) parts.push(spawn());
+      if (parts.length < Math.min(60, W / 16)) parts.push(spawn());
       ctx.globalCompositeOperation = 'lighter';
-      parts = parts.filter(q => q.life < q.max);
+      let n = 0;
       for (const q of parts) {
         q.life++; q.y -= q.vy; q.x += q.vx + Math.sin((q.life + q.x) / 30) * .3;
-        const a = Math.sin(Math.PI * q.life / q.max);
-        ctx.fillStyle = `hsla(${q.hue},100%,60%,${a * .85})`; ctx.shadowColor = `hsla(${q.hue},100%,55%,${a})`; ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill();
+        if (q.life >= q.max) continue;
+        parts[n++] = q;
+        ctx.globalAlpha = Math.sin(Math.PI * q.life / q.max) * .9;
+        ctx.drawImage(q.img, q.x - q.s / 2, q.y - q.s / 2, q.s, q.s);
       }
-      requestAnimationFrame(tick);
+      parts.length = n; ctx.globalAlpha = 1;
+      raf = requestAnimationFrame(tick);
     };
-    new IntersectionObserver(([e]) => { const was = run; run = e.isIntersecting; if (run && !was) tick(); }).observe(cv);
-    tick();
+    const start = () => { if (!raf && visible && !document.hidden) raf = requestAnimationFrame(tick); };
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; start(); }).observe(cv);
+    document.addEventListener('visibilitychange', start);
+    start();
   }
 
   $$('[data-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
