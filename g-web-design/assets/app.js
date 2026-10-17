@@ -238,3 +238,31 @@
     form.querySelectorAll('input[name="need"]').forEach(c => { if (c.value === 'Website') c.checked = true; });
   }
 })();
+
+// domain add-on: a looping fake name search; contact form note for ?addon=domain
+(() => {
+  const name = document.querySelector('[data-domain]');
+  if (name && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const res = name.closest('.domain-search').querySelector('.ds-result'), label = res.querySelector('span:last-child');
+    const names = ['nameofbusiness', 'yourbakery', 'yourgrill', 'yourcleaning'];
+    let i = 0;
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    (async () => {
+      for (;;) {
+        await wait(2400);
+        const cur = names[i]; i = (i + 1) % names.length; const next = names[i];
+        for (let k = cur.length; k >= 0; k--) { name.textContent = cur.slice(0, k); await wait(40); }
+        res.classList.add('checking'); label.innerHTML = '<b>Checking</b> · searching registries…';
+        for (let k = 1; k <= next.length; k++) { name.textContent = next.slice(0, k); await wait(80); }
+        await wait(700);
+        res.classList.remove('checking'); label.innerHTML = '<b>Available</b> · ready to register';
+      }
+    })();
+  }
+  const form = document.querySelector('[data-contact]');
+  if (form && new URLSearchParams(location.search).get('addon') === 'domain') {
+    const msg = form.querySelector('textarea[name="message"]');
+    msg.value = (msg.value ? msg.value.trimEnd() + '\n' : '') + 'I do not have a domain yet. Please handle the purchase and setup.\n\n';
+    form.querySelectorAll('input[name="need"]').forEach(c => { if (c.value === 'Website') c.checked = true; });
+  }
+})();

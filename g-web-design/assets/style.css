@@ -501,3 +501,16 @@ a{color:inherit}
 [data-mailbox]{color:var(--lime); border-right:2px solid var(--lime); padding-right:2px}
 :root[data-theme="light"] [data-mailbox]{color:#4A7F00; border-color:#4A7F00}
 @media (max-width: 1000px){ .addon{grid-template-columns:1fr; max-width:560px; margin-inline:auto} }
+
+/* ---------- domain add-on ---------- */
+.addon.domain{margin-top:18px}
+.addon.domain .price b{font-size:2.2rem}
+.domain-search{border-radius:14px; border:1px solid var(--line-2); background:var(--bg-2); padding:14px; display:grid; gap:10px; box-shadow:var(--glow)}
+.ds-bar{display:flex; align-items:baseline; gap:2px; padding:12px 14px; border-radius:10px; border:1px solid var(--line-2); background:var(--bg); font-family:var(--mono); font-size:.9rem; overflow:hidden; white-space:nowrap}
+.ds-www, .ds-tld{color:var(--dim)}
+.ds-bar b{font-weight:500; color:var(--ink); border-right:2px solid var(--cyan); padding-right:2px}
+.ds-result{display:flex; align-items:center; gap:10px; font-size:.86rem; color:var(--muted)}
+.ds-result b{color:var(--lime); font-weight:600}
+:root[data-theme="light"] .ds-result b{color:#4A7F00}
+.ds-dot{width:9px; height:9px; border-radius:50%; background:var(--lime); box-shadow:0 0 0 4px color-mix(in srgb, var(--lime) 25%, transparent)}
+.ds-result.checking b{color:var(--cyan)} .ds-result.checking .ds-dot{background:var(--cyan); box-shadow:0 0 0 4px color-mix(in srgb, var(--cyan) 25%, transparent)}
