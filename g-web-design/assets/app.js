@@ -176,3 +176,41 @@
 
   $$('[data-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
 })();
+
+// pricing page editor demo + contact prefill from ?need=&plan=
+(() => {
+  const ed = document.querySelector('.editor');
+  if (ed) {
+    const price = ed.querySelector('[data-price]'), mirror = document.querySelector('[data-mirror]');
+    const swaps = [...document.querySelectorAll('.swap')], calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const cycle = async () => {
+      ed.classList.add('play');
+      for (const v of ['15.9', '15.', '15', '1', '', '1', '16', '16.', '16.4', '16.49']) { price.textContent = v; await wait(110); }
+      await wait(900);
+      swaps.forEach(s => s.classList.add('swapped'));
+      mirror.textContent = '16.49'; mirror.parentElement.classList.add('flash');
+      await wait(2600);
+      ed.classList.remove('play'); swaps.forEach(s => s.classList.remove('swapped')); mirror.parentElement.classList.remove('flash');
+      price.textContent = mirror.textContent = '15.99';
+      await wait(1400);
+    };
+    let running = false;
+    new IntersectionObserver(async ([e]) => {
+      if (!e.isIntersecting || running) return;
+      running = true;
+      if (calm) { ed.classList.add('play'); price.textContent = mirror.textContent = '16.49'; swaps.forEach(s => s.classList.add('swapped')); return; }
+      for (;;) await cycle();
+    }, { threshold: .4 }).observe(ed);
+  }
+  const form = document.querySelector('[data-contact]');
+  const q = new URLSearchParams(location.search);
+  if (form && (q.get('need') || q.get('plan'))) {
+    const need = q.get('need');
+    form.querySelectorAll('input[name="need"]').forEach(c => { if (c.value === need) c.checked = true; });
+    const msg = form.querySelector('textarea[name="message"]');
+    const plans = { Basic: 'Launch (Basic, one-time)', Standard: 'Self-Serve (Standard, with my own editor)', Premium: 'Done-For-You (Premium, monthly)' };
+    if (plans[q.get('plan')]) msg.value = 'I am interested in the ' + plans[q.get('plan')] + ' website plan.\n\n';
+    else if (need && need !== 'Website') msg.value = 'This is what I would like to solve or automate:\n\n';
+  }
+})();
