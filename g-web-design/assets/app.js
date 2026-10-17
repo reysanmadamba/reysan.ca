@@ -214,3 +214,27 @@
     else if (need && need !== 'Website') msg.value = 'This is what I would like to solve or automate:\n\n';
   }
 })();
+
+// email add-on: type through example mailbox names; contact form note for ?addon=email
+(() => {
+  const box = document.querySelector('[data-mailbox]');
+  if (box && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const names = ['contact', 'orders', 'catering', 'hello'];
+    let i = 0;
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    (async () => {
+      for (;;) {
+        await wait(2200);
+        const cur = names[i]; i = (i + 1) % names.length; const next = names[i];
+        for (let k = cur.length; k >= 0; k--) { box.textContent = cur.slice(0, k); await wait(55); }
+        for (let k = 1; k <= next.length; k++) { box.textContent = next.slice(0, k); await wait(85); }
+      }
+    })();
+  }
+  const form = document.querySelector('[data-contact]');
+  if (form && new URLSearchParams(location.search).get('addon') === 'email') {
+    const msg = form.querySelector('textarea[name="message"]');
+    msg.value = (msg.value ? msg.value.trimEnd() + '\n' : '') + 'I would also like business email set up (contact@mybusiness.ca).\n\n';
+    form.querySelectorAll('input[name="need"]').forEach(c => { if (c.value === 'Website') c.checked = true; });
+  }
+})();
