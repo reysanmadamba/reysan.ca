@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inasal Grill Avenue · Chicken Inasal & Filipino BBQ on Jasper Ave</title>
+<meta name="description" content="Chicken inasal, pork BBQ, grilled liempo and beef pares at 10752 Jasper Ave NW, Edmonton. Order pickup online or get delivery on SkipTheDishes.">
+<meta property="og:title" content="Inasal Grill Avenue · Fired up on Jasper">
+<meta property="og:description" content="Smoky, savory and authentically Filipino. Chicken inasal and BBQ in downtown Edmonton.">
+<meta property="og:image" content="img/inasal-2.jpg">
+<meta name="theme-color" content="#14110F">
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Onest:wght@400;500;600;700&family=Kalam:wght@700&display=swap">
+<style>
+/* Layout concept: the charcoal grill itself. A dark grate, rising embers, plates served hot onto the grill,
+   and the menu as a chalk-and-ember board. Charcoal, ember orange and the gold ring from their logo. */
+:root{
+  --coal:#14110F; --coal-2:#1D1916; --coal-3:#2A2420; --ink:#F7EEE3; --muted:#BCAE9F; --dim:#8B7E70;
+  --ember:#FF6A1A; --ember-hot:#FFB347; --gold:#F2B33D; --line:rgba(247,238,227,.12); --line-2:rgba(247,238,227,.22);
+  --display:"Big Shoulders Display","Impact","Arial Narrow",sans-serif;
+  --body:"Onest","Segoe UI",Helvetica,Arial,sans-serif;
+  --chalk:"Kalam","Comic Sans MS",cursive;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%; display:block}
+html{scroll-behavior:smooth; scroll-padding-top:80px}
+body{margin:0; background:var(--coal); color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.6; overflow-x:hidden}
+h1,h2,h3{font-family:var(--display); font-weight:900; line-height:.92; margin:0; text-transform:uppercase; letter-spacing:.01em; text-wrap:balance}
+h2{font-size:clamp(2.8rem,7vw,5.2rem)}
+h3{font-size:1.6rem; font-weight:800; line-height:1}
+p{margin:0}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--ember-hot); outline-offset:3px; border-radius:6px}
+main{overflow-x:clip}
+.wrap{max-width:1200px; margin-inline:auto; padding-inline:20px}
+.sec{position:relative; padding-block:clamp(70px,10vw,124px)}
+.eyebrow{font-weight:700; font-size:.78rem; letter-spacing:.2em; text-transform:uppercase; color:var(--gold)}
+.lede{font-size:1.14rem; color:var(--muted); max-width:38rem}
+.head{display:grid; gap:14px; margin-bottom:44px; max-width:48rem}
+.hot{color:transparent; background:linear-gradient(180deg, var(--ember-hot), var(--ember) 60%, #D9370B); -webkit-background-clip:text; background-clip:text}
+.btn{display:inline-flex; align-items:center; gap:10px; padding:15px 24px; border-radius:12px; font:700 1rem var(--body); text-decoration:none; border:2px solid transparent; cursor:pointer; transition:transform .15s, box-shadow .2s, background .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.fire{background:linear-gradient(180deg, #FF8A3D, var(--ember) 55%, #E04A0C); color:#1A0A02; box-shadow:0 10px 30px -10px rgba(255,106,26,.8), inset 0 1px 0 rgba(255,255,255,.4)}
+.btn.fire:hover{box-shadow:0 14px 40px -8px rgba(255,106,26,.95), inset 0 1px 0 rgba(255,255,255,.4)}
+.btn.ghost{border-color:var(--line-2); color:var(--ink); background:rgba(255,255,255,.03)}
+.btn.ghost:hover{border-color:var(--gold)}
+.btn svg{width:18px; height:18px}
+
+/* grill grate texture */
+.grate{background-image:repeating-linear-gradient(90deg, transparent 0 34px, rgba(0,0,0,.45) 34px 40px, rgba(255,255,255,.035) 40px 42px, transparent 42px 76px)}
+
+/* top bar */
+.promo{background:linear-gradient(90deg, #C53A08, var(--ember), #C53A08); color:#1A0A02; text-align:center; font-weight:700; font-size:.92rem; padding:8px 16px}
+.promo b{font-family:var(--display); font-weight:900; font-size:1.15rem; letter-spacing:.04em}
+.promo.monday{background:linear-gradient(90deg, var(--gold), #FFE08A, var(--gold))}
+.top{position:sticky; top:0; z-index:40; background:rgba(20,17,15,.88); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); border-bottom:1px solid var(--line)}
+.top .wrap{display:flex; align-items:center; gap:18px; padding-block:10px}
+.brand{display:flex; align-items:center; gap:12px; text-decoration:none}
+.brand img{width:48px; height:48px; border-radius:50%; box-shadow:0 0 0 2px var(--gold), 0 0 22px -4px var(--ember)}
+.brand b{font-family:var(--display); font-weight:900; font-size:1.55rem; text-transform:uppercase; letter-spacing:.02em; line-height:.9}
+.brand small{display:block; font-size:.62rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--gold)}
+.nav{display:flex; align-items:center; gap:4px; margin-left:auto}
+.nav a{text-decoration:none; font-weight:600; color:var(--muted); padding:9px 12px; border-radius:10px}
+.nav a:hover{color:var(--ink); background:rgba(255,255,255,.05)}
+.nav .btn{margin-left:8px; padding:11px 18px; color:#1A0A02}
+.openpill{display:inline-flex; align-items:center; gap:8px; font-size:.82rem; font-weight:700; padding:6px 12px; border-radius:999px; border:1px solid var(--line-2); color:var(--muted)}
+.openpill::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--dim)}
+.openpill.is-open{color:#9BE6A7} .openpill.is-open::before{background:#3DDC5A; box-shadow:0 0 0 4px rgba(61,220,90,.2)}
+.openpill.is-closed::before{background:var(--ember)}
+.toggle{display:none; margin-left:auto; width:46px; height:46px; border-radius:12px; border:1px solid var(--line-2); background:var(--coal-2); color:var(--ink); cursor:pointer}
+.toggle svg{width:22px; height:22px; margin:auto}
+
+/* hero */
+.hero{position:relative; overflow:hidden; isolation:isolate; padding-block:clamp(40px,6vw,80px) clamp(70px,9vw,110px)}
+.hero::before{content:""; position:absolute; inset:auto -10% -30% -10%; height:70%; z-index:-2; background:radial-gradient(ellipse at 50% 100%, rgba(255,106,26,.55), rgba(255,106,26,.15) 40%, transparent 70%)}
+#embers{position:absolute; inset:0; width:100%; height:100%; z-index:-1; pointer-events:none}
+.hero .wrap{display:grid; grid-template-columns:1.05fr .95fr; gap:clamp(30px,5vw,64px); align-items:center}
+.hero h1{font-size:clamp(4rem,11vw,9rem); margin-block:16px 18px}
+.hero h1 span{display:block}
+.hero .lede{font-size:1.2rem; color:#D9CCBE}
+.ctas{display:flex; flex-wrap:wrap; gap:12px; margin-top:30px}
+.facts{display:flex; flex-wrap:wrap; gap:10px 26px; margin-top:34px; padding-top:22px; border-top:1px solid var(--line); font-size:.92rem; color:var(--muted)}
+.facts b{display:block; font-family:var(--display); font-size:1.7rem; font-weight:800; color:var(--ink); line-height:1}
+.stage{position:relative; aspect-ratio:1; max-width:540px; width:100%; margin-inline:auto}
+.stage .grill{position:absolute; inset:4%; border-radius:50%; background:radial-gradient(circle, #2E2722 0 55%, #191512 70%);
+  box-shadow:0 0 0 10px #2A2420, 0 0 0 12px #3A322C, 0 40px 80px -30px rgba(0,0,0,.9), 0 0 120px -20px rgba(255,106,26,.55)}
+.stage .grill::before{content:""; position:absolute; inset:8%; border-radius:50%; background:repeating-linear-gradient(90deg, transparent 0 18px, #0E0B09 18px 26px)}
+.stage .grill::after{content:""; position:absolute; inset:8%; border-radius:50%; background:radial-gradient(circle at 50% 70%, rgba(255,120,30,.45), transparent 60%); mix-blend-mode:screen}
+@media (prefers-reduced-motion: no-preference){ .stage .grill::after{animation:glow 2.6s ease-in-out infinite alternate} @keyframes glow{to{opacity:.55}} }
+.plate{position:absolute; border-radius:50%; overflow:hidden; box-shadow:0 22px 40px -14px rgba(0,0,0,.85), 0 0 0 4px rgba(255,255,255,.08)}
+.plate img{width:100%; height:100%; object-fit:cover; scale:1.18}
+.stage .p1{width:58%; aspect-ratio:1; left:21%; top:16%; z-index:2}
+.stage .p2{width:34%; aspect-ratio:1; left:-2%; top:-2%}
+.stage .p3{width:34%; aspect-ratio:1; right:-3%; bottom:2%}
+@media (prefers-reduced-motion: no-preference){ .stage .p1{animation:rise 7s ease-in-out infinite} .stage .p2{animation:rise 7s ease-in-out -2s infinite} .stage .p3{animation:rise 7s ease-in-out -4s infinite} @keyframes rise{50%{translate:0 -10px}} }
+.smoke{position:absolute; left:50%; top:10%; width:120px; height:120px; margin-left:-60px; border-radius:50%; background:rgba(255,255,255,.08); filter:blur(18px); opacity:0; z-index:3; pointer-events:none}
+@media (prefers-reduced-motion: no-preference){ .smoke{animation:smoke 5s ease-out infinite} .smoke.s2{animation-delay:1.7s; left:40%} .smoke.s3{animation-delay:3.3s; left:60%}
+  @keyframes smoke{0%{opacity:0; translate:0 60px; scale:.6} 30%{opacity:.9} 100%{opacity:0; translate:0 -120px; scale:1.8}} }
+.tag{position:absolute; z-index:4; right:4%; top:6%; rotate:8deg; background:var(--gold); color:#1A0A02; font-family:var(--display); font-weight:900; text-transform:uppercase; padding:10px 16px 8px; border-radius:10px; line-height:.95; box-shadow:0 12px 24px -8px rgba(0,0,0,.6)}
+.tag b{display:block; font-size:2.1rem} .tag small{font-size:.9rem; letter-spacing:.06em}
+
+/* ticker */
+.ticker{border-block:1px solid var(--line); background:var(--coal-2); overflow:hidden; white-space:nowrap; padding-block:16px}
+.ticker div{display:inline-flex; gap:40px; animation:tick 36s linear infinite; font-family:var(--display); font-weight:800; font-size:1.5rem; text-transform:uppercase; letter-spacing:.03em; color:var(--muted)}
+.ticker span::after{content:"🔥"; margin-left:40px; font-size:1rem}
+@keyframes tick{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion: reduce){ .ticker div{animation:none} html{scroll-behavior:auto} }
+
+/* most popular on the grill */
+.popular{display:grid; grid-template-columns:repeat(4,1fr); gap:20px}
+.pop{position:relative; background:var(--coal-2); border:1px solid var(--line); border-radius:22px; padding:18px; display:grid; gap:12px; justify-items:center; text-align:center; transition:transform .25s, border-color .25s, box-shadow .25s; overflow:hidden}
+.pop::before{content:""; position:absolute; inset:auto 0 0 0; height:50%; background:radial-gradient(ellipse at 50% 100%, rgba(255,106,26,.28), transparent 70%); opacity:0; transition:opacity .3s}
+.pop:hover{transform:translateY(-6px); border-color:rgba(255,106,26,.5); box-shadow:0 26px 50px -24px rgba(255,106,26,.55)}
+.pop:hover::before{opacity:1}
+.pop .plate{position:relative; width:78%; aspect-ratio:1}
+.pop:hover .plate img{scale:1.26; transition:scale .5s}
+.pop h3{font-size:1.5rem; position:relative}
+.pop .price{font-family:var(--display); font-weight:900; font-size:1.8rem; color:var(--ember-hot); line-height:1; position:relative}
+.pop .rank{position:absolute; left:14px; top:12px; font-family:var(--display); font-weight:900; font-size:2.6rem; color:transparent; -webkit-text-stroke:1.5px var(--gold); line-height:1}
+
+/* menu board */
+.board-wrap{background:var(--coal-2); border-block:1px solid var(--line)}
+.tabs{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:30px}
+.tabs button{font:700 .92rem var(--body); padding:11px 16px; border-radius:12px; border:1px solid var(--line-2); background:transparent; color:var(--muted); cursor:pointer; transition:all .2s}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--ink); color:var(--coal); border-color:var(--ink)}
+.menu{display:grid; grid-template-columns:1fr 1fr; gap:14px 26px}
+.item{display:grid; grid-template-columns:auto 1fr auto; gap:16px; align-items:center; padding:14px; border-radius:18px; background:var(--coal); border:1px solid var(--line); transition:border-color .2s}
+.item:hover{border-color:var(--line-2)}
+.item .thumb{width:76px; height:76px; border-radius:50%; overflow:hidden; background:var(--coal-3); display:grid; place-items:center; font-size:1.8rem}
+.item .thumb img{width:100%; height:100%; object-fit:cover; scale:1.2}
+.item h3{font-family:var(--body); font-weight:700; text-transform:none; font-size:1.06rem; letter-spacing:0; line-height:1.25}
+.item p{font-size:.88rem; color:var(--dim); line-height:1.4; margin-top:2px}
+.item .pr{font-family:var(--display); font-weight:800; font-size:1.55rem; color:var(--ember-hot); white-space:nowrap}
+.cat{grid-column:1/-1; display:flex; align-items:baseline; gap:14px; margin-top:20px}
+.cat:first-child{margin-top:0}
+.cat h3{font-size:2.2rem}
+.cat span{font-family:var(--chalk); color:var(--gold); font-size:1.2rem}
+.order-row{display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:34px; padding:20px 22px; border-radius:18px; border:1px dashed var(--line-2)}
+.order-row p{color:var(--muted); flex:1; min-width:240px}
+
+/* barkada calculator */
+.calc{display:grid; grid-template-columns:1fr 1fr; gap:clamp(24px,5vw,60px); align-items:center}
+.calc .panel{background:linear-gradient(160deg, var(--coal-2), var(--coal)); border:1px solid var(--line-2); border-radius:26px; padding:clamp(22px,4vw,36px); box-shadow:0 40px 80px -40px rgba(255,106,26,.45)}
+.calc label{display:block; font-weight:700; color:var(--muted); margin-bottom:10px}
+.calc output{font-family:var(--display); font-weight:900; font-size:4rem; line-height:1; color:var(--ink)}
+.calc input[type=range]{width:100%; accent-color:var(--ember); margin:14px 0 6px}
+.calc .ticks{display:flex; justify-content:space-between; font-size:.8rem; color:var(--dim)}
+.rec{margin-top:24px; padding-top:20px; border-top:1px solid var(--line); display:grid; gap:10px}
+.rec .line{display:flex; justify-content:space-between; gap:10px; font-weight:600}
+.rec .line span:last-child{color:var(--ember-hot); font-family:var(--display); font-size:1.4rem; font-weight:800}
+.rec .total{border-top:1px dashed var(--line-2); padding-top:12px; font-size:1.1rem}
+.rec .total span:last-child{font-size:2rem; color:var(--gold)}
+.rec small{color:var(--dim)}
+.skewers{display:flex; gap:10px; flex-wrap:wrap; min-height:70px; margin-top:6px}
+.skewers i{width:14px; height:70px; border-radius:7px; background:linear-gradient(#7A3416, #B24A17 30%, #6C2A0E 32%, #B9531C 60%, #6C2A0E 62%, #A84313 90%, #D7B48A 90%); box-shadow:0 0 14px -2px rgba(255,106,26,.6); animation:pop .35s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes pop{from{transform:scale(.2) translateY(20px); opacity:0}}
+
+/* story */
+.story .wrap{display:grid; grid-template-columns:.9fr 1.1fr; gap:clamp(30px,6vw,72px); align-items:center}
+.logo-burn{position:relative; aspect-ratio:1; max-width:440px; margin-inline:auto; border-radius:50%; overflow:hidden; box-shadow:0 0 0 1px var(--line), 0 0 140px -30px rgba(255,106,26,.75)}
+.logo-burn img{width:100%; height:100%; object-fit:cover}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:22px}
+.chips span{padding:8px 14px; border-radius:999px; background:rgba(242,179,61,.12); color:var(--gold); font-weight:700; font-size:.9rem; border:1px solid rgba(242,179,61,.3)}
+
+/* visit */
+.visit .wrap{display:grid; grid-template-columns:1fr 1.1fr; gap:26px; align-items:stretch}
+.card{background:var(--coal-2); border:1px solid var(--line); border-radius:22px; padding:24px}
+.card + .card{margin-top:16px}
+.card h3{font-size:1.9rem; margin-bottom:12px}
+.card p{color:var(--muted)}
+.card a{color:var(--ember-hot); font-weight:700}
+.hours{width:100%; border-collapse:collapse}
+.hours td{padding:8px 0; border-bottom:1px solid var(--line); color:var(--muted)}
+.hours td:last-child{text-align:right; font-variant-numeric:tabular-nums}
+.hours tr.today td{color:var(--ink); font-weight:700}
+.hours tr.today td:first-child::after{content:" · today"; color:var(--ember-hot); font-weight:600}
+.map{border-radius:22px; overflow:hidden; border:1px solid var(--line-2); min-height:460px}
+.map iframe{width:100%; height:100%; min-height:460px; border:0; display:block; filter:invert(.9) hue-rotate(180deg) saturate(.6) brightness(.9)}
+.ways{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:4px}
+.way{display:grid; gap:4px; padding:16px; border-radius:16px; border:1px solid var(--line-2); text-decoration:none; background:var(--coal); transition:border-color .2s, transform .2s}
+.way:hover{border-color:var(--ember); transform:translateY(-2px)}
+.way b{font-family:var(--display); font-weight:800; font-size:1.5rem; text-transform:uppercase; color:var(--ink)}
+.way span{font-size:.88rem; color:var(--muted)}
+
+/* footer */
+.foot{border-top:1px solid var(--line); padding-block:44px 28px; background:var(--coal-2)}
+.foot .wrap{display:grid; grid-template-columns:auto 1fr auto; gap:28px; align-items:center}
+.foot img{width:84px; border-radius:50%}
+.foot .big{font-family:var(--display); font-weight:900; text-transform:uppercase; font-size:2rem; line-height:.95}
+.foot p, .foot a{color:var(--muted)}
+.foot nav{display:grid; gap:4px}
+.foot nav a{text-decoration:none; font-weight:600}
+.foot nav a:hover{color:var(--ember-hot)}
+.foot .fine{grid-column:1/-1; border-top:1px solid var(--line); padding-top:16px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:.85rem; color:var(--dim)}
+.order-fab{position:fixed; right:16px; bottom:16px; z-index:35; display:none}
+
+.reveal{opacity:0; translate:0 26px; transition:opacity .7s, translate .7s}
+.reveal.in{opacity:1; translate:0 0}
+@media (prefers-reduced-motion: reduce){ .reveal{opacity:1; translate:none; transition:none} }
+
+@media (max-width: 1040px){
+  .nav{display:none; position:absolute; top:100%; left:0; right:0; flex-direction:column; align-items:stretch; background:var(--coal); padding:10px 20px 22px; border-bottom:1px solid var(--line)}
+  .nav.open{display:flex}
+  .nav a{padding:13px 10px}
+  .nav .btn{margin:10px 0 0; justify-content:center}
+  .toggle{display:grid}
+  .top .openpill{display:none}
+  .popular{grid-template-columns:1fr 1fr}
+}
+@media (max-width: 860px){
+  .hero .wrap, .calc, .story .wrap, .visit .wrap{grid-template-columns:1fr}
+  .stage{max-width:440px}
+  .menu{grid-template-columns:1fr}
+  .foot .wrap{grid-template-columns:1fr}
+  .order-fab{display:inline-flex}
+}
+@media (max-width: 520px){
+  body{font-size:16px}
+  .brand b{font-size:1.3rem}
+  .popular{gap:12px}
+  .pop{padding:12px; border-radius:18px}
+  .pop h3{font-size:1.2rem}
+  .pop .price{font-size:1.4rem}
+  .pop .rank{font-size:2rem; left:10px; top:8px}
+  .item{grid-template-columns:auto 1fr; gap:12px}
+  .item .thumb{width:60px; height:60px}
+  .item .pr{grid-column:2; font-size:1.3rem; margin-top:-6px}
+  .ways{grid-template-columns:1fr}
+  .tag b{font-size:1.6rem}
+}
+</style>
+</head>
+<body>
+<div class="promo" data-promo><b>10% off Mondays</b> · Treat yourself to our grilled goodness. Order today!</div>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Inasal Grill Avenue home">
+      <img src="img/logo.jpg" alt="" width="48" height="48">
+      <span><b>Inasal Grill</b><small>Avenue · Jasper Ave</small></span>
+    </a>
+    <span class="openpill" data-open>Mon–Fri 9:30–10:30 · Sat–Sun 11–9</span>
+    <button class="toggle" data-nav-toggle aria-expanded="false" aria-controls="nav" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <nav class="nav" id="nav" data-nav aria-label="Main">
+      <a href="#popular">Most popular</a><a href="#menu">Menu</a><a href="#barkada">Feed the barkada</a><a href="#visit">Visit</a>
+      <a class="btn fire" href="https://inasalgrillavenue.square.site/" target="_blank" rel="noopener">Order pickup</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <canvas id="embers" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <div class="reveal in">
+      <span class="eyebrow">Chicken inasal · Filipino BBQ · Grilled specialties</span>
+      <h1><span>Fired up</span><span class="hot">on Jasper.</span></h1>
+      <p class="lede">Smoky, savory and authentically Filipino. Chicken inasal, pork BBQ skewers off the flame and grilled liempo, right here on Jasper Ave in Edmonton.</p>
+      <div class="ctas">
+        <a class="btn fire" href="https://inasalgrillavenue.square.site/" target="_blank" rel="noopener">Order pickup <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <a class="btn ghost" href="https://www.skipthedishes.com/inasal-grill-avenue" target="_blank" rel="noopener">Delivery on SkipTheDishes</a>
+      </div>
+      <div class="facts">
+        <span><b>$15.99</b>solo meals from</span>
+        <span><b>7 days</b>a week</span>
+        <span><b>10%</b>off Mondays</span>
+      </div>
+    </div>
+    <div class="stage reveal in" aria-hidden="true">
+      <div class="grill"></div>
+      <span class="smoke"></span><span class="smoke s2"></span><span class="smoke s3"></span>
+      <div class="plate p1"><img src="img/inasal-2.jpg" alt=""></div>
+      <div class="plate p2"><img src="img/bbq-6.jpg" alt=""></div>
+      <div class="plate p3"><img src="img/liempo.jpg" alt=""></div>
+      <div class="tag"><b>Inasal</b><small>off the flame</small></div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker" aria-hidden="true"><div>
+  <span>Chicken Inasal</span><span>Pork BBQ</span><span>Grilled Liempo</span><span>Beef Pares</span><span>Lechon Kawali</span><span>Lomi Special</span><span>Spring Rolls</span><span>Barkada Pack</span>
+  <span>Chicken Inasal</span><span>Pork BBQ</span><span>Grilled Liempo</span><span>Beef Pares</span><span>Lechon Kawali</span><span>Lomi Special</span><span>Spring Rolls</span><span>Barkada Pack</span>
+</div></div>
+
+<section class="sec" id="popular">
+  <div class="wrap">
+    <div class="head reveal">
+      <span class="eyebrow">Hot off the grill</span>
+      <h2>Most <span class="hot">popular.</span></h2>
+      <p class="lede">What Edmonton orders most, straight from our online menu.</p>
+    </div>
+    <div class="popular">
+      <article class="pop reveal"><span class="rank">01</span><div class="plate"><img src="img/pares.jpg" alt="Beef pares with garlic rice" loading="lazy"></div><h3>Beef Pares</h3><span class="price">$16.99</span></article>
+      <article class="pop reveal"><span class="rank">02</span><div class="plate"><img src="img/bbq-6.jpg" alt="Six pork BBQ skewers" loading="lazy"></div><h3>6 Pork BBQ</h3><span class="price">$22.08</span></article>
+      <article class="pop reveal"><span class="rank">03</span><div class="plate"><img src="img/lomi.jpg" alt="Lomi special with chicharon and lechon kawali" loading="lazy"></div><h3>Lomi Special</h3><span class="price">$20.99</span></article>
+      <article class="pop reveal"><span class="rank">04</span><div class="plate"><img src="img/inasal-solo.jpg" alt="Chicken inasal with spring rolls and garlic rice" loading="lazy"></div><h3>Inasal + Spring Rolls</h3><span class="price">$18.49</span></article>
+    </div>
+  </div>
+</section>
+
+<section class="sec board-wrap" id="menu">
+  <div class="wrap">
+    <div class="head reveal">
+      <span class="eyebrow">The menu</span>
+      <h2>Pick your <span class="hot">plate.</span></h2>
+      <p class="lede">Prices from our online ordering menu. Solo meals come with rice.</p>
+    </div>
+    <div class="tabs reveal" role="tablist" aria-label="Menu sections">
+      <button type="button" role="tab" aria-selected="true" data-tab="all">All</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="solo">Solo meals</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="ala">Ala carte</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="group">Group packs</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="hand">Handhelds &amp; sides</button>
+    </div>
+    <div class="menu" data-menu></div>
+    <div class="order-row reveal">
+      <p>Order ahead for pickup through our online store, or get it delivered with SkipTheDishes.</p>
+      <a class="btn fire" href="https://inasalgrillavenue.square.site/" target="_blank" rel="noopener">Order online</a>
+      <a class="btn ghost" href="https://www.skipthedishes.com/inasal-grill-avenue" target="_blank" rel="noopener">SkipTheDishes</a>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="barkada">
+  <div class="wrap calc">
+    <div class="reveal">
+      <span class="eyebrow">Feeding a crowd?</span>
+      <h2 style="margin-block:14px 16px">How hungry is the <span class="hot">barkada?</span></h2>
+      <p class="lede">Slide to your headcount and we'll suggest a grill order from the ala carte menu. It's a starting point; tweak it when you order.</p>
+      <div class="skewers" data-skewers aria-hidden="true"></div>
+    </div>
+    <div class="panel reveal">
+      <label for="people">People eating</label>
+      <output id="peopleOut" for="people">6</output>
+      <input id="people" type="range" min="2" max="30" value="6">
+      <div class="ticks"><span>2</span><span>10</span><span>20</span><span>30</span></div>
+      <div class="rec" data-rec aria-live="polite"></div>
+      <div class="ctas" style="margin-top:20px"><a class="btn fire" href="https://inasalgrillavenue.square.site/" target="_blank" rel="noopener">Order this online</a><a class="btn ghost" href="tel:+18254018020">Call for big orders</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec story grate" style="background-color:var(--coal-2)">
+  <div class="wrap">
+    <div class="logo-burn reveal"><img src="img/logo.jpg" alt="Inasal Grill Avenue logo: a flame inside a gold ring" loading="lazy"></div>
+    <div class="reveal">
+      <span class="eyebrow">Why inasal?</span>
+      <h2 style="margin-block:14px 18px">Real Filipino flavour, <span class="hot">in Canada.</span></h2>
+      <p class="lede" style="color:#D9CCBE">Inasal is the Bacolod way of grilling chicken: a tangy marinade, an annatto baste and a flame hot enough to char the edges. Craving that in Canada? That's what we specialize in on Jasper Ave, alongside pork BBQ skewers, grilled liempo, beef pares and lomi.</p>
+      <div class="chips"><span>Smoky</span><span>Savory</span><span>Authentically Filipino</span><span>Grilled to order</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec visit" id="visit">
+  <div class="wrap">
+    <div>
+      <div class="head reveal" style="margin-bottom:22px"><span class="eyebrow">Visit</span><h2>10752 <span class="hot">Jasper Ave.</span></h2></div>
+      <div class="card reveal">
+        <h3>Hours</h3>
+        <table class="hours" data-hours>
+          <tr data-d="1"><td>Monday</td><td>9:30 AM – 10:30 PM</td></tr>
+          <tr data-d="2"><td>Tuesday</td><td>9:30 AM – 10:30 PM</td></tr>
+          <tr data-d="3"><td>Wednesday</td><td>9:30 AM – 10:30 PM</td></tr>
+          <tr data-d="4"><td>Thursday</td><td>9:30 AM – 10:30 PM</td></tr>
+          <tr data-d="5"><td>Friday</td><td>9:30 AM – 10:30 PM</td></tr>
+          <tr data-d="6"><td>Saturday</td><td>11 AM – 9 PM</td></tr>
+          <tr data-d="0"><td>Sunday</td><td>11 AM – 9 PM</td></tr>
+        </table>
+      </div>
+      <div class="card reveal">
+        <h3>Get it your way</h3>
+        <div class="ways">
+          <a class="way" href="https://inasalgrillavenue.square.site/" target="_blank" rel="noopener"><b>Pickup</b><span>Order ahead online</span></a>
+          <a class="way" href="https://www.skipthedishes.com/inasal-grill-avenue" target="_blank" rel="noopener"><b>Delivery</b><span>SkipTheDishes</span></a>
+          <a class="way" href="tel:+18254018020"><b>Call</b><span>(825) 401-8020</span></a>
+          <a class="way" href="https://www.google.com/maps/dir/?api=1&destination=10752+Jasper+Ave+NW+Edmonton+AB+T5J+2A7" target="_blank" rel="noopener"><b>Dine in</b><span>Get directions</span></a>
+        </div>
+        <p style="margin-top:14px; font-size:.9rem">10752 Jasper Ave NW, Edmonton, AB T5J 2A7 · <a href="mailto:inasalgrillavenue@gmail.com">inasalgrillavenue@gmail.com</a></p>
+      </div>
+    </div>
+    <div class="map reveal"><iframe title="Map to Inasal Grill Avenue, 10752 Jasper Ave NW, Edmonton" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=10752%20Jasper%20Ave%20NW%2C%20Edmonton%2C%20AB%20T5J%202A7&z=16&output=embed"></iframe></div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <img src="img/logo.jpg" alt="Inasal Grill Avenue" width="84" height="84">
+    <div><p class="big">Smoky. Savory.<br><span class="hot">Authentically Filipino.</span></p><p style="margin-top:8px">10752 Jasper Ave NW, Edmonton · <a href="tel:+18254018020">(825) 401-8020</a></p></div>
+    <nav aria-label="Footer"><a href="#menu">Menu</a><a href="#barkada">Group orders</a><a href="#visit">Visit</a><a href="https://www.facebook.com/p/Inasal-Grill-Avenue-61563759324668/" target="_blank" rel="noopener">Facebook</a></nav>
+    <div class="fine"><span>© <span data-year>2026</span> Inasal Grill Avenue</span><span>Sample site by <a href="https://reysan.ca">reysan.ca</a></span></div>
+  </div>
+</footer>
+<a class="btn fire order-fab" href="https://inasalgrillavenue.square.site/" target="_blank" rel="noopener">Order now</a>
+
+<script>
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const money = v => '$' + v.toFixed(2);
+
+  const toggle = $('[data-nav-toggle]'), nav = $('[data-nav]');
+  toggle.addEventListener('click', () => { const o = nav.classList.toggle('open'); toggle.setAttribute('aria-expanded', o); });
+  nav.addEventListener('click', e => { if (e.target.closest('a')) { nav.classList.remove('open'); toggle.setAttribute('aria-expanded', false); } });
+
+  // open now + today's hours + Monday promo, in Edmonton time
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Edmonton', weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(new Date()).map(x => [x.type, x.value]));
+  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday), m = +p.hour * 60 + +p.minute;
+  const weekday = day >= 1 && day <= 5, open = weekday ? (m >= 570 && m < 1350) : (m >= 660 && m < 1260);
+  const pill = $('[data-open]');
+  pill.textContent = open ? `Open now · until ${weekday ? '10:30 PM' : '9 PM'}` : `Closed · opens ${weekday ? (m < 570 ? '9:30 AM' : 'tomorrow') : (m < 660 ? '11 AM' : 'tomorrow')}`;
+  pill.classList.add(open ? 'is-open' : 'is-closed');
+  $(`[data-hours] tr[data-d="${day}"]`)?.classList.add('today');
+  if (day === 1) { const pr = $('[data-promo]'); pr.classList.add('monday'); pr.innerHTML = '<b>It\'s Monday: 10% off today!</b> · Treat yourself to our grilled goodness.'; }
+
+  // menu (prices from the Square menu)
+  const MENU = [
+    ['solo', 'Chicken Inasal', 15.99, 'Grilled chicken inasal with rice.', 'inasal-solo'],
+    ['solo', 'Inasal with 2 Spring Rolls', 18.49, 'Chicken inasal, two spring rolls and rice.', 'inasal-solo'],
+    ['solo', 'Inasal with 1 pc BBQ', 18.99, 'Chicken inasal plus a pork BBQ skewer.', 'bbq-solo'],
+    ['solo', '3 pcs Pork BBQ', 15.99, 'Three pork BBQ skewers with rice.', 'bbq-solo'],
+    ['solo', 'Grilled Liempo', 16.99, 'Grilled pork belly with rice.', 'liempo'],
+    ['solo', 'Beef Pares', 16.99, 'Braised beef in sweet-savory sauce, with rice.', 'pares'],
+    ['solo', 'Beef Pares Overload', 22.99, 'The bigger, heartier pares.', 'pares'],
+    ['solo', 'Lechon Kawali', 20.49, 'Crispy fried pork belly with rice.', '', '🥓'],
+    ['solo', 'Lomi Special', 20.99, 'Thick noodle soup loaded with toppings.', 'lomi'],
+    ['ala', '2 Chicken Inasal', 19.78, 'Two pieces, ala carte.', 'inasal-2'],
+    ['ala', '10 Chicken Inasal', 89.00, 'Ten pieces for the table.', 'inasal-2'],
+    ['ala', '6 Pork BBQ', 22.08, 'Six skewers, ala carte.', 'bbq-6'],
+    ['ala', '10 Pork BBQ', 34.99, 'Ten skewers, ala carte.', 'bbq-6'],
+    ['ala', '3 Grilled Liempo', 29.99, 'Marinated in soy, garlic and spices, grilled tender and juicy.', 'liempo'],
+    ['ala', 'Spring Rolls', 9.99, 'Crispy rolls with sweet chili dip.', 'spring-rolls'],
+    ['group', 'Barkada Pack', 90.99, 'Our biggest sharing pack for the group.', '', '🧺'],
+    ['group', 'Family Pack', 61.99, 'A sharing pack for the family table.', '', '🧺'],
+    ['hand', '1 lb Chicken Wings', 14.99, '', '', '🍗'],
+    ['hand', '3 pcs Chicken Tenders & Fries', 11.99, '', '', '🍗'],
+    ['hand', 'Pork Empanada', 9.99, '', '', '🥟'],
+    ['hand', 'French Fries (L)', 4.99, '', '', '🍟'],
+    ['hand', 'Plain White Rice', 2.50, '', 'rice'],
+    ['hand', 'Gravy', 1.99, '', '', '🥣'],
+  ];
+  const CATS = { solo: ['Solo meals', 'one plate, all yours'], ala: ['Ala carte', 'straight off the grill'], group: ['Group packs', 'for the barkada'], hand: ['Handhelds & sides', 'extra everything'] };
+  const ICON = { solo: '🍗', ala: '🔥', group: '🧺', hand: '🍟' };
+  const menuEl = $('[data-menu]');
+  const render = f => {
+    let html = '', last = '';
+    for (const [c, n, pr, d, img, emo] of MENU) {
+      if (f !== 'all' && f !== c) continue;
+      if (c !== last && f === 'all') { html += `<div class="cat"><h3>${CATS[c][0]}</h3><span>${CATS[c][1]}</span></div>`; last = c; }
+      html += `<article class="item"><span class="thumb">${img ? `<img src="img/${img}.jpg" alt="" loading="lazy">` : `<span aria-hidden="true">${emo || ICON[c]}</span>`}</span><div><h3>${n}</h3>${d ? `<p>${d}</p>` : ''}</div><span class="pr">${money(pr)}</span></article>`;
+    }
+    menuEl.innerHTML = html;
+  };
+  render('all');
+  $$('[data-tab]').forEach(b => b.addEventListener('click', () => { $$('[data-tab]').forEach(x => x.setAttribute('aria-selected', x === b)); render(b.dataset.tab); }));
+
+  // barkada calculator: roughly 1.5 inasal pieces + 2 BBQ skewers per person, rounded to the ala carte bundles
+  const range = $('#people'), out = $('#peopleOut'), rec = $('[data-rec]'), sk = $('[data-skewers]');
+  const plan = n => {
+    const pieces = Math.ceil(n * 1.5), skewers = n * 2;
+    // cheapest mix of a big and a small bundle that covers the need
+    const best = (need, big, bigP, small, smallP) => {
+      let pick = [0, Math.ceil(need / small)], cost = pick[1] * smallP;
+      for (let b = 1; b <= Math.ceil(need / big); b++) {
+        const s = Math.ceil(Math.max(0, need - b * big) / small), c = b * bigP + s * smallP;
+        if (c < cost - .001) { cost = c; pick = [b, s]; }
+      }
+      return pick;
+    };
+    const [ten, two] = best(pieces, 10, 89, 2, 19.78);
+    const [tenB, sixB] = best(skewers, 10, 34.99, 6, 22.08);
+    const rolls = Math.ceil(n / 4), rice = n;
+    const lines = [];
+    if (ten) lines.push([`${ten} × 10 Chicken Inasal`, ten * 89]);
+    if (two) lines.push([`${two} × 2 Chicken Inasal`, two * 19.78]);
+    if (tenB) lines.push([`${tenB} × 10 Pork BBQ`, tenB * 34.99]);
+    if (sixB) lines.push([`${sixB} × 6 Pork BBQ`, sixB * 22.08]);
+    lines.push([`${rolls} × Spring Rolls`, rolls * 9.99], [`${rice} × Plain White Rice`, rice * 2.5]);
+    return { lines, total: lines.reduce((a, l) => a + l[1], 0), skewers };
+  };
+  const upd = () => {
+    const n = +range.value; out.textContent = n;
+    const { lines, total, skewers } = plan(n);
+    rec.innerHTML = lines.map(([l, v]) => `<div class="line"><span>${l}</span><span>${money(v)}</span></div>`).join('') +
+      `<div class="line total"><span>Estimated total</span><span>${money(total)}</span></div><small>About ${money(total / n)} per person before tax. Prices from the online menu; a suggestion, not a quote.</small>`;
+    sk.innerHTML = '<i></i>'.repeat(Math.min(skewers, 40));
+  };
+  range.addEventListener('input', upd); upd();
+
+  // rising embers
+  const cv = $('#embers');
+  if (cv && !calm) {
+    const ctx = cv.getContext('2d'); let W, H, parts = [], run = true;
+    const size = () => { const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio || 1, 2); W = r.width; H = r.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); };
+    const spawn = () => ({ x: Math.random() * W, y: H + 10, vy: .4 + Math.random() * 1.2, vx: (Math.random() - .5) * .4, r: .8 + Math.random() * 2.2, life: 0, max: 200 + Math.random() * 260, hue: 18 + Math.random() * 22 });
+    size(); addEventListener('resize', size);
+    const tick = () => {
+      if (!run) return;
+      ctx.clearRect(0, 0, W, H);
+      if (parts.length < Math.min(90, W / 12)) parts.push(spawn());
+      ctx.globalCompositeOperation = 'lighter';
+      parts = parts.filter(q => q.life < q.max);
+      for (const q of parts) {
+        q.life++; q.y -= q.vy; q.x += q.vx + Math.sin((q.life + q.x) / 30) * .3;
+        const a = Math.sin(Math.PI * q.life / q.max);
+        ctx.fillStyle = `hsla(${q.hue},100%,60%,${a * .85})`; ctx.shadowColor = `hsla(${q.hue},100%,55%,${a})`; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill();
+      }
+      requestAnimationFrame(tick);
+    };
+    new IntersectionObserver(([e]) => { const was = run; run = e.isIntersecting; if (run && !was) tick(); }).observe(cv);
+    tick();
+  }
+
+  $$('[data-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
+  $$('.reveal:not(.in)').forEach(el => io.observe(el));
+})();
+</script>
+</body>
+</html>
