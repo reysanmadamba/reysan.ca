@@ -518,3 +518,9 @@ a{color:inherit}
 /* footer wordmark: always fits its container (text is ~6.6em wide) */
 .foot .wrap{container-type:inline-size}
 .foot .giant{font-size:calc((min(100vw, 1240px) - 44px) / 7.1); font-size:calc(100cqw / 7.1); overflow:visible}
+
+/* two-part price: build once + monthly */
+.price{flex-wrap:wrap}
+.price .monthly{flex-basis:100%; display:flex; align-items:baseline; gap:8px; margin-top:-2px}
+.price .monthly b{font-family:var(--display); font-size:1.9rem; line-height:1.1; color:var(--lime); -webkit-text-fill-color:var(--lime); background:none}
+:root[data-theme="light"] .price .monthly b{color:#4A7F00; -webkit-text-fill-color:#4A7F00}
