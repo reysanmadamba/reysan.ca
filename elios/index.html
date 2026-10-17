@@ -95,9 +95,9 @@ a{color:inherit}
 .polaroid img{width:100%; height:100%; object-fit:cover}
 .polaroid figcaption{position:absolute; left:0; right:0; bottom:8px; text-align:center; font-family:var(--hand); font-size:1.35rem; color:#3A3326; line-height:1}
 .polaroid:hover{transform:rotate(0deg) scale(1.04)!important; z-index:5}
-.board .p1{width:62%; height:62%; left:0; top:6%; transform:rotate(-5deg)}
-.board .p2{width:46%; height:56%; right:0; top:0; transform:rotate(6deg)}
-.board .p3{width:42%; height:50%; right:12%; bottom:0; transform:rotate(-3deg)}
+.board .p1{width:58%; height:58%; left:0; top:4%; transform:rotate(-5deg); z-index:2}
+.board .p2{width:46%; height:52%; right:0; top:0; transform:rotate(6deg)}
+.board .p3{width:42%; height:46%; right:5%; bottom:0; transform:rotate(-3deg)}
 .tape{position:absolute; width:96px; height:28px; background:rgba(237,227,204,.78); top:-12px; left:50%; translate:-50% 0; rotate:-4deg; box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .seal{position:absolute; left:4%; bottom:4%; width:108px; height:108px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #9A2E2A, var(--seal) 60%, #5A1414); display:grid; place-items:center; box-shadow:0 6px 16px rgba(0,0,0,.35); rotate:-12deg; z-index:4}
 .seal img{width:46px; opacity:.85; filter:drop-shadow(0 1px 0 rgba(0,0,0,.4))}
@@ -122,7 +122,7 @@ a{color:inherit}
 .tab:hover{border-color:var(--ink)}
 .tab[aria-selected="true"]{background:var(--felt); border-color:var(--felt); color:var(--felt-ink)}
 .menu-grid{display:grid; grid-template-columns:1fr 1fr; gap:6px 56px; position:relative}
-.cat-title{grid-column:1/-1; display:flex; align-items:baseline; gap:14px; margin-top:22px; margin-bottom:6px}
+.cat-title{grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:baseline; gap:0 14px; margin-top:22px; margin-bottom:6px}
 .cat-title:first-child{margin-top:0}
 .cat-title h3{font-size:1.65rem}
 .cat-title span{font-family:var(--hand); font-size:1.35rem; color:var(--pen)}
@@ -242,12 +242,14 @@ a{color:inherit}
   .gallery{grid-template-columns:repeat(2,1fr); grid-auto-rows:180px}
   .signature .note{right:8px}
 }
-@media (max-width: 760px){
+@media (max-width: 900px){
   .nav{display:none; position:absolute; top:100%; left:0; right:0; flex-direction:column; align-items:stretch; gap:0; background:var(--felt-deep); padding:8px 20px 20px; border-bottom:1px solid rgba(255,255,255,.08)}
   .nav.open{display:flex}
   .nav a{padding:12px 0; border-bottom:1px solid rgba(255,255,255,.08)}
   .nav .btn{margin-top:12px; justify-content:center; border:0}
   .menu-toggle{display:block}
+}
+@media (max-width: 760px){
   .menu-grid{grid-template-columns:1fr}
   .feast{grid-template-columns:1fr; text-align:left}
   .feast img{display:none}
@@ -256,6 +258,9 @@ a{color:inherit}
   .seal{width:84px; height:84px}
   .seal img{width:36px}
   .family .duo{height:300px}
+  .polaroid{padding:8px 8px 34px}
+  .polaroid figcaption{font-size:1.1rem}
+  .seal{left:2%; bottom:2%}
 }
 @media (max-width: 420px){
   .gallery{grid-template-columns:1fr 1fr; grid-auto-rows:140px}
