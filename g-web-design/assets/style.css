@@ -514,3 +514,7 @@ a{color:inherit}
 :root[data-theme="light"] .ds-result b{color:#4A7F00}
 .ds-dot{width:9px; height:9px; border-radius:50%; background:var(--lime); box-shadow:0 0 0 4px color-mix(in srgb, var(--lime) 25%, transparent)}
 .ds-result.checking b{color:var(--cyan)} .ds-result.checking .ds-dot{background:var(--cyan); box-shadow:0 0 0 4px color-mix(in srgb, var(--cyan) 25%, transparent)}
+
+/* footer wordmark: always fits its container (text is ~6.6em wide) */
+.foot .wrap{container-type:inline-size}
+.foot .giant{font-size:calc((min(100vw, 1240px) - 44px) / 7.1); font-size:calc(100cqw / 7.1); overflow:visible}
