@@ -336,9 +336,14 @@
         }
 
         sendingChat = true;
+        var idlePlaceholder = chatInput.placeholder;
         addMsg(message, 'user');
         conversation.push({ role: 'user', content: message });
         chatInput.value = '';
+        // The box is locked while Dakota answers, so text typed meanwhile can't pile up
+        // in it (or be glued onto the next message) when Enter is ignored.
+        chatInput.disabled = true;
+        chatInput.placeholder = 'Dakota is replying…';
         chatSend.disabled = true;
         showTyping();
 
@@ -382,7 +387,12 @@
         } finally {
             hideTyping(); // belt-and-suspenders — every path above should already have cleared it
             sendingChat = false;
-            if (!chatEnded) chatSend.disabled = false;
+            if (!chatEnded) {
+                chatInput.disabled = false;
+                chatInput.placeholder = idlePlaceholder;
+                chatSend.disabled = false;
+                chatInput.focus();
+            }
         }
     }
 
