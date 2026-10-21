@@ -318,8 +318,12 @@
         });
     }
 
+    // True while a reply is on its way. The Send button is disabled then, but pressing
+    // Enter still called sendChat, so a second message could go out before the first
+    // was answered and the replies came back mixed up.
+    var sendingChat = false;
     async function sendChat() {
-        if (chatEnded) return;
+        if (chatEnded || sendingChat) return;
         var message = chatInput.value.trim();
         if (!message) return;
 
@@ -331,6 +335,7 @@
             return;
         }
 
+        sendingChat = true;
         addMsg(message, 'user');
         conversation.push({ role: 'user', content: message });
         chatInput.value = '';
@@ -376,6 +381,7 @@
             addMsg('Sorry, something went wrong.', 'assistant');
         } finally {
             hideTyping(); // belt-and-suspenders — every path above should already have cleared it
+            sendingChat = false;
             if (!chatEnded) chatSend.disabled = false;
         }
     }
