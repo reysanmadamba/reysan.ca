@@ -143,7 +143,7 @@
 <div id="app" style="display:none;">
 
 <h1>Chat Log Viewer</h1>
-<div class="subtitle">Read-only view of reysan.ca + daytona demo chat conversations — filter, sort, and export</div>
+<div class="subtitle">Read-only view of reysan.ca + daytona demo chat conversations, plus the demo's show home bookings and callback requests — filter, sort, and export</div>
 
 <div class="panel">
   <div class="controls">
@@ -158,6 +158,14 @@
     <div class="field">
       <label>Visitor email contains</label>
       <input type="text" id="emailFilter" placeholder="e.g. gmail.com">
+    </div>
+    <div class="field">
+      <label>Show</label>
+      <select id="kindFilter">
+        <option value="">Everything</option>
+        <option value="chats">Chats only</option>
+        <option value="requests">Bookings and callbacks only</option>
+      </select>
     </div>
     <div class="field">
       <label>Flagged only</label>
@@ -197,10 +205,49 @@
 const SUPABASE_URL = 'https://kuxukkknasjlfpahcled.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_-fVzlBpMI2AoynUYjOyvwA_0FkivXts';
 
-// This page only ever shows reysan.ca portfolio chats and the Daytona demo.
+// This page only ever shows reysan.ca portfolio chats and the Daytona demo
+// (its chats, plus the demo's show home bookings and callback requests).
 // Any future client demo gets its own isolated report page with its own
 // password, so this filter is what keeps that data from ever showing up here.
-const VISIBLE_SOURCES = 'reysan,daytona';
+const VISIBLE_SOURCES = 'reysan,daytona,daytona-booking,daytona-callback';
+
+// Bookings and callbacks are saved as chat_logs rows whose question field holds the details:
+//   BOOKING|community|2026-10-24T14:00|show home name, address|notes
+//   CALLBACK|topic|preferred time
+// These turn that into columns. Any other row (a normal chat) has none.
+function fmtVisitDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+  if (!m) return '';
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtVisitTime(iso) {
+  const m = /T(\d{2}):(\d{2})/.exec(iso || '');
+  if (!m) return '';
+  const h = Number(m[1]);
+  return (h % 12 === 0 ? 12 : h % 12) + ':' + m[2] + ' ' + (h < 12 ? 'am' : 'pm');
+}
+function requestInfo(row) {
+  const q = String(row.question || '');
+  if (row.source === 'daytona-booking' && q.startsWith('BOOKING|')) {
+    const [, community, start, showhome, notes] = q.split('|');
+    return { type: 'Booking', visit_date: (start || '').slice(0, 10), visit_time: start || '', request: [showhome, community && '(' + community + ')', notes && '· ' + notes].filter(Boolean).join(' ') };
+  }
+  if (row.source === 'daytona-callback' && q.startsWith('CALLBACK|')) {
+    const [, topic, when] = q.split('|');
+    return { type: 'Callback', visit_date: '', visit_time: '', request: [topic, when && '(preferred: ' + when + ')'].filter(Boolean).join(' ') };
+  }
+  return null;
+}
+// Adds the derived fields to a row so they can be shown, sorted and exported like the rest.
+function decorate(row) {
+  const info = requestInfo(row);
+  row.type = info ? info.type : (row.source === 'daytona-booking' || row.source === 'daytona-callback' ? 'Request' : 'Chat');
+  row.visit_date = info ? info.visit_date : '';
+  row.visit_time = info ? info.visit_time : '';
+  row.request = info ? info.request : '';
+  return row;
+}
+const isRequest = (row) => row.source === 'daytona-booking' || row.source === 'daytona-callback';
 
 let allRows = [];
 let filteredRows = [];
@@ -222,7 +269,7 @@ async function fetchLogs() {
       const errText = await res.text();
       throw new Error(`${res.status}: ${errText}`);
     }
-    allRows = await res.json();
+    allRows = (await res.json()).map(decorate);
     statusEl.textContent = `Loaded ${allRows.length} rows.`;
     applyFilters();
   } catch (err) {
@@ -237,8 +284,11 @@ function applyFilters() {
   const to = document.getElementById('toDate').value;
   const emailQ = document.getElementById('emailFilter').value.trim().toLowerCase();
   const flaggedQ = document.getElementById('flaggedFilter').value;
+  const kindQ = document.getElementById('kindFilter').value;
 
   filteredRows = allRows.filter(row => {
+    if (kindQ === 'chats' && isRequest(row)) return false;
+    if (kindQ === 'requests' && !isRequest(row)) return false;
     const created = row.created_at ? row.created_at.slice(0, 10) : '';
     if (from && created < from) return false;
     if (to && created > to) return false;
@@ -265,7 +315,7 @@ function sortRows() {
 
 function render() {
   const wrap = document.getElementById('tableWrap');
-  document.getElementById('count').textContent = `${filteredRows.length} conversation${filteredRows.length === 1 ? '' : 's'}`;
+  document.getElementById('count').textContent = `${filteredRows.length} row${filteredRows.length === 1 ? '' : 's'}`;
 
   if (filteredRows.length === 0) {
     wrap.innerHTML = '<div class="empty">No results match your filters.</div>';
@@ -277,6 +327,9 @@ function render() {
     { key: 'source', label: 'Source' },
     { key: 'visitor_name', label: 'Name' },
     { key: 'visitor_email', label: 'Email' },
+    { key: 'visit_date', label: 'Visit date' },
+    { key: 'visit_time', label: 'Visit time' },
+    { key: 'request', label: 'Request' },
     { key: 'question', label: 'Question' },
     { key: 'answer', label: 'Answer' },
     { key: 'flagged', label: 'Flagged' }
@@ -297,6 +350,9 @@ function render() {
     html += `<td>${escapeHtml(row.source || 'reysan')}</td>`;
     html += `<td>${escapeHtml(row.visitor_name || '')}</td>`;
     html += `<td>${escapeHtml(row.visitor_email || '')}</td>`;
+    html += `<td>${escapeHtml(fmtVisitDate(row.visit_date))}</td>`;
+    html += `<td>${escapeHtml(fmtVisitTime(row.visit_time))}</td>`;
+    html += `<td class="wrap">${escapeHtml(row.request || '')}</td>`;
     html += `<td class="wrap">${escapeHtml(row.question || '')}</td>`;
     html += `<td class="wrap">${escapeHtml(row.answer || '')}</td>`;
     html += `<td class="${row.flagged ? 'flag-true' : 'flag-false'}">${row.flagged ? 'Yes' : 'No'}</td>`;
@@ -332,7 +388,7 @@ function exportCSV() {
     alert('No rows to export with current filters.');
     return;
   }
-  const cols = ['created_at', 'source', 'visitor_name', 'visitor_email', 'question', 'answer', 'flagged', 'session_id'];
+  const cols = ['created_at', 'source', 'visitor_name', 'visitor_email', 'visit_date', 'visit_time', 'request', 'question', 'answer', 'flagged', 'session_id'];
   const header = cols.join(',');
   const rows = filteredRows.map(row =>
     cols.map(c => {
@@ -357,7 +413,7 @@ function renderReport() {
   const reportWrap = document.getElementById('reportWrap');
   const reportCount = document.getElementById('reportCount');
 
-  reportCount.textContent = `${filteredRows.length} conversation${filteredRows.length === 1 ? '' : 's'} — generated ${new Date().toLocaleString()}`;
+  reportCount.textContent = `${filteredRows.length} row${filteredRows.length === 1 ? '' : 's'} — generated ${new Date().toLocaleString()}`;
 
   if (filteredRows.length === 0) {
     reportWrap.innerHTML = '<div class="empty">No results match your current filters.</div>';
@@ -365,12 +421,16 @@ function renderReport() {
     let html = '';
     filteredRows.forEach(row => {
       const dt = row.created_at ? new Date(row.created_at).toLocaleString() : '';
+      const visitLine = row.type === 'Booking'
+        ? `<div style="margin-bottom:6px;"><strong>Visit:</strong> ${escapeHtml(fmtVisitDate(row.visit_date))} at ${escapeHtml(fmtVisitTime(row.visit_time))} · ${escapeHtml(row.request)}</div>`
+        : (row.type === 'Callback' ? `<div style="margin-bottom:6px;"><strong>Callback:</strong> ${escapeHtml(row.request || '(no topic given)')}</div>` : '');
       html += `
         <div style="border:1px solid var(--border); border-radius:8px; padding:14px 16px; margin-bottom:12px; background:#0d1117;">
           <div style="display:flex; justify-content:space-between; color:var(--muted); font-size:12px; margin-bottom:8px;">
             <span>${escapeHtml(row.visitor_name || 'Unknown')} — ${escapeHtml(row.visitor_email || 'no email')} · ${escapeHtml(row.source || 'reysan')}</span>
             <span>${dt}${row.flagged ? ' · <span class="flag-true">FLAGGED</span>' : ''}</span>
           </div>
+          ${visitLine}
           <div style="margin-bottom:6px;"><strong>Q:</strong> ${escapeHtml(row.question || '')}</div>
           <div><strong>A:</strong> ${escapeHtml(row.answer || '(no answer stored)')}</div>
         </div>`;
@@ -391,6 +451,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('toDate').value = '';
   document.getElementById('emailFilter').value = '';
   document.getElementById('flaggedFilter').value = '';
+  document.getElementById('kindFilter').value = '';
   applyFilters();
   document.getElementById('reportPanel').style.display = 'none';
 });
