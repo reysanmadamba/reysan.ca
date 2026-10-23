@@ -318,6 +318,31 @@
         });
     }
 
+    // A private way to try Claude on one chat: open the page as ?llm=claude&k=<the key set in Vercel>.
+    // The two values go along with each message; the server only honours them when the key matches,
+    // so everyone else is unaffected. A small badge shows which model answered.
+    var LLM_TEST = (function () {
+        try {
+            var p = new URLSearchParams(location.search);
+            return p.get('llm') === 'claude' ? { llm: 'claude', llmKey: p.get('k') || '' } : null;
+        } catch (e) { return null; }
+    })();
+    function setProviderBadge(provider) {
+        if (!LLM_TEST) return;
+        var header = document.querySelector('#chatPanel .chat-panel-header');
+        if (!header) return;
+        var badge = document.getElementById('llmBadge');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.id = 'llmBadge';
+            badge.style.cssText = 'margin-left:8px;font-size:11px;padding:2px 7px;border-radius:9px;background:#F2661F;color:#fff;white-space:nowrap';
+            var title = header.querySelector('span');
+            if (title && title.nextSibling) header.insertBefore(badge, title.nextSibling); else header.appendChild(badge);
+        }
+        badge.textContent = provider === 'claude' ? 'Claude test' : 'Claude test: ' + (provider || 'asking') ;
+    }
+    setProviderBadge('claude');
+
     // True while a reply is on its way. The Send button is disabled then, but pressing
     // Enter still called sendChat, so a second message could go out before the first
     // was answered and the replies came back mixed up.
@@ -351,7 +376,7 @@
             var res = await fetch(CHAT_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionToken: sessionToken, messages: conversation })
+                body: JSON.stringify(LLM_TEST ? { sessionToken: sessionToken, messages: conversation, llm: LLM_TEST.llm, llmKey: LLM_TEST.llmKey } : { sessionToken: sessionToken, messages: conversation })
             });
 
             hideTyping();
@@ -366,6 +391,8 @@
             }
 
             var data = await res.json();
+            window.dtProvider = data.provider || null; // which model answered (for testing)
+            setProviderBadge(data.provider);
             var reply = data.reply || "Sorry, I couldn't get an answer just now.";
             addAssistantReply(reply, looksLikeListingPick(message));
             conversation.push({ role: 'assistant', content: reply });
