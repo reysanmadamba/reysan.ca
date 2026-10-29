@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Receipt Parser · Trial</title>
+  <meta name="description" content="Capture receipts from your email in two clicks. Claude reads them and flags anything that needs a second look.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>
+      </span>
+      <div>
+        <h1>Receipt Parser</h1>
+        <p class="sub">Trial version</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <label class="code" id="codeField">
+        <span>Access code</span>
+        <input id="codeInput" type="password" autocomplete="off" placeholder="Leave empty for demo mode">
+      </label>
+      <button class="btn ghost" id="helpBtn" aria-label="How it works">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"/></svg>
+        Help
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-text">
+        <h2>Click an email. Click capture. Done.</h2>
+        <p>Share your Outlook window once, then a small box floats on top of it. Every capture is read in a few seconds and you'll know right away if it needs fixing.</p>
+        <div class="hero-actions">
+          <button class="btn primary" id="startBtn">
+            <svg class="i" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1.5-2h6l1.5 2H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
+            <span id="startLabel">Start capturing</span>
+          </button>
+          <button class="btn" id="pipBtn" hidden>Open floating box</button>
+          <button class="btn" id="cropBtn">
+            <svg class="i" viewBox="0 0 24 24"><path d="M7 3v14h14M3 7h14v14"/></svg>
+            <span id="cropLabel">Set crop area</span>
+          </button>
+        </div>
+        <p class="mode" id="modeNote"></p>
+      </div>
+
+      <!-- The capture box. Lives here until it pops out on top of Outlook. -->
+      <aside class="box" id="box" aria-live="polite"></aside>
+    </section>
+
+    <section class="drop" id="dropZone" tabindex="0">
+      <svg class="i lg" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <div>
+        <strong>Drop PDFs or receipt images here</strong>
+        <span>You can also drag attachments straight out of Outlook, or <button class="link" id="pickBtn">choose files</button>.</span>
+      </div>
+      <input type="file" id="fileInput" accept="application/pdf,image/*" multiple hidden>
+    </section>
+
+    <section class="list-card">
+      <div class="list-head">
+        <h3>Your receipts</h3>
+        <span class="muted" id="countLabel">Nothing yet</span>
+      </div>
+      <div id="list" class="list"></div>
+      <div class="empty" id="empty">
+        <p><strong>Your captures show up here.</strong></p>
+        <p class="muted">Each one gets a green check when it's good, or a note telling you what to fix.</p>
+      </div>
+      <div class="list-foot">
+        <div id="totals" class="totals"></div>
+        <button class="btn primary" id="exportBtn">
+          <svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M5 20h14"/></svg>
+          Download Excel
+        </button>
+      </div>
+    </section>
+
+    <p class="fine">Trial build. Captures are sent to Claude to be read and aren't stored on a server; your list lives in this tab only. Close the tab and it's gone.</p>
+  </main>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+  <div id="modalRoot"></div>
+  <div id="tourRoot"></div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
