@@ -155,11 +155,17 @@ function assess(it) {
     if (x.date) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(x.date)) issues.push({ level: 'yellow', text: `Date "${x.date}" isn't a full date` });
       else if (x.date > today()) issues.push({ level: 'yellow', text: 'Date is in the future' });
+      else if (!it.reviewed && x.date_ambiguous && swappedDate(x.date) && swappedDate(x.date) <= today()) {
+        issues.push({ level: 'yellow', text: `Date could be ${shortDate(x.date)} or ${shortDate(swappedDate(x.date))}. Check the receipt.` });
+      }
     }
     if (!it.reviewed && x.confidence < LOW_CONFIDENCE) issues.push({ level: 'yellow', text: 'Low confidence. Double-check the numbers.' });
     if (it.dupOf) {
       const other = S.items.find((o) => o.id === it.dupOf);
-      if (other) issues.push({ level: 'yellow', text: `Looks like the same receipt as ${label(other)}`, dup: true });
+      if (other) {
+        const dateNote = other.extraction.date === x.date ? '' : `, but the dates were read differently (${shortDate(x.date)} and ${shortDate(other.extraction.date)}). Check which is right`;
+        issues.push({ level: 'yellow', text: `Looks like the same receipt as ${label(other)}${dateNote}`, dup: true });
+      }
     }
   }
   return finish(it, issues, action);
@@ -172,6 +178,13 @@ function finish(it, issues, action) {
   return it;
 }
 
+// 2026-03-05 and 2026-05-03 can be the same printed date (03/05/2026) read two ways.
+function swappedDate(d) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || '');
+  if (!m || +m[3] > 12 || m[2] === m[3]) return null;
+  return `${m[1]}-${m[3]}-${m[2]}`;
+}
+
 function findDuplicates() {
   const seen = [];
   for (const it of [...S.items].sort((a, b) => a.id - b.id)) {
@@ -182,7 +195,8 @@ function findDuplicates() {
     const t = cents(x.total);
     if (!v || !x.date || t === null) continue;
     const rn = String(x.receipt_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const hit = seen.find((s) => s.v === v && s.date === x.date && s.t === t && (!s.rn || !rn || s.rn === rn));
+    const swapped = swappedDate(x.date);
+    const hit = seen.find((s) => s.v === v && (s.date === x.date || s.date === swapped) && s.t === t && (!s.rn || !rn || s.rn === rn));
     if (hit) it.dupOf = hit.id;
     seen.push({ id: it.id, v, date: x.date, t, rn });
   }
