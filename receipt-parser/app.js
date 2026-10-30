@@ -33,6 +33,7 @@ const S = {
   grabbing: false,   // between the two frames of the moving-email check
   moving: null,      // { mode } when the last capture was refused because the email was moving
   adding: null,      // { id, field, value, error } or { id, more: true } for the + buttons in the box
+  tab: 'all',        // which list shows: 'all', 'review' or 'refund'
 };
 const API = store.get('rp.api', DEFAULT_API);
 
@@ -196,6 +197,7 @@ function assess(it) {
       }
     }
   }
+  if (it.followUp && !issues.length) issues.push({ level: 'yellow', text: 'Flagged by you' });
   return finish(it, issues, action);
 }
 
@@ -723,7 +725,14 @@ function onAction(act, id, field) {
     case 'add-save': return saveAdded();
     case 'not-dup':
       if (!it) return;
-      it.dupOk = true; reassessAll(); return render();
+      it.dupOk = true; it.followUp = null; reassessAll(); return render();
+    case 'follow':
+      if (!it) return;
+      it.followUp = field || null;
+      assess(it);
+      render();
+      return field && toast(`Saved to the ${FOLLOW_UP[field]} tab.`);
+    case 'tab': S.tab = field; return render();
     case 'start': return startCapture();
     case 'stop': return stopCapture();
     case 'crop': return openCrop();
@@ -824,10 +833,15 @@ function detailLine(it) {
   return bits.join(' · ');
 }
 
+const FOLLOW_UP = { review: 'Needs review', refund: 'For refund' };
+
 function dupButton(it) {
   const issue = it.issues?.find((i) => i.dup);
+  const follow = (value, text) => `<button class="btn sm" data-act="follow" data-id="${it.id}" data-field="${value}">${text}</button>`;
+  const clear = issue ? `<button class="btn sm" data-act="not-dup" data-id="${it.id}">${issue.charge ? "Yes, it's a real purchase" : 'Not a duplicate'}</button>` : '';
+  if (it.followUp) return `${clear}${it.followUp === 'review' ? follow('refund', FOLLOW_UP.refund) : follow('review', FOLLOW_UP.review)}${issue ? '' : follow('', 'Remove flag')}`;
   if (!issue) return '';
-  return `<button class="btn sm" data-act="not-dup" data-id="${it.id}">${issue.charge ? "Yes, it's a real purchase" : 'Not a duplicate'}</button>`;
+  return `${clear}${follow('review', FOLLOW_UP.review)}${follow('refund', FOLLOW_UP.refund)}`;
 }
 
 function fixButtons(it) {
@@ -844,8 +858,11 @@ function fixButtons(it) {
 
 function renderList() {
   const list = $('#list');
-  const items = [...S.items].sort((a, b) => b.id - a.id);
-  list.innerHTML = items.map((it) => {
+  const items = [...S.items].filter((i) => S.tab === 'all' || i.followUp === S.tab).sort((a, b) => b.id - a.id);
+  const inTab = (t) => S.items.filter((i) => i.followUp === t).length;
+  $('#listTabs').innerHTML = [['all', 'All', S.items.length], ['review', FOLLOW_UP.review, inTab('review')], ['refund', FOLLOW_UP.refund, inTab('refund')]]
+    .map(([t, name, n]) => `<button class="list-tab ${S.tab === t ? 'on' : ''}" role="tab" aria-selected="${S.tab === t}" data-act="tab" data-field="${t}">${name}<span>${n}</span></button>`).join('');
+  list.innerHTML = S.tab !== 'all' && !items.length ? `<p class="tab-empty">Nothing here yet.</p>` : items.map((it) => {
     const x = it.extraction;
     const first = it.images[0];
     const thumb = !first
@@ -862,7 +879,7 @@ function renderList() {
     return `<div class="row ${it.level || ''}" data-act="open" data-id="${it.id}">
       <div class="st">${statusIcon(it)}</div>
       ${thumb}
-      <div style="min-width:0"><div class="v">${name}</div><div class="d">${detailLine(it)}</div>${target || why}${fixButtons(it)}</div>
+      <div style="min-width:0"><div class="v">${name}${it.followUp ? `<span class="pill ${it.followUp}">${FOLLOW_UP[it.followUp]}</span>` : ''}</div><div class="d">${detailLine(it)}</div>${target || why}${fixButtons(it)}</div>
       <div class="amt">${total}</div>
       <button class="trash" data-act="trash" data-id="${it.id}" aria-label="Delete receipt">${ICON.trash}</button>
     </div>`;
@@ -874,10 +891,10 @@ function renderList() {
     ? [`${S.items.length} total`, counts.green && `${counts.green} ready`, counts.yellow && `${counts.yellow} to check`, counts.red && `${counts.red} to fix`, counts.reading && `${counts.reading} reading`].filter(Boolean).join(' · ')
     : 'Nothing yet';
 
-  // "Your total": green rows only, one line per currency, never mixed.
+  // "Your total": green rows only, one line per currency, never mixed. A follow-up tab totals its own rows.
   const byCur = new Map();
   for (const it of S.items) {
-    if (it.level !== 'green') continue;
+    if (S.tab === 'all' ? it.level !== 'green' : it.followUp !== S.tab || !it.extraction) continue;
     const cur = (it.extraction.currency || 'CAD').toUpperCase();
     const t = byCur.get(cur) || { n: 0, total: 0, tax: 0 };
     t.n++;
@@ -886,8 +903,8 @@ function renderList() {
     byCur.set(cur, t);
   }
   $('#totals').innerHTML = byCur.size
-    ? `<span>Your total (ready receipts only)</span>${[...byCur].map(([cur, t]) => `<div><b>${money(t.total, cur)}</b> <span>${cur} · ${t.n} receipt${t.n > 1 ? 's' : ''} · tax ${money(t.tax, cur)}</span></div>`).join('')}`
-    : '<span>Your total shows here once receipts are ready.</span>';
+    ? `<span>${S.tab === 'refund' ? 'Total to get back' : S.tab === 'review' ? 'Total under review' : 'Your total (ready receipts only)'}</span>${[...byCur].map(([cur, t]) => `<div><b>${money(t.total, cur)}</b> <span>${cur} · ${t.n} receipt${t.n > 1 ? 's' : ''} · tax ${money(t.tax, cur)}</span></div>`).join('')}`
+    : `<span>${S.tab === 'all' ? 'Your total shows here once receipts are ready.' : ''}</span>`;
 }
 
 function renderBox() {
@@ -923,7 +940,7 @@ function renderBox() {
       <div class="d">${esc(label(latest))}${issue.detail ? `. ${esc(issue.detail)}` : ''}</div><div class="acts">${acts}</div>${addControls(latest)}</div>`;
   } else if (latest.level === 'yellow') {
     const first = latest.issues[0];
-    html += `<div class="card yellow"><div class="t">${ICON.warn}${first.charge ? 'Paid twice?' : 'Saved, check it later'}</div>
+    html += `<div class="card yellow"><div class="t">${ICON.warn}${latest.followUp ? `Saved to ${FOLLOW_UP[latest.followUp]}` : first.charge ? 'Paid twice?' : 'Saved, check it later'}</div>
       <div class="d">${esc(label(latest))}. ${esc(first.text)}</div>
       ${dupButton(latest) ? `<div class="acts">${dupButton(latest)}<button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button></div>` : ''}${addControls(latest)}</div>`;
   } else {
@@ -1000,6 +1017,7 @@ function openDetail(it, focusField) {
         <div class="fields">
           <div class="issues">${issues}</div>
           ${inputs}
+          <label class="wide">Follow-up<select name="followUp"><option value="">None</option>${Object.entries(FOLLOW_UP).map(([v, n]) => `<option value="${v}" ${it.followUp === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
           <label class="wide">Category<select name="category"><option value="">Unknown</option>${CATEGORIES.map((c) => `<option value="${c}" ${x.category === c ? 'selected' : ''}>${titleCase(c)}</option>`).join('')}</select></label>
           ${meta ? `<div class="meta">${meta}</div>` : ''}
         </div>
@@ -1042,6 +1060,7 @@ function openDetail(it, focusField) {
       if ((next.category ?? null) !== (x.category ?? null)) edited.push('category');
       if (edited.length) it.manual = [...new Set([...(it.manual || []), ...edited])];
       next.is_receipt = true;
+      it.followUp = form.get('followUp') || null;
       it.extraction = next;
       it.reviewed = true;
       it.status = 'done';
@@ -1131,6 +1150,7 @@ async function exportExcel() {
     const x = it.extraction;
     return {
       Status: it.level === 'green' ? 'Ready' : it.level === 'yellow' ? 'Check' : 'Fix',
+      'Follow-up': FOLLOW_UP[it.followUp] || '',
       Vendor: x.vendor, Date: x.date, Time: x.time, 'Receipt #': x.receipt_number,
       Subtotal: x.subtotal, GST: x.gst, PST: x.pst, HST: x.hst, 'Other tax': x.other_tax, Tip: x.tip, Total: x.total,
       Currency: x.currency, Category: titleCase(x.category), Payment: titleCase(x.payment_method),
@@ -1176,7 +1196,7 @@ const TOUR = [
   { title: 'A box floats on top of Outlook', html: '<p>After you share, a small box pops out and stays on top of every window, even when you click into Outlook. Drag it to a corner.</p>' + ILL.box + "<p>Don't see it? Click <b>Open floating box</b>. In Firefox or Safari it stays on this page; put this window next to Outlook.</p>" },
   { title: 'Your rhythm', html: '<ol><li>Click a receipt email in Outlook</li><li>Click <b>Capture</b> in the box</li><li>Wait a few seconds for the green check, then click the next email</li></ol><p>Capture locks while a receipt is being read, so nothing gets saved twice. Don\'t scroll while you click it: if the email is moving, you\'ll get a warning and nothing is saved.</p><p>Prefer to stay on one email until it\'s green: if something\'s wrong, you\'re already in the right place to fix it.</p>' },
   { title: 'When it goes red', html: ILL.red + '<p><b>Red means fix it now</b>, while the email is still open. If the total is cut off, scroll down and click <b>Capture the rest</b>: both parts are read as one receipt.</p><p><b>Yellow</b> means it\'s saved; check it later in your list.</p>' },
-  { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The box shows a <b>+</b> button, like <b>+ Subtotal</b>. Click it and type what you see in the email. The receipt\'s source then says <b>Scan + manual input</b>.</p><p><b>Paid twice?</b> If two receipts from the same vendor have the same amount within 30 minutes, you\'ll get a warning. If it was a mistake, ask the vendor for a refund. If not, click <b>Yes, it\'s a real purchase</b>.</p>' },
+  { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The box shows a <b>+</b> button, like <b>+ Subtotal</b>. Click it and type what you see in the email. The receipt\'s source then says <b>Scan + manual input</b>.</p><p><b>Paid twice?</b> If two receipts from the same vendor have the same amount within 30 minutes, you\'ll get a warning. Click <b>Yes, it\'s a real purchase</b> to clear it, or send it to the <b>Needs review</b> or <b>For refund</b> tab above your list so you can come back to it.</p>' },
   { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
   { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here, or drag an attachment straight out of Outlook. Whole emails (.msg files) can\'t be read yet, so drag the attachment or capture it instead.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: good to go. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing.</p><p>Click any row to see the image next to the fields and fix anything. The trash icon deletes it, and you get a few seconds to Undo.</p>' },
