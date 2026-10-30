@@ -34,6 +34,7 @@ const S = {
   moving: null,      // { mode } when the last capture was refused because the email was moving
   adding: null,      // { id, field, value, error } or { id, more: true } for the + buttons in the box
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
+  user: store.get('rp.user', { name: '', email: '' }), // typed in for now; comes from the login once accounts exist
 };
 const API = store.get('rp.api', DEFAULT_API);
 
@@ -1139,6 +1140,7 @@ function loadScript(src) {
 }
 
 const EXPORT_COLUMNS = [
+  ['Employee name', () => S.user.name], ['Employee email', () => S.user.email],
   ['Status', (it) => (it.level === 'green' ? 'Ready' : it.level === 'yellow' ? 'Check' : 'Fix')],
   ['Follow-up', (it) => FOLLOW_UP[it.followUp] || ''],
   ['Vendor', (it, x) => x.vendor], ['Date', (it, x) => x.date], ['Time', (it, x) => x.time], ['Receipt #', (it, x) => x.receipt_number],
@@ -1168,12 +1170,16 @@ function openExport() {
       <label class="export-name">File name
         <span><input name="filename" type="text" value="receipts-${today()}" autocomplete="off" spellcheck="false"><b>.xlsx</b></span>
       </label>
+      <div class="export-user">
+        <label>Your name<input name="username" type="text" value="${esc(S.user.name)}" autocomplete="name"></label>
+        <label>Your email<input name="useremail" type="email" value="${esc(S.user.email)}" autocomplete="email"></label>
+      </div>
       <fieldset>
         <legend>Columns to include</legend>
         <div class="export-all"><button type="button" class="link" data-x="all">Tick all</button><button type="button" class="link" data-x="none">Untick all</button></div>
         <div class="export-cols">${EXPORT_COLUMNS.map(([h]) => `<label><input type="checkbox" name="col" value="${esc(h)}" ${off.has(h) ? '' : 'checked'}>${esc(h)}</label>`).join('')}</div>
       </fieldset>
-      <p class="add-err" id="exportErr" hidden>Tick at least one column.</p>
+      <p class="add-err" id="exportErr" hidden></p>
     </form>
     <div class="modal-foot"><span class="muted export-count">${rows.length} receipt${rows.length > 1 ? 's' : ''}</span>
       <div style="display:flex;gap:8px"><button class="btn" data-close>Cancel</button><button class="btn primary" data-x="download">Download</button></div></div>
@@ -1182,9 +1188,16 @@ function openExport() {
   const boxes = () => [...root.querySelectorAll('input[name="col"]')];
   const name = root.querySelector('input[name="filename"]');
   name.select();
+  const showErr = (msg) => { $('#exportErr').textContent = msg; $('#exportErr').hidden = false; };
   const go = () => {
     const picked = boxes().filter((b) => b.checked).map((b) => b.value);
-    if (!picked.length) { $('#exportErr').hidden = false; return; }
+    if (!picked.length) return showErr('Tick at least one column.');
+    const userName = root.querySelector('input[name="username"]').value.trim();
+    const userEmail = root.querySelector('input[name="useremail"]').value.trim();
+    if (picked.includes('Employee name') && !userName) return showErr('Type your name, or untick Employee name.');
+    if (picked.includes('Employee email') && !/^\S+@\S+\.\S+$/.test(userEmail)) return showErr('Type your email, or untick Employee email.');
+    S.user = { name: userName, email: userEmail };
+    store.set('rp.user', S.user);
     store.set('rp.exportOff', boxes().filter((b) => !b.checked).map((b) => b.value));
     const file = cleanFileName(name.value);
     closeModal();
@@ -1196,11 +1209,11 @@ function openExport() {
     const x = e.target.closest('[data-x]')?.dataset.x;
     if (x === 'all' || x === 'none') {
       boxes().forEach((b) => { b.checked = x === 'all'; });
-      $('#exportErr').hidden = x === 'none';
+      $('#exportErr').hidden = true;
     }
     if (x === 'download') go();
   });
-  $('#exportForm').addEventListener('change', () => { if (boxes().some((b) => b.checked)) $('#exportErr').hidden = true; });
+  $('#exportForm').addEventListener('input', () => { $('#exportErr').hidden = true; });
 }
 
 async function downloadExcel(file, headers) {
@@ -1252,7 +1265,7 @@ const TOUR = [
   { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
   { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here, or drag an attachment straight out of Outlook. Whole emails (.msg files) can\'t be read yet, so drag the attachment or capture it instead.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: good to go. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing.</p><p>Click any row to see the image next to the fields and fix anything. The trash icon deletes it, and you get a few seconds to Undo.</p>' },
-  { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, and untick any columns you don\'t need. It remembers your ticks for next time.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
+  { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need. It remembers your ticks for next time.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
 ];
 
 let tourStep = -1;
