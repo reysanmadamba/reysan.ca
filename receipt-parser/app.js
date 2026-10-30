@@ -1138,33 +1138,85 @@ function loadScript(src) {
   });
 }
 
-async function exportExcel() {
-  const rows = [...S.items].filter((i) => i.extraction).sort((a, b) => a.id - b.id);
+const EXPORT_COLUMNS = [
+  ['Status', (it) => (it.level === 'green' ? 'Ready' : it.level === 'yellow' ? 'Check' : 'Fix')],
+  ['Follow-up', (it) => FOLLOW_UP[it.followUp] || ''],
+  ['Vendor', (it, x) => x.vendor], ['Date', (it, x) => x.date], ['Time', (it, x) => x.time], ['Receipt #', (it, x) => x.receipt_number],
+  ['Subtotal', (it, x) => x.subtotal], ['GST', (it, x) => x.gst], ['PST', (it, x) => x.pst], ['HST', (it, x) => x.hst],
+  ['Other tax', (it, x) => x.other_tax], ['Tip', (it, x) => x.tip], ['Total', (it, x) => x.total], ['Currency', (it, x) => x.currency],
+  ['Category', (it, x) => titleCase(x.category)], ['Payment', (it, x) => titleCase(x.payment_method)],
+  ['Notes', (it) => (it.issues || []).map((i) => i.text).join('; ')],
+  ['Source', (it) => sourceLabel(it)],
+  ['Manual fields', (it) => (it.manual || []).map(fieldName).join(', ')],
+  ['File', (it) => (it.source === 'capture' ? '' : it.name)],
+];
+
+const exportRows = () => [...S.items].filter((i) => i.extraction).sort((a, b) => a.id - b.id);
+
+function cleanFileName(name) {
+  const clean = String(name).replace(/\.xlsx$/i, '').replace(/[\\/:*?"<>|]/g, '-').trim();
+  return clean || `receipts-${today()}`;
+}
+
+function openExport() {
+  const rows = exportRows();
   if (!rows.length) return toast('Nothing to export yet.');
+  const off = new Set(store.get('rp.exportOff', []));
+  $('#modalRoot').innerHTML = `<div class="overlay" data-close><div class="modal export" role="dialog" aria-modal="true" aria-label="Download Excel">
+    <div class="modal-head"><h3>Download Excel</h3><button class="trash" data-close aria-label="Close">${ICON.x}</button></div>
+    <form class="export-body" id="exportForm">
+      <label class="export-name">File name
+        <span><input name="filename" type="text" value="receipts-${today()}" autocomplete="off" spellcheck="false"><b>.xlsx</b></span>
+      </label>
+      <fieldset>
+        <legend>Columns to include</legend>
+        <div class="export-all"><button type="button" class="link" data-x="all">Tick all</button><button type="button" class="link" data-x="none">Untick all</button></div>
+        <div class="export-cols">${EXPORT_COLUMNS.map(([h]) => `<label><input type="checkbox" name="col" value="${esc(h)}" ${off.has(h) ? '' : 'checked'}>${esc(h)}</label>`).join('')}</div>
+      </fieldset>
+      <p class="add-err" id="exportErr" hidden>Tick at least one column.</p>
+    </form>
+    <div class="modal-foot"><span class="muted export-count">${rows.length} receipt${rows.length > 1 ? 's' : ''}</span>
+      <div style="display:flex;gap:8px"><button class="btn" data-close>Cancel</button><button class="btn primary" data-x="download">Download</button></div></div>
+  </div></div>`;
+  const root = $('#modalRoot');
+  const boxes = () => [...root.querySelectorAll('input[name="col"]')];
+  const name = root.querySelector('input[name="filename"]');
+  name.select();
+  const go = () => {
+    const picked = boxes().filter((b) => b.checked).map((b) => b.value);
+    if (!picked.length) { $('#exportErr').hidden = false; return; }
+    store.set('rp.exportOff', boxes().filter((b) => !b.checked).map((b) => b.value));
+    const file = cleanFileName(name.value);
+    closeModal();
+    downloadExcel(file, picked);
+  };
+  $('#exportForm').addEventListener('submit', (e) => { e.preventDefault(); go(); });
+  root.querySelector('.overlay').addEventListener('click', (e) => {
+    if (e.target.matches('[data-close]') || e.target.closest('button[data-close]')) return closeModal();
+    const x = e.target.closest('[data-x]')?.dataset.x;
+    if (x === 'all' || x === 'none') {
+      boxes().forEach((b) => { b.checked = x === 'all'; });
+      $('#exportErr').hidden = x === 'none';
+    }
+    if (x === 'download') go();
+  });
+  $('#exportForm').addEventListener('change', () => { if (boxes().some((b) => b.checked)) $('#exportErr').hidden = true; });
+}
+
+async function downloadExcel(file, headers) {
   try {
     if (!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
   } catch {
     return toast("Couldn't load the Excel tool. Check your connection.");
   }
-  const data = rows.map((it) => {
-    const x = it.extraction;
-    return {
-      Status: it.level === 'green' ? 'Ready' : it.level === 'yellow' ? 'Check' : 'Fix',
-      'Follow-up': FOLLOW_UP[it.followUp] || '',
-      Vendor: x.vendor, Date: x.date, Time: x.time, 'Receipt #': x.receipt_number,
-      Subtotal: x.subtotal, GST: x.gst, PST: x.pst, HST: x.hst, 'Other tax': x.other_tax, Tip: x.tip, Total: x.total,
-      Currency: x.currency, Category: titleCase(x.category), Payment: titleCase(x.payment_method),
-      Notes: (it.issues || []).map((i) => i.text).join('; '),
-      Source: sourceLabel(it),
-      'Manual fields': (it.manual || []).map(fieldName).join(', '),
-      File: it.source === 'capture' ? '' : it.name,
-    };
-  });
-  const ws = window.XLSX.utils.json_to_sheet(data);
-  ws['!cols'] = Object.keys(data[0]).map((k) => ({ wch: Math.max(k.length + 2, k === 'Vendor' || k === 'Notes' ? 28 : 12) }));
+  const columns = EXPORT_COLUMNS.filter(([h]) => headers.includes(h));
+  const data = exportRows().map((it) => Object.fromEntries(columns.map(([h, get]) => [h, get(it, it.extraction)])));
+  const ws = window.XLSX.utils.json_to_sheet(data, { header: columns.map(([h]) => h) });
+  ws['!cols'] = columns.map(([k]) => ({ wch: Math.max(k.length + 2, k === 'Vendor' || k === 'Notes' ? 28 : 12) }));
   const wb = window.XLSX.utils.book_new();
   window.XLSX.utils.book_append_sheet(wb, ws, 'Receipts');
-  window.XLSX.writeFile(wb, `receipts-${today()}.xlsx`);
+  window.XLSX.writeFile(wb, `${file}.xlsx`);
+  toast(`Downloaded ${file}.xlsx`);
 }
 
 // ---------- help tour ----------
@@ -1200,7 +1252,7 @@ const TOUR = [
   { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
   { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here, or drag an attachment straight out of Outlook. Whole emails (.msg files) can\'t be read yet, so drag the attachment or capture it instead.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: good to go. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing.</p><p>Click any row to see the image next to the fields and fix anything. The trash icon deletes it, and you get a few seconds to Undo.</p>' },
-  { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, one line per currency. When you\'re done, click <b>Download Excel</b>.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
+  { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, and untick any columns you don\'t need. It remembers your ticks for next time.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
 ];
 
 let tourStep = -1;
@@ -1287,7 +1339,7 @@ $('#startBtn').addEventListener('click', () => (S.stream ? stopCapture() : start
 $('#pipBtn').addEventListener('click', () => openPip());
 $('#cropBtn').addEventListener('click', () => openCrop());
 $('#helpBtn').addEventListener('click', () => openTour(0));
-$('#exportBtn').addEventListener('click', exportExcel);
+$('#exportBtn').addEventListener('click', openExport);
 $('#pickBtn').addEventListener('click', () => $('#fileInput').click());
 $('#fileInput').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
 
