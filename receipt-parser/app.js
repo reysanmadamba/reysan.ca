@@ -34,6 +34,8 @@ const S = {
   moving: null,      // { mode } when the last capture was refused because the email was moving
   adding: null,      // { id, field, value, error } or { id, more: true } for the + buttons in the box
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
+  attach: [],        // checklists: { id, fromId, sig, title, sender, subject, dropped, files: [{ name, itemId, skipped }] }
+  nextGroup: 1,
   user: store.get('rp.user', { name: '', email: '' }), // typed in for now; comes from the login once accounts exist
 };
 const API = store.get('rp.api', DEFAULT_API);
@@ -324,6 +326,13 @@ async function openPip() {
     pip.document.title = 'Receipt capture';
     pip.document.body.classList.add('pip');
     pip.document.body.append(boxEl);
+    pip.document.addEventListener('dragover', (e) => { e.preventDefault(); boxEl.classList.add('over'); });
+    pip.document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) boxEl.classList.remove('over'); });
+    pip.document.addEventListener('drop', (e) => {
+      e.preventDefault();
+      boxEl.classList.remove('over');
+      takeDrop(e);
+    });
     pip.addEventListener('pagehide', () => {
       heroEl.append(boxEl);
       S.pip = null;
@@ -436,6 +445,8 @@ async function capture(mode, force) {
     render();
     return;
   }
+  // Finished checklists make way; one with PDFs still waiting stays until they're dropped or skipped.
+  S.attach = S.attach.filter((g) => g.files.some(isWaiting));
 
   // Recapture: the next capture goes to the row being fixed.
   const target = mode ? { id: mode.id, mode: mode.mode } : S.target;
@@ -507,6 +518,72 @@ function replaceCutOff(it) {
   });
 }
 
+// ---------- attachments the capture can't see into ----------
+
+const UNREADABLE_ATTACHMENT = /\.(docx?|xlsx?|pptx?|csv|zip|ics|msg|eml)$/i;
+
+const attachKey = (n) => String(n).toLowerCase().replace(/\.[a-z0-9]{2,5}$/, '').replace(/[^a-z0-9]+/g, ' ').trim();
+
+// Long names show cut short in Outlook, like "Invoice_20...1042.pdf".
+function attachmentMatches(visible, dropped) {
+  if (attachKey(visible) === attachKey(dropped)) return true;
+  const parts = String(visible).split(/\.{3}|…/);
+  if (parts.length < 2) return false;
+  const keys = parts.map(attachKey).filter(Boolean);
+  return keys.length > 0 && keys.every((k) => attachKey(dropped).includes(k));
+}
+
+const isWaiting = (f) => !f.skipped && !S.items.some((i) => i.id === f.itemId);
+
+function trackAttachments(it) {
+  const x = it.extraction;
+  if (it.source !== 'capture') return;
+  const names = (x.attachments || []).filter((n) => n && !UNREADABLE_ATTACHMENT.test(n));
+  if (!names.length) return;
+  const sig = names.map(attachKey).sort().join('|');
+  if (!S.attach.some((g) => g.sig === sig)) {
+    S.attach.push({
+      id: S.nextGroup++, fromId: it.id, sig, title: x.email_subject || x.email_sender || 'This email',
+      sender: x.email_sender, subject: x.email_subject, files: names.map((name) => ({ name })),
+    });
+  }
+  // "See attached" isn't a receipt, but it isn't a mistake either: the checklist takes over from the red row.
+  if (!x.is_receipt) S.items.splice(S.items.indexOf(it), 1);
+}
+
+function linkFile(group, file, it) {
+  file.name = it.name;
+  file.itemId = it.id;
+  it.fromEmail = { sender: group.sender, subject: group.subject };
+}
+
+// Ticks dropped files off by name. Claude can misread small names, so if the number
+// left over equals the number still waiting, those are taken to be the same files.
+function linkUploads(items) {
+  const left = items.filter((it) => {
+    for (const g of [...S.attach].reverse()) {
+      const f = g.files.find((c) => isWaiting(c) && attachmentMatches(c.name, it.name));
+      if (f) { linkFile(g, f, it); return false; }
+    }
+    return true;
+  });
+  if (!left.length) return;
+  const open = [...S.attach].reverse().find((g) => g.files.some(isWaiting));
+  if (open) {
+    const waiting = open.files.filter(isWaiting);
+    if (waiting.length === left.length) left.forEach((it, i) => linkFile(open, waiting[i], it));
+    else left.forEach((it) => open.files.push({ name: it.name, itemId: it.id }));
+  } else if (S.pip) {
+    // The page may be hidden behind Outlook, so the box has to show how drops went.
+    let g = S.attach.find((c) => c.dropped);
+    if (!g) {
+      g = { id: S.nextGroup++, fromId: -1, sig: '', title: 'Dropped files', dropped: true, files: [] };
+      S.attach.push(g);
+    }
+    left.forEach((it) => g.files.push({ name: it.name, itemId: it.id }));
+  }
+}
+
 // ---------- reading (Claude via backend, or demo data) ----------
 
 async function read(it) {
@@ -517,12 +594,17 @@ async function read(it) {
   try {
     const result = S.code ? await callApi(it) : await mockExtract(it);
     it.extraction = result.extraction;
+    if (it.fromEmail) {
+      it.extraction.email_sender ||= it.fromEmail.sender;
+      it.extraction.email_subject ||= it.fromEmail.subject;
+    }
     it.manual = null;
     it.ms = result.ms;
     it.model = result.model;
     it.status = 'done';
     it.snapshot = null;
     replaceCutOff(it);
+    trackAttachments(it);
   } catch (e) {
     if (it.snapshot?.extraction) {
       // A failed recapture never loses the first one.
@@ -564,12 +646,12 @@ async function callApi(it) {
 }
 
 // Demo mode: sample results so anyone can try the flow without an access code.
-// The scenarios walk through green, cut-off, duplicate, math, not-a-receipt, double charge and a missing subtotal.
+// The scenarios walk through green, cut-off, duplicate, math, not-a-receipt, double charge, a missing subtotal and an email with attachments.
 const BLANK = {
   is_receipt: true, vendor: null, date: null, receipt_number: null, subtotal: null, gst: null, pst: null, hst: null,
   other_tax: null, tip: null, total: null, currency: 'CAD', payment_method: 'credit_card', category: null,
   image_quality: 'clear', cut_off: false, cut_off_detail: null, receipt_count: 1, email_sender: null,
-  email_subject: null, email_date: null, confidence: 0.95, notes: null, time: null, date_ambiguous: false,
+  email_subject: null, email_date: null, confidence: 0.95, notes: null, time: null, date_ambiguous: false, attachments: [],
 };
 const DEMO = [
   () => ({ vendor: 'Staples #2045', date: daysAgo(3), receipt_number: '2045-118832', subtotal: 43.04, gst: 2.15, pst: 3.01, total: 48.2, category: 'office_supplies', email_sender: 'Staples Canada', email_subject: 'Your Staples receipt' }),
@@ -582,6 +664,7 @@ const DEMO = [
   () => ({ vendor: 'Amazon.ca', date: daysAgo(1), time: '14:12', receipt_number: '702-118', subtotal: 59.99, gst: 3.0, total: 62.99, category: 'office_supplies' }),
   () => ({ vendor: 'Amazon.ca', date: daysAgo(1), time: '14:31', receipt_number: '702-204', subtotal: 59.99, gst: 3.0, total: 62.99, category: 'office_supplies' }),
   () => ({ vendor: 'Petro-Canada', date: daysAgo(4), gst: 2.86, total: 60.06, category: 'fuel', payment_method: 'debit' }),
+  () => ({ is_receipt: false, category: null, currency: null, email_sender: 'Northside Supply', email_subject: 'Your October invoices', attachments: ['invoice-1042.pdf', 'invoice-1043.pdf'] }),
   () => ({ vendor: 'Shell', date: daysAgo(1), subtotal: 61.9, gst: 3.1, total: 65.0, category: 'fuel', payment_method: 'credit_card' }),
 ];
 
@@ -613,6 +696,11 @@ async function imageFileToCapture(file) {
   return img;
 }
 
+function takeDrop(e) {
+  if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files);
+  else toast('That drop had no files in it. Try dragging the attachment instead of the email.');
+}
+
 async function handleFiles(fileList) {
   const files = [...fileList];
   if (!files.length) return;
@@ -634,12 +722,15 @@ async function handleFiles(fileList) {
     }
   }
 
+  const added = [];
   for (const f of files) {
     const part = await fileToPart(f);
     const it = addItem('upload', part.error ? [] : [part], f.name);
+    added.push(it);
     if (part.error) setLocal(it, part.error, part.detail, 'file');
     else read(it);
   }
+  linkUploads(added);
   render();
 }
 
@@ -734,6 +825,14 @@ function onAction(act, id, field) {
       render();
       return field && toast(`Saved to the ${FOLLOW_UP[field]} tab.`);
     case 'tab': S.tab = field; return render();
+    case 'att-done':
+      S.attach = S.attach.filter((g) => g.id !== id);
+      return render();
+    case 'att-skip': {
+      const file = S.attach.find((g) => g.id === id)?.files[Number(field)];
+      if (file) file.skipped = true;
+      return render();
+    }
     case 'start': return startCapture();
     case 'stop': return stopCapture();
     case 'crop': return openCrop();
@@ -908,12 +1007,35 @@ function renderList() {
     : `<span>${S.tab === 'all' ? 'Your total shows here once receipts are ready.' : ''}</span>`;
 }
 
+function attachCard(group) {
+  const shown = group.files.map((f, i) => [f, i]).filter(([f]) => !group.dropped || !isWaiting(f));
+  const waiting = shown.filter(([f]) => isWaiting(f)).length;
+  const rows = shown.map(([f, i]) => {
+    const it = S.items.find((o) => o.id === f.itemId);
+    let icon = '<span class="att-dot"></span>';
+    let result = f.skipped ? 'Skipped' : '';
+    if (it?.status === 'reading') { icon = '<span class="spin"></span>'; result = 'Reading…'; }
+    else if (it) {
+      icon = it.level === 'green' ? ICON.check : it.level === 'yellow' ? ICON.warn : ICON.error;
+      const total = cents(it.extraction?.total);
+      result = it.level === 'red' ? 'Fix in your list' : total !== null ? money(total, it.extraction.currency) : 'Check in your list';
+    }
+    return `<li class="att ${it?.level || ''}">${icon}<span class="att-name" title="${esc(f.name)}">${esc(f.name)}</span>
+      ${waiting && isWaiting(f) ? `<button class="link" data-act="att-skip" data-id="${group.id}" data-field="${i}">Skip</button>` : `<span class="att-res">${esc(result)}</span>`}</li>`;
+  }).join('');
+  const title = group.dropped ? 'Dropped files' : waiting ? `${waiting} attachment${waiting > 1 ? 's' : ''} not read yet` : 'All attachments done';
+  const hint = group.dropped ? '' : `<div class="d">${esc(group.title)}.${waiting ? ' Select them in Outlook and drag them onto this box.' : ''}</div>`;
+  return `<div class="card attach"><div class="t">${ICON.file}${esc(title)}</div>${hint}<ul class="att-list">${rows}</ul>
+    <div class="acts"><button class="btn sm" data-act="att-done" data-id="${group.id}">${waiting ? 'Skip the rest' : 'Done'}</button></div></div>`;
+}
+
 function renderBox() {
   const latest = [...S.items].filter((i) => i.source === 'capture').sort((a, b) => b.id - a.id)[0];
   const capturing = !!S.stream;
   const n = S.items.filter((i) => i.source === 'capture').length;
   let html = `<div class="box-head"><span><span class="dot ${capturing ? 'live' : ''}"></span>${capturing ? 'Capturing' : 'Not capturing'}</span><span>${n} captured</span></div>`;
 
+  const group = [...S.attach].reverse().find((g) => g.files.some(isWaiting)) || S.attach[S.attach.length - 1];
   if (S.moving) {
     html += `<div class="card red"><div class="t">${ICON.error}The email was moving</div>
       <div class="d">Don't scroll while capturing. Nothing was saved. Stop scrolling, then click Capture.</div>
@@ -923,6 +1045,8 @@ function renderBox() {
     html += `<div class="card target"><div class="t">${S.target.mode === 'append' ? 'Capturing the rest of' : 'Recapturing'} ${esc(t ? label(t) : 'receipt')}</div>
       <div class="d">Open that email${S.target.mode === 'append' ? ', scroll to the total' : ''}, then click Capture.</div>
       <div class="acts"><button class="btn sm" data-act="cancel-target">Cancel</button></div></div>`;
+  } else if (group && (!latest || latest.id < group.fromId)) {
+    // The email was only "see attached", so its checklist below is all there is to say.
   } else if (!latest) {
     html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${capturing ? 'Click a receipt email in Outlook, then click Capture.' : 'Click Start capturing and pick your Outlook window.'}</div></div>`;
   } else if (latest.status === 'reading') {
@@ -948,6 +1072,12 @@ function renderBox() {
     const x = latest.extraction;
     html += `<div class="card green"><div class="t">${ICON.check}${esc(x.vendor || 'Receipt')} · ${money(cents(x.total), x.currency)}</div>
       <div class="d">${[shortDate(x.date), titleCase(x.category)].filter(Boolean).map(esc).join(' · ')}. Go to the next email.</div>${addControls(latest)}</div>`;
+  }
+
+  if (group && !S.target) {
+    html += attachCard(group);
+    const more = S.attach.filter((g) => g !== group && g.files.some(isWaiting)).length;
+    if (more) html += `<div class="pending"><span>${more} more email${more > 1 ? 's have' : ' has'} attachments waiting</span></div>`;
   }
 
   const earlierRed = S.items.filter((i) => i.level === 'red' && i !== latest && i.source === 'capture');
@@ -1263,7 +1393,7 @@ const TOUR = [
   { title: 'When it goes red', html: ILL.red + '<p><b>Red means fix it now</b>, while the email is still open. If the total is cut off, scroll down and click <b>Capture the rest</b>: both parts are read as one receipt.</p><p><b>Yellow</b> means it\'s saved; check it later in your list.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The box shows a <b>+</b> button, like <b>+ Subtotal</b>. Click it and type what you see in the email. The receipt\'s source then says <b>Scan + manual input</b>.</p><p><b>Paid twice?</b> If two receipts from the same vendor have the same amount within 30 minutes, you\'ll get a warning. Click <b>Yes, it\'s a real purchase</b> to clear it, or send it to the <b>Needs review</b> or <b>For refund</b> tab above your list so you can come back to it.</p>' },
   { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
-  { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here, or drag an attachment straight out of Outlook. Whole emails (.msg files) can\'t be read yet, so drag the attachment or capture it instead.</p>' },
+  { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here, or drag an attachment straight out of Outlook. Whole emails (.msg files) can\'t be read yet, so drag the attachment instead.</p><p><b>An email with several PDFs?</b> Capture it with the attachment names showing. The box lists them, then ticks each one off as you drag it onto the box, so none get forgotten.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: good to go. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing.</p><p>Click any row to see the image next to the fields and fix anything. The trash icon deletes it, and you get a few seconds to Undo.</p>' },
   { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need. It remembers your ticks for next time.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
 ];
@@ -1374,8 +1504,7 @@ window.addEventListener('drop', (e) => {
   e.preventDefault();
   dragDepth = 0;
   drop.classList.remove('over');
-  if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files);
-  else toast('That drop had no files in it. Try dragging the attachment instead of the email.');
+  takeDrop(e);
 });
 drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#fileInput').click(); } });
 
