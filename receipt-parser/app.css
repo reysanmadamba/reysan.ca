@@ -138,6 +138,15 @@ body.pip .box { border: 0; padding: 4px; }
 .card .acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .card.target { background: var(--accent-bg); }
 .card.target .t { color: var(--accent); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.chip { height: 28px; padding: 0 10px; border-radius: 8px; border: 1px dashed currentColor; background: none; color: var(--accent); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.chip.plain { color: var(--muted); border-color: var(--border); }
+.add-field { margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--text); }
+.add-field label { display: grid; gap: 4px; }
+.add-field input { height: 34px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 14px; font-weight: 400; width: 100%; box-sizing: border-box; }
+.add-err { color: var(--red); font-weight: 500; margin-top: 4px; }
+.src { color: var(--muted); }
 .pending { font-size: 12px; color: var(--red); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .box-foot { display: flex; justify-content: space-between; font-size: 12px; }
 @keyframes shake { 0%, 100% { transform: none; } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
@@ -179,7 +188,7 @@ body.pip .box { border: 0; padding: 4px; }
 .row .why { font-size: 13px; margin-top: 2px; }
 .row.yellow .why { color: var(--amber); }
 .row.red .why { color: var(--red); }
-.row .rbtns { display: flex; gap: 6px; margin-top: 6px; }
+.row .rbtns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
 .row .amt { font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .row .amt small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
 .trash { width: 36px; height: 36px; border-radius: 8px; border: 0; background: transparent; color: var(--muted); cursor: pointer; display: grid; place-items: center; }

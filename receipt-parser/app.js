@@ -6,6 +6,9 @@ const DEFAULT_API = 'https://reysan-ca-backend-77ah.vercel.app/api/receipt-extra
 const MAX_LONG_EDGE = 2000;           // px; plenty for receipt text, keeps uploads small
 const MAX_PDF_BYTES = 3 * 1024 * 1024; // Vercel's 4.5 MB body limit, after base64
 const LOW_CONFIDENCE = 0.7;
+const DOUBLE_CHARGE_MINUTES = 30;
+const MOTION_GAP_MS = 250;
+const MOVING_SHARE = 0.01;
 
 const store = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -27,6 +30,9 @@ const S = {
   code: store.get('rp.code', ''),
   demoTick: 0,
   undo: null,
+  grabbing: false,   // between the two frames of the moving-email check
+  moving: null,      // { mode } when the last capture was refused because the email was moving
+  adding: null,      // { id, field, value, error } or { id, more: true } for the + buttons in the box
 };
 const API = store.get('rp.api', DEFAULT_API);
 
@@ -80,12 +86,27 @@ function normVendor(v) {
 }
 
 function toast(msg, undoFn) {
-  const t = $('#toast');
-  t.innerHTML = `<span>${esc(msg)}</span>${undoFn ? '<button type="button">Undo</button>' : ''}`;
-  t.hidden = false;
-  if (undoFn) t.querySelector('button').onclick = () => { undoFn(); t.hidden = true; };
+  const hosts = [$('#toast')];
+  // The floating window has its own copy, since the page may be hidden behind Outlook.
+  if (S.pip) {
+    let el = S.pip.document.getElementById('pipToast');
+    if (!el) {
+      el = S.pip.document.createElement('div');
+      el.id = 'pipToast';
+      el.className = 'toast';
+      el.setAttribute('role', 'status');
+      S.pip.document.body.append(el);
+    }
+    hosts.push(el);
+  }
+  const hide = () => hosts.forEach((t) => { t.hidden = true; });
+  hosts.forEach((t) => {
+    t.innerHTML = `<span>${esc(msg)}</span>${undoFn ? '<button type="button">Undo</button>' : ''}`;
+    t.hidden = false;
+    if (undoFn) t.querySelector('button').onclick = () => { undoFn(); hide(); };
+  });
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => { t.hidden = true; }, undoFn ? 7000 : 4500);
+  toast.timer = setTimeout(hide, undoFn ? 7000 : 4500);
 }
 
 const label = (it) => {
@@ -113,7 +134,7 @@ function assess(it) {
       issues.push({ level: 'red', text: "This doesn't look like a receipt", detail: x.notes || 'Open the receipt email and capture it again.' });
     } else if (x.image_quality !== 'clear') {
       issues.push({ level: 'red', text: `Too ${x.image_quality === 'dark' ? 'dark' : 'blurry'} to read reliably`, detail: 'Zoom the email in a bit, then recapture.' });
-    } else if (x.cut_off || x.total === null) {
+    } else if ((x.cut_off && !it.manual?.includes('total')) || x.total === null) {
       action = it.source === 'capture' ? 'append' : 'file';
       issues.push({
         level: 'red',
@@ -160,7 +181,14 @@ function assess(it) {
       }
     }
     if (!it.reviewed && x.confidence < LOW_CONFIDENCE) issues.push({ level: 'yellow', text: 'Low confidence. Double-check the numbers.' });
-    if (it.dupOf) {
+    if (it.chargeOf) {
+      const other = S.items.find((o) => o.id === it.chargeOf);
+      if (other) {
+        const gap = Math.abs(paidAt(x) - paidAt(other.extraction));
+        const apart = gap === 0 ? 'at the same time' : `${gap} minute${gap === 1 ? '' : 's'} apart`;
+        issues.unshift({ level: 'yellow', text: `Same amount as ${other.extraction.vendor || 'another receipt'} at ${clockTime(other.extraction.time)}, ${apart}. Is this really a second purchase? If not, ask for a refund`, dup: true, charge: true });
+      }
+    } else if (it.dupOf) {
       const other = S.items.find((o) => o.id === it.dupOf);
       if (other) {
         const dateNote = other.extraction.date === x.date ? '' : `, but the dates were read differently (${shortDate(x.date)} and ${shortDate(other.extraction.date)}). Check which is right`;
@@ -185,10 +213,24 @@ function swappedDate(d) {
   return `${m[1]}-${m[3]}-${m[2]}`;
 }
 
+// Minutes since the epoch, so a pair just before and after midnight still compares.
+function paidAt(x) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(x?.date || '') || !/^\d{2}:\d{2}$/.test(x?.time || '')) return null;
+  const [y, m, d] = x.date.split('-').map(Number);
+  const [h, min] = x.time.split(':').map(Number);
+  return Date.UTC(y, m - 1, d, h, min) / 60000;
+}
+
+function clockTime(t) {
+  const [h, m] = String(t || '').split(':').map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
 function findDuplicates() {
   const seen = [];
   for (const it of [...S.items].sort((a, b) => a.id - b.id)) {
     it.dupOf = null;
+    it.chargeOf = null;
     const x = it.extraction;
     if (!x?.is_receipt) continue;
     const v = normVendor(x.vendor);
@@ -196,9 +238,16 @@ function findDuplicates() {
     if (!v || !x.date || t === null) continue;
     const rn = String(x.receipt_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const swapped = swappedDate(x.date);
+    const at = paidAt(x);
+    // Same receipt number means the same receipt; otherwise two payments minutes apart may be a double charge.
+    const charge = at === null ? null : seen.find((s) => s.v === v && s.t === t && s.at !== null
+      && Math.abs(s.at - at) <= DOUBLE_CHARGE_MINUTES && !(s.rn && s.rn === rn) && (s.at !== at || (s.rn && rn)));
     const hit = seen.find((s) => s.v === v && (s.date === x.date || s.date === swapped) && s.t === t && (!s.rn || !rn || s.rn === rn));
-    if (hit) it.dupOf = hit.id;
-    seen.push({ id: it.id, v, date: x.date, t, rn });
+    if (!it.dupOk) {
+      if (charge) it.chargeOf = charge.id;
+      else if (hit) it.dupOf = hit.id;
+    }
+    seen.push({ id: it.id, v, date: x.date, t, rn, at });
   }
 }
 
@@ -342,20 +391,48 @@ function encodeFrame(src, w, h, crop) {
 // Same email captured twice: practically every pixel matches. A false "same" would
 // block a real receipt, so this only fires on near-identical frames; true repeats
 // that slip through are still caught by the vendor/date/total duplicate check.
-function sameImage(a, b) {
-  if (a.grey.length !== b.grey.length) return false;
+function changedShare(a, b) {
+  if (a.grey.length !== b.grey.length) return 1;
   let changed = 0;
   for (let i = 0; i < a.grey.length; i++) if (Math.abs(a.grey[i] - b.grey[i]) > 32) changed++;
-  return changed / a.grey.length < 0.0005;
+  return changed / a.grey.length;
 }
 
-async function capture(mode) {
+const sameImage = (a, b) => changedShare(a, b) < 0.0005;
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const isBusy = () => S.grabbing || S.items.some((i) => i.source === 'capture' && i.status === 'reading');
+
+// We can't see scrolling in another app, so two frames a moment apart stand in for it.
+async function grabStill(force) {
+  const first = await grabBitmap();
+  const img = encodeFrame(first, first.width, first.height, S.crop);
+  first.close?.();
+  if (force) return img;
+  await wait(MOTION_GAP_MS);
+  // A window with nothing changing may not send a new frame at all, which also means it's still.
+  const second = await Promise.race([grabBitmap(), wait(700)]);
+  if (!second) return img;
+  const later = encodeFrame(second, second.width, second.height, S.crop);
+  second.close?.();
+  return changedShare(img.sig, later.sig) > MOVING_SHARE ? null : later;
+}
+
+async function capture(mode, force) {
   if (!S.stream) { await startCapture(); return; }
-  let bitmap;
-  try { bitmap = await grabBitmap(); }
-  catch { toast("Couldn't grab the window. Is it minimized?"); return; }
-  const img = encodeFrame(bitmap, bitmap.width, bitmap.height, S.crop);
-  bitmap.close?.();
+  if (isBusy()) return;
+  S.grabbing = true;
+  S.moving = null;
+  S.adding = null;
+  render();
+  let img;
+  try { img = await grabStill(force); }
+  catch { S.grabbing = false; render(); toast("Couldn't grab the window. Is it minimized?"); return; }
+  S.grabbing = false;
+  if (!img) {
+    S.moving = { mode: mode || null };
+    render();
+    return;
+  }
 
   // Recapture: the next capture goes to the row being fixed.
   const target = mode ? { id: mode.id, mode: mode.mode } : S.target;
@@ -437,6 +514,7 @@ async function read(it) {
   try {
     const result = S.code ? await callApi(it) : await mockExtract(it);
     it.extraction = result.extraction;
+    it.manual = null;
     it.ms = result.ms;
     it.model = result.model;
     it.status = 'done';
@@ -483,12 +561,12 @@ async function callApi(it) {
 }
 
 // Demo mode: sample results so anyone can try the flow without an access code.
-// The scenarios walk through green, cut-off, duplicate, math and not-a-receipt.
+// The scenarios walk through green, cut-off, duplicate, math, not-a-receipt, double charge and a missing subtotal.
 const BLANK = {
   is_receipt: true, vendor: null, date: null, receipt_number: null, subtotal: null, gst: null, pst: null, hst: null,
   other_tax: null, tip: null, total: null, currency: 'CAD', payment_method: 'credit_card', category: null,
   image_quality: 'clear', cut_off: false, cut_off_detail: null, receipt_count: 1, email_sender: null,
-  email_subject: null, email_date: null, confidence: 0.95, notes: null,
+  email_subject: null, email_date: null, confidence: 0.95, notes: null, time: null, date_ambiguous: false,
 };
 const DEMO = [
   () => ({ vendor: 'Staples #2045', date: daysAgo(3), receipt_number: '2045-118832', subtotal: 43.04, gst: 2.15, pst: 3.01, total: 48.2, category: 'office_supplies', email_sender: 'Staples Canada', email_subject: 'Your Staples receipt' }),
@@ -498,6 +576,9 @@ const DEMO = [
   () => ({ vendor: 'Tim Hortons', date: daysAgo(2), subtotal: 12.5, gst: 0.63, total: 13.4, category: 'meals', payment_method: 'debit', confidence: 0.86 }),
   () => ({ is_receipt: false, vendor: 'Best Buy', category: null, currency: null, notes: 'This is a promotional newsletter, not a receipt.', email_sender: 'Best Buy', email_subject: 'Fall deals end Sunday' }),
   () => ({ vendor: 'The Keg Steakhouse', date: daysAgo(9), subtotal: 86.0, gst: 4.3, tip: 15.48, total: 105.78, category: 'meals' }),
+  () => ({ vendor: 'Amazon.ca', date: daysAgo(1), time: '14:12', receipt_number: '702-118', subtotal: 59.99, gst: 3.0, total: 62.99, category: 'office_supplies' }),
+  () => ({ vendor: 'Amazon.ca', date: daysAgo(1), time: '14:31', receipt_number: '702-204', subtotal: 59.99, gst: 3.0, total: 62.99, category: 'office_supplies' }),
+  () => ({ vendor: 'Petro-Canada', date: daysAgo(4), gst: 2.86, total: 60.06, category: 'fuel', payment_method: 'debit' }),
   () => ({ vendor: 'Shell', date: daysAgo(1), subtotal: 61.9, gst: 3.1, total: 65.0, category: 'fuel', payment_method: 'credit_card' }),
 ];
 
@@ -602,10 +683,47 @@ function startFix(it) {
   else toast(`Go to that email in Outlook, then click Capture in the box. It'll go to ${label(it)}.`);
 }
 
-function onAction(act, id) {
+function saveAdded() {
+  const a = S.adding;
+  const it = S.items.find((i) => i.id === a?.id);
+  if (!it?.extraction) { S.adding = null; return render(); }
+  const type = FIELDS.find(([f]) => f === a.field)?.[2];
+  const raw = String(a.value ?? '').trim();
+  let value = raw;
+  let error = '';
+  if (type === 'num') {
+    value = Number(raw.replace(/[$,\s]/g, ''));
+    if (raw === '' || !Number.isFinite(value) || value < 0) error = 'Type an amount, like 43.04';
+  } else if (a.field === 'currency') {
+    value = raw.toUpperCase();
+    if (!/^[A-Z]{3}$/.test(value)) error = 'Use a 3-letter code like CAD or USD';
+  } else if (type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    error = 'Pick the date';
+  } else if (type === 'time' && !/^\d{2}:\d{2}$/.test(raw)) {
+    error = 'Pick the time';
+  } else if (raw === '') {
+    error = 'Type something first';
+  }
+  if (error) { a.error = error; return render(); }
+  it.extraction[a.field] = value;
+  it.manual = [...new Set([...(it.manual || []), a.field])];
+  S.adding = null;
+  reassessAll();
+  render();
+}
+
+function onAction(act, id, field) {
   const it = S.items.find((i) => i.id === id);
   switch (act) {
     case 'capture': return capture();
+    case 'capture-anyway': return capture(S.moving?.mode || undefined, true);
+    case 'add': S.adding = { id, field, value: '' }; return render();
+    case 'add-more': S.adding = { id, more: true }; return render();
+    case 'add-cancel': S.adding = null; return render();
+    case 'add-save': return saveAdded();
+    case 'not-dup':
+      if (!it) return;
+      it.dupOk = true; reassessAll(); return render();
     case 'start': return startCapture();
     case 'stop': return stopCapture();
     case 'crop': return openCrop();
@@ -621,7 +739,7 @@ function onAction(act, id) {
       it.keep = true; assess(it); return render();
     case 'delete':
     case 'trash': return it && removeItem(it.id);
-    case 'open': return it && openDetail(it);
+    case 'open': return it && openDetail(it, field);
     default: return undefined;
   }
 }
@@ -630,12 +748,20 @@ document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
   if (!el || boxEl.contains(el)) return;
   e.stopPropagation();
-  onAction(el.dataset.act, Number(el.dataset.id));
+  onAction(el.dataset.act, Number(el.dataset.id), el.dataset.field);
 });
 // The box may live in the floating window's document, so it gets its own listener.
 boxEl.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
-  if (el) onAction(el.dataset.act, Number(el.dataset.id));
+  if (el) onAction(el.dataset.act, Number(el.dataset.id), el.dataset.field);
+});
+boxEl.addEventListener('input', (e) => {
+  if (S.adding && e.target.matches('[data-add-input]')) { S.adding.value = e.target.value; S.adding.error = ''; }
+});
+boxEl.addEventListener('keydown', (e) => {
+  if (!e.target.matches('[data-add-input]')) return;
+  if (e.key === 'Enter') { e.preventDefault(); saveAdded(); }
+  if (e.key === 'Escape') { S.adding = null; render(); }
 });
 
 // ---------- rendering ----------
@@ -643,6 +769,42 @@ boxEl.addEventListener('click', (e) => {
 function statusIcon(it) {
   if (it.status === 'reading') return '<span class="spin" aria-label="Reading"></span>';
   return it.level === 'green' ? ICON.check : it.level === 'yellow' ? ICON.warn : ICON.error;
+}
+
+const sourceLabel = (it) => `${it.source === 'capture' ? 'Scan' : 'Upload'}${it.manual?.length ? ' + manual input' : ''}`;
+
+const fieldName = (f) => FIELDS.find(([k]) => k === f)?.[1] || titleCase(f);
+
+// Fields a person can still fill in, the ones the checks want first.
+function missingFields(it) {
+  const x = it.extraction;
+  if (!x || (!x.is_receipt && !it.reviewed)) return [];
+  return ['vendor', 'date', 'subtotal', 'total', 'currency'].filter((f) => x[f] === null || x[f] === undefined || x[f] === '');
+}
+
+function otherEmptyFields(it) {
+  const x = it.extraction;
+  if (!x || (!x.is_receipt && !it.reviewed)) return [];
+  const missing = missingFields(it);
+  return FIELDS.map(([f]) => f).filter((f) => !missing.includes(f) && (x[f] === null || x[f] === undefined || x[f] === ''));
+}
+
+// The + buttons in the floating box, so a missing value can be typed while the email is open.
+function addControls(it) {
+  const a = S.adding?.id === it.id ? S.adding : null;
+  if (a?.field) {
+    const type = FIELDS.find(([f]) => f === a.field)?.[2];
+    const inputType = type === 'num' ? 'text' : type;
+    return `<div class="add-field"><label>${esc(fieldName(a.field))}
+        <input data-add-input type="${inputType}" ${type === 'num' ? 'inputmode="decimal" placeholder="0.00"' : ''} value="${esc(a.value || '')}"></label>
+      ${a.error ? `<div class="add-err">${esc(a.error)}</div>` : ''}
+      <div class="acts"><button class="btn sm primary" data-act="add-save">Save</button><button class="btn sm" data-act="add-cancel">Cancel</button></div></div>`;
+  }
+  const chip = (f) => `<button class="chip" data-act="add" data-id="${it.id}" data-field="${f}">+ ${esc(fieldName(f))}</button>`;
+  const missing = missingFields(it).map(chip);
+  const others = otherEmptyFields(it);
+  const rest = a?.more ? others.map(chip) : others.length ? [`<button class="chip plain" data-act="add-more" data-id="${it.id}">+ More</button>`] : [];
+  return missing.length || rest.length ? `<div class="chips">${[...missing, ...rest].join('')}</div>` : '';
 }
 
 function detailLine(it) {
@@ -658,17 +820,26 @@ function detailLine(it) {
       if (cents(x[f])) bits.push(`${n} ${money(cents(x[f]), x.currency)}`);
     }
   }
+  bits.push(`<span class="src">${sourceLabel(it)}</span>`);
   return bits.join(' · ');
 }
 
+function dupButton(it) {
+  const issue = it.issues?.find((i) => i.dup);
+  if (!issue) return '';
+  return `<button class="btn sm" data-act="not-dup" data-id="${it.id}">${issue.charge ? "Yes, it's a real purchase" : 'Not a duplicate'}</button>`;
+}
+
 function fixButtons(it) {
-  if (it.level !== 'red' && !(it.level === 'yellow' && it.source === 'capture' && it.issues.some((i) => !i.dup && /cut off|blurry|dark/i.test(i.text)))) return '';
+  const chips = missingFields(it).map((f) => `<button class="chip" data-act="open" data-id="${it.id}" data-field="${f}">+ ${esc(fieldName(f))}</button>`).join('');
+  const extras = `${dupButton(it)}${chips}`;
+  if (it.level !== 'red' && !(it.level === 'yellow' && it.source === 'capture' && it.issues.some((i) => !i.dup && /cut off|blurry|dark/i.test(i.text)))) return extras ? `<div class="rbtns">${extras}</div>` : '';
   const btns = [];
   if (it.action === 'retry') btns.push(`<button class="btn sm" data-act="retry" data-id="${it.id}">Try again</button>`);
   else if (it.source === 'capture') btns.push(`<button class="btn sm" data-act="fix" data-id="${it.id}">${ICON.camera}${it.action === 'append' ? 'Capture the rest' : 'Recapture'}</button>`);
   else btns.push(`<button class="btn sm" data-act="fix" data-id="${it.id}">${ICON.file}Replace file</button>`);
   if (it.extraction) btns.push(`<button class="btn sm" data-act="open" data-id="${it.id}">Edit</button>`);
-  return `<div class="rbtns">${btns.join('')}</div>`;
+  return `<div class="rbtns">${btns.join('')}${extras}</div>`;
 }
 
 function renderList() {
@@ -725,7 +896,11 @@ function renderBox() {
   const n = S.items.filter((i) => i.source === 'capture').length;
   let html = `<div class="box-head"><span><span class="dot ${capturing ? 'live' : ''}"></span>${capturing ? 'Capturing' : 'Not capturing'}</span><span>${n} captured</span></div>`;
 
-  if (S.target) {
+  if (S.moving) {
+    html += `<div class="card red"><div class="t">${ICON.error}The email was moving</div>
+      <div class="d">Don't scroll while capturing. Nothing was saved. Stop scrolling, then click Capture.</div>
+      <div class="acts"><button class="btn sm" data-act="capture-anyway">Capture anyway</button></div></div>`;
+  } else if (S.target) {
     const t = S.items.find((i) => i.id === S.target.id);
     html += `<div class="card target"><div class="t">${S.target.mode === 'append' ? 'Capturing the rest of' : 'Recapturing'} ${esc(t ? label(t) : 'receipt')}</div>
       <div class="d">Open that email${S.target.mode === 'append' ? ', scroll to the total' : ''}, then click Capture.</div>
@@ -733,7 +908,7 @@ function renderBox() {
   } else if (!latest) {
     html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${capturing ? 'Click a receipt email in Outlook, then click Capture.' : 'Click Start capturing and pick your Outlook window.'}</div></div>`;
   } else if (latest.status === 'reading') {
-    html += `<div class="card"><div class="t"><span class="spin"></span>Reading…</div><div class="d">Stay on this email for a few seconds.</div></div>`;
+    html += `<div class="card"><div class="t"><span class="spin"></span>Reading…</div><div class="d">Stay on this email. Capture comes back when it's done.</div></div>`;
   } else if (latest.level === 'red') {
     const issue = latest.issues[0];
     const acts = latest.local?.action === 'same'
@@ -745,14 +920,16 @@ function renderBox() {
            ${latest.extraction ? `<button class="btn sm" data-act="keep" data-id="${latest.id}">Keep anyway</button>` : ''}
            <button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button>`;
     html += `<div class="card red"><div class="t">${ICON.error}${esc(issue.text)}</div>
-      <div class="d">${esc(label(latest))}${issue.detail ? `. ${esc(issue.detail)}` : ''}</div><div class="acts">${acts}</div></div>`;
+      <div class="d">${esc(label(latest))}${issue.detail ? `. ${esc(issue.detail)}` : ''}</div><div class="acts">${acts}</div>${addControls(latest)}</div>`;
   } else if (latest.level === 'yellow') {
-    html += `<div class="card yellow"><div class="t">${ICON.warn}Saved, check it later</div>
-      <div class="d">${esc(label(latest))}. ${esc(latest.issues[0].text)}</div></div>`;
+    const first = latest.issues[0];
+    html += `<div class="card yellow"><div class="t">${ICON.warn}${first.charge ? 'Paid twice?' : 'Saved, check it later'}</div>
+      <div class="d">${esc(label(latest))}. ${esc(first.text)}</div>
+      ${dupButton(latest) ? `<div class="acts">${dupButton(latest)}<button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button></div>` : ''}${addControls(latest)}</div>`;
   } else {
     const x = latest.extraction;
     html += `<div class="card green"><div class="t">${ICON.check}${esc(x.vendor || 'Receipt')} · ${money(cents(x.total), x.currency)}</div>
-      <div class="d">${[shortDate(x.date), titleCase(x.category)].filter(Boolean).map(esc).join(' · ')}. Go to the next email.</div></div>`;
+      <div class="d">${[shortDate(x.date), titleCase(x.category)].filter(Boolean).map(esc).join(' · ')}. Go to the next email.</div>${addControls(latest)}</div>`;
   }
 
   const earlierRed = S.items.filter((i) => i.level === 'red' && i !== latest && i.source === 'capture');
@@ -761,11 +938,13 @@ function renderBox() {
     html += `<div class="pending"><span>${earlierRed.length} earlier capture${earlierRed.length > 1 ? 's' : ''} need${earlierRed.length > 1 ? '' : 's'} fixing: ${esc(label(r))}</span><button class="btn sm" data-act="fix" data-id="${r.id}">Fix</button></div>`;
   }
 
+  const busy = isBusy();
   html += capturing
-    ? `<button class="btn primary big" data-act="capture">${ICON.camera}Capture</button>`
+    ? `<button class="btn primary big" data-act="capture" ${busy ? 'disabled' : ''}>${busy ? `<span class="spin"></span>${S.grabbing ? 'Hold still…' : 'Reading…'}` : `${ICON.camera}Capture`}</button>`
     : `<button class="btn primary big" data-act="start">${ICON.camera}Start capturing</button>`;
   html += `<div class="box-foot"><button class="link" data-act="crop">${S.crop ? 'Crop area: on' : 'Set crop area'}</button>${capturing ? '<button class="link" data-act="stop">Stop</button>' : ''}</div>`;
   boxEl.innerHTML = html;
+  boxEl.querySelector('[data-add-input]')?.focus();
 }
 
 function render() {
@@ -777,14 +956,14 @@ function render() {
   $('#pipBtn').hidden = !capturing || !!S.pip || !('documentPictureInPicture' in window);
   $('#cropLabel').textContent = S.crop ? 'Change crop area' : 'Set crop area';
   $('#modeNote').innerHTML = S.code
-    ? '<b>Live:</b> captures are read by Claude, about 1 to 2 cents each.'
+    ? '<b>Live:</b> captures are read by Claude, well under a cent each.'
     : '<b>Demo mode:</b> results are sample data, so you can practise the flow. Enter an access code to read real receipts.';
 }
 
 // ---------- detail / edit ----------
 
 const FIELDS = [
-  ['vendor', 'Vendor', 'text', true], ['date', 'Date', 'date'], ['receipt_number', 'Receipt #', 'text'],
+  ['vendor', 'Vendor', 'text', true], ['date', 'Date', 'date'], ['time', 'Time', 'time'], ['receipt_number', 'Receipt #', 'text'],
   ['subtotal', 'Subtotal', 'num'], ['gst', 'GST', 'num'], ['pst', 'PST', 'num'], ['hst', 'HST', 'num'],
   ['other_tax', 'Other tax', 'num'], ['tip', 'Tip', 'num'], ['total', 'Total', 'num'], ['currency', 'Currency', 'text'],
 ];
@@ -792,7 +971,7 @@ const CATEGORIES = ['meals', 'travel', 'lodging', 'fuel', 'office_supplies', 'so
 
 function closeModal() { $('#modalRoot').innerHTML = ''; }
 
-function openDetail(it) {
+function openDetail(it, focusField) {
   const x = it.extraction || { ...BLANK, currency: 'CAD' };
   const imgs = it.images.map((p, i) => (p.pdf
     ? `<div class="pdfbox">${ICON.file}<p>PDF receipt</p><a href="${p.dataUrl}" target="_blank" rel="noopener" download="${esc(it.name || 'receipt.pdf')}">Open PDF</a></div>`
@@ -810,6 +989,7 @@ function openDetail(it) {
     x.email_date && `Received: ${esc(shortDate(x.email_date))}`,
     x.notes && `Note: ${esc(x.notes)}`,
     it.ms && `Read in ${(it.ms / 1000).toFixed(1)}s${it.model && it.model !== 'demo' ? ` by ${esc(it.model)}` : ''}`,
+    `Source: ${sourceLabel(it)}${it.manual?.length ? ` (${esc(it.manual.map(fieldName).join(', '))})` : ''}`,
   ].filter(Boolean).join('<br>');
 
   $('#modalRoot').innerHTML = `<div class="overlay" data-close>
@@ -834,6 +1014,7 @@ function openDetail(it) {
     </div></div>`;
 
   const root = $('#modalRoot');
+  if (focusField) root.querySelector(`input[name="${focusField}"]`)?.focus();
   root.querySelector('.overlay').addEventListener('click', (e) => {
     if (e.target.matches('[data-close]') || e.target.closest('button[data-close]')) return closeModal();
     const m = e.target.closest('[data-m]')?.dataset.m;
@@ -857,6 +1038,9 @@ function openDetail(it) {
       const badNumber = FIELDS.find(([f, , type]) => type === 'num' && next[f] !== null && !Number.isFinite(next[f]));
       if (badNumber) return toast(`${badNumber[1]} isn't a number.`);
       next.category = form.get('category') || null;
+      const edited = FIELDS.filter(([f, , type]) => (type === 'num' ? cents(next[f]) !== cents(x[f]) : (next[f] ?? null) !== (x[f] ?? null))).map(([f]) => f);
+      if ((next.category ?? null) !== (x.category ?? null)) edited.push('category');
+      if (edited.length) it.manual = [...new Set([...(it.manual || []), ...edited])];
       next.is_receipt = true;
       it.extraction = next;
       it.reviewed = true;
@@ -947,11 +1131,13 @@ async function exportExcel() {
     const x = it.extraction;
     return {
       Status: it.level === 'green' ? 'Ready' : it.level === 'yellow' ? 'Check' : 'Fix',
-      Vendor: x.vendor, Date: x.date, 'Receipt #': x.receipt_number,
+      Vendor: x.vendor, Date: x.date, Time: x.time, 'Receipt #': x.receipt_number,
       Subtotal: x.subtotal, GST: x.gst, PST: x.pst, HST: x.hst, 'Other tax': x.other_tax, Tip: x.tip, Total: x.total,
       Currency: x.currency, Category: titleCase(x.category), Payment: titleCase(x.payment_method),
       Notes: (it.issues || []).map((i) => i.text).join('; '),
-      Source: it.source === 'capture' ? 'Screen capture' : it.name,
+      Source: sourceLabel(it),
+      'Manual fields': (it.manual || []).map(fieldName).join(', '),
+      File: it.source === 'capture' ? '' : it.name,
     };
   });
   const ws = window.XLSX.utils.json_to_sheet(data);
@@ -988,8 +1174,9 @@ const TOUR = [
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
   { target: '#startBtn', title: 'Start capturing', html: '<p>Click this, and your browser asks what to share:</p>' + ILL.share + '<ol><li>Click the <b>Window</b> tab</li><li>Click your <b>Outlook</b> window</li><li>Click <b>Share</b></li></ol><p>Outlook has to be open, not minimized. It works with the Outlook app or Outlook in a browser.</p>' },
   { title: 'A box floats on top of Outlook', html: '<p>After you share, a small box pops out and stays on top of every window, even when you click into Outlook. Drag it to a corner.</p>' + ILL.box + "<p>Don't see it? Click <b>Open floating box</b>. In Firefox or Safari it stays on this page; put this window next to Outlook.</p>" },
-  { title: 'Your rhythm', html: '<ol><li>Click a receipt email in Outlook</li><li>Click <b>Capture</b> in the box</li><li>Wait a few seconds for the green check, then click the next email</li></ol><p>Prefer to stay on one email until it\'s green: if something\'s wrong, you\'re already in the right place to fix it.</p>' },
+  { title: 'Your rhythm', html: '<ol><li>Click a receipt email in Outlook</li><li>Click <b>Capture</b> in the box</li><li>Wait a few seconds for the green check, then click the next email</li></ol><p>Capture locks while a receipt is being read, so nothing gets saved twice. Don\'t scroll while you click it: if the email is moving, you\'ll get a warning and nothing is saved.</p><p>Prefer to stay on one email until it\'s green: if something\'s wrong, you\'re already in the right place to fix it.</p>' },
   { title: 'When it goes red', html: ILL.red + '<p><b>Red means fix it now</b>, while the email is still open. If the total is cut off, scroll down and click <b>Capture the rest</b>: both parts are read as one receipt.</p><p><b>Yellow</b> means it\'s saved; check it later in your list.</p>' },
+  { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The box shows a <b>+</b> button, like <b>+ Subtotal</b>. Click it and type what you see in the email. The receipt\'s source then says <b>Scan + manual input</b>.</p><p><b>Paid twice?</b> If two receipts from the same vendor have the same amount within 30 minutes, you\'ll get a warning. If it was a mistake, ask the vendor for a refund. If not, click <b>Yes, it\'s a real purchase</b>.</p>' },
   { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
   { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here, or drag an attachment straight out of Outlook. Whole emails (.msg files) can\'t be read yet, so drag the attachment or capture it instead.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: good to go. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing.</p><p>Click any row to see the image next to the fields and fix anything. The trash icon deletes it, and you get a few seconds to Undo.</p>' },
