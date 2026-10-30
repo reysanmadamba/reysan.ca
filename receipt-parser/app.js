@@ -122,6 +122,20 @@ const label = (it) => {
 
 // ---------- checks (all math in code, never by the model) ----------
 
+// Canadian receipts only: no tax, or less than the lowest rate. Exempt items make this
+// legitimate sometimes, so it's a question for the person rather than an error.
+function lowTax(x, sub) {
+  const part = (f) => cents(x[f]) ?? 0;
+  const gst = part('gst');
+  const hst = part('hst');
+  const tax = gst + hst + part('pst') + part('other_tax');
+  const pct = (t) => `${((t / sub) * 100).toFixed(1)}%`;
+  if (tax === 0) return "No tax shown. Fine if it's tax-exempt or already in the price";
+  if (hst > 0) return hst < Math.round(sub * 0.13) - 2 ? `HST is ${pct(hst)} of the subtotal, usually 13% to 15%. Fine if some items aren't taxed, otherwise check it` : null;
+  if (gst > 0) return gst < Math.round(sub * 0.05) - 2 ? `GST is ${pct(gst)} of the subtotal, usually 5%. Fine if some items aren't taxed, otherwise check it` : null;
+  return tax < Math.round(sub * 0.05) - 2 ? `Tax is ${pct(tax)} of the subtotal, usually at least 5%. Fine if some items aren't taxed, otherwise check it` : null;
+}
+
 function assess(it) {
   const issues = [];
   let action = it.source === 'capture' ? 'replace' : 'file';
@@ -156,7 +170,8 @@ function assess(it) {
 
     // Before review a missing total is already a red "can't see the total".
     const required = it.reviewed ? ['vendor', 'date', 'subtotal', 'total', 'currency'] : ['vendor', 'date', 'subtotal', 'currency'];
-    const missing = required.filter((f) => x[f] === null || x[f] === '');
+    // A free receipt, like after-hours parking, has no subtotal to ask for.
+    const missing = required.filter((f) => (x[f] === null || x[f] === '') && !(f === 'subtotal' && cents(x.total) === 0));
     if (missing.length) issues.push({ level: 'yellow', text: `Missing ${missing.join(', ')}` });
 
     const sub = cents(x.subtotal);
@@ -176,6 +191,11 @@ function assess(it) {
         }
       }
       if (cents(x.gst) > 0 && cents(x.hst) > 0) issues.push({ level: 'yellow', text: 'Has both GST and HST, which is unusual' });
+    }
+    if (!it.reviewed && !it.softOk) {
+      if (total === 0) issues.push({ level: 'yellow', text: 'Total is $0.00. Check it was read right', soft: true });
+      const low = sub > 0 && x.currency === 'CAD' ? lowTax(x, sub) : null;
+      if (low) issues.push({ level: 'yellow', text: low, soft: true });
     }
     if (x.date) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(x.date)) issues.push({ level: 'yellow', text: `Date "${x.date}" isn't a full date` });
@@ -655,7 +675,7 @@ const BLANK = {
 };
 const DEMO = [
   () => ({ vendor: 'Staples #2045', date: daysAgo(3), receipt_number: '2045-118832', subtotal: 43.04, gst: 2.15, pst: 3.01, total: 48.2, category: 'office_supplies', email_sender: 'Staples Canada', email_subject: 'Your Staples receipt' }),
-  () => ({ vendor: 'Air Canada', date: daysAgo(6), receipt_number: 'AC7Q2K', subtotal: 398.15, gst: 14.6, total: 412.75, category: 'travel', email_sender: 'Air Canada', email_subject: 'Your booking receipt: Calgary to Toronto' }),
+  () => ({ vendor: 'Air Canada', date: daysAgo(6), receipt_number: 'AC7Q2K', subtotal: 392.84, gst: 19.91, total: 412.75, category: 'travel', email_sender: 'Air Canada', email_subject: 'Your booking receipt: Calgary to Toronto' }),
   () => ({ vendor: 'Uber', date: daysAgo(12), subtotal: 23.4, gst: 1.17, total: null, category: 'travel', cut_off: true, cut_off_detail: 'The total and payment lines are below the bottom edge.', email_sender: 'Uber Receipts', email_subject: 'Your Tuesday evening trip with Uber', confidence: 0.8 }),
   () => ({ vendor: 'Staples #2045', date: daysAgo(3), receipt_number: '2045-118832', subtotal: 43.04, gst: 2.15, pst: 3.01, total: 48.2, category: 'office_supplies', email_sender: 'Staples Canada', email_subject: 'Fwd: Your Staples receipt' }),
   () => ({ vendor: 'Tim Hortons', date: daysAgo(2), subtotal: 12.5, gst: 0.63, total: 13.4, category: 'meals', payment_method: 'debit', confidence: 0.86 }),
@@ -818,6 +838,9 @@ function onAction(act, id, field) {
     case 'not-dup':
       if (!it) return;
       it.dupOk = true; it.followUp = null; reassessAll(); return render();
+    case 'soft-ok':
+      if (!it) return;
+      it.softOk = true; assess(it); return render();
     case 'follow':
       if (!it) return;
       it.followUp = field || null;
@@ -888,7 +911,7 @@ const fieldName = (f) => FIELDS.find(([k]) => k === f)?.[1] || titleCase(f);
 function missingFields(it) {
   const x = it.extraction;
   if (!x || (!x.is_receipt && !it.reviewed)) return [];
-  return ['vendor', 'date', 'subtotal', 'total', 'currency'].filter((f) => x[f] === null || x[f] === undefined || x[f] === '');
+  return ['vendor', 'date', 'subtotal', 'total', 'currency'].filter((f) => (x[f] === null || x[f] === undefined || x[f] === '') && !(f === 'subtotal' && cents(x.total) === 0));
 }
 
 function otherEmptyFields(it) {
@@ -944,9 +967,11 @@ function dupButton(it) {
   return `${clear}${follow('review', FOLLOW_UP.review)}${follow('refund', FOLLOW_UP.refund)}`;
 }
 
+const softButton = (it) => (it.issues?.some((i) => i.soft) ? `<button class="btn sm" data-act="soft-ok" data-id="${it.id}">Looks right</button>` : '');
+
 function fixButtons(it) {
   const chips = missingFields(it).map((f) => `<button class="chip" data-act="open" data-id="${it.id}" data-field="${f}">+ ${esc(fieldName(f))}</button>`).join('');
-  const extras = `${dupButton(it)}${chips}`;
+  const extras = `${dupButton(it)}${softButton(it)}${chips}`;
   if (it.level !== 'red' && !(it.level === 'yellow' && it.source === 'capture' && it.issues.some((i) => !i.dup && /cut off|blurry|dark/i.test(i.text)))) return extras ? `<div class="rbtns">${extras}</div>` : '';
   const btns = [];
   if (it.action === 'retry') btns.push(`<button class="btn sm" data-act="retry" data-id="${it.id}">Try again</button>`);
@@ -1067,7 +1092,7 @@ function renderBox() {
     const first = latest.issues[0];
     html += `<div class="card yellow"><div class="t">${ICON.warn}${latest.followUp ? `Saved to ${FOLLOW_UP[latest.followUp]}` : first.charge ? 'Paid twice?' : 'Saved, check it later'}</div>
       <div class="d">${esc(label(latest))}. ${esc(first.text)}</div>
-      ${dupButton(latest) ? `<div class="acts">${dupButton(latest)}<button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button></div>` : ''}${addControls(latest)}</div>`;
+      ${dupButton(latest) || softButton(latest) ? `<div class="acts">${dupButton(latest)}${softButton(latest)}<button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button></div>` : ''}${addControls(latest)}</div>`;
   } else {
     const x = latest.extraction;
     html += `<div class="card green"><div class="t">${ICON.check}${esc(x.vendor || 'Receipt')} · ${money(cents(x.total), x.currency)}</div>
