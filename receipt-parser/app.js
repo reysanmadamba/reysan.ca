@@ -399,6 +399,34 @@ function addItem(source, images, name) {
   return it;
 }
 
+// Clicking Capture again after a red cut-off is a retry, not a second receipt:
+// a complete capture of the same receipt takes the cut-off row's place.
+function replaceCutOff(it) {
+  const x = it.extraction;
+  if (it.source !== 'capture' || !x.is_receipt || x.cut_off || x.total === null || x.image_quality !== 'clear') return;
+  const v = normVendor(x.vendor);
+  if (!v) return;
+  const number = (r) => String(r.receipt_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const previous = S.items.filter((o) => o.source === 'capture' && o.id < it.id).sort((a, b) => b.id - a.id)[0];
+  const old = S.items.find((o) => {
+    const y = o.extraction;
+    if (o.source !== 'capture' || o.id >= it.id || o.level !== 'red' || !y?.is_receipt || !(y.cut_off || y.total === null)) return false;
+    if (normVendor(y.vendor) !== v) return false;
+    if (y.date && y.date !== x.date && y.date !== swappedDate(x.date)) return false;
+    if (number(y) && number(x) && number(y) !== number(x)) return false;
+    // With no total to compare, only the capture right before this one counts.
+    return y.total === null ? o === previous : cents(y.total) === cents(x.total);
+  });
+  if (!old) return;
+  const idx = S.items.indexOf(old);
+  S.items.splice(idx, 1);
+  toast('Replaced the cut-off capture with this one.', () => {
+    S.items.splice(Math.min(idx, S.items.length), 0, old);
+    reassessAll();
+    render();
+  });
+}
+
 // ---------- reading (Claude via backend, or demo data) ----------
 
 async function read(it) {
@@ -413,6 +441,7 @@ async function read(it) {
     it.model = result.model;
     it.status = 'done';
     it.snapshot = null;
+    replaceCutOff(it);
   } catch (e) {
     if (it.snapshot?.extraction) {
       // A failed recapture never loses the first one.
