@@ -96,3 +96,67 @@
 @media (prefers-reduced-motion: reduce) {
     .dt-panel .chat-log .msg.typing .dot { animation: none; opacity: 0.7; }
 }
+/* A taller chat window on this page only (the shared style.css caps it at 560px), so a batch of
+   listings needs less scrolling. Phones keep the full-width sheet from style.css. */
+@media (min-width: 481px) {
+    .dt-panel {
+        max-height: min(720px, calc(100vh - 120px));
+        min-height: 400px;
+    }
+}
+
+/* "Not sure where to start?" — a button that opens five example questions above the input box. */
+.chat-starters {
+    padding: 4px 16px 0;
+}
+
+.chat-starters-toggle {
+    background: none;
+    border: 1px solid var(--dt-orange);
+    color: var(--dt-orange-dark);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.chat-starters-toggle:hover,
+.chat-starters-toggle[aria-expanded="true"] {
+    background: var(--dt-orange-tint);
+}
+
+.chat-starters-toggle:focus-visible,
+.chat-chip:focus-visible {
+    outline: 2px solid var(--dt-orange);
+    outline-offset: 2px;
+}
+
+.chat-starters-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.chat-starters-list[hidden] {
+    display: none;
+}
+
+.chat-chip {
+    background: #fff;
+    border: 1px solid var(--dt-orange);
+    color: var(--ink);
+    border-radius: 14px;
+    padding: 6px 12px;
+    font-family: var(--sans);
+    font-size: 12.5px;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+}
+
+.chat-chip:hover {
+    background: var(--dt-orange-tint);
+}

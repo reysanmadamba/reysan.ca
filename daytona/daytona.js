@@ -42,6 +42,9 @@
     var chatInput = document.getElementById('chatInput');
     var chatSend = document.getElementById('chatSend');
     var chatInputRow = document.getElementById('chatInputRow');
+    var chatStarters = document.getElementById('chatStarters');
+    var startersToggle = document.getElementById('startersToggle');
+    var startersList = document.getElementById('startersList');
     var chatIntake = document.getElementById('chatIntake');
     var startChat = document.getElementById('startChat');
     var captchaQuestion = document.getElementById('captchaQuestion');
@@ -308,7 +311,8 @@
                 chatIntake.style.display = 'none';
                 chatLog.style.display = 'block';
                 chatInputRow.style.display = 'flex';
-                addMsg("Hi, I'm Dakota, an AI demo assistant for Daytona Homes — not a real employee, just a prototype. Ask me about the building process, communities, or describe the home you're looking for.", 'assistant');
+                if (chatStarters && !conversation.length) chatStarters.style.display = 'block';
+                addMsg("Hi, I'm Dakota, an AI demo assistant for Daytona Homes — not a real employee, just a prototype. Ask me about the building process, communities, or describe the home you're looking for.\n\nFor example: \"3 bedroom homes in Edgemont under $500k\".", 'assistant');
                 chatInput.focus();
             } catch (err) {
                 alert('Something went wrong verifying. Try again.');
@@ -343,6 +347,26 @@
     }
     setProviderBadge('claude');
 
+    // "Not sure where to start?": a button that opens a few example questions. Picking one sends it
+    // like a typed message (so it counts toward the message limit); the whole block goes away once
+    // the visitor has sent anything, typed or picked.
+    if (chatStarters && startersToggle && startersList) {
+        startersToggle.addEventListener('click', function () {
+            var open = startersList.hidden;
+            startersList.hidden = !open;
+            startersToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        startersList.addEventListener('click', function (e) {
+            var chip = e.target.closest ? e.target.closest('.chat-chip') : null;
+            if (!chip || chatEnded || sendingChat) return;
+            chatInput.value = chip.textContent.trim();
+            sendChat();
+        });
+    }
+    function hideStarters() {
+        if (chatStarters) chatStarters.style.display = 'none';
+    }
+
     // True while a reply is on its way. The Send button is disabled then, but pressing
     // Enter still called sendChat, so a second message could go out before the first
     // was answered and the replies came back mixed up.
@@ -361,6 +385,7 @@
         }
 
         sendingChat = true;
+        hideStarters();
         var idlePlaceholder = chatInput.placeholder;
         addMsg(message, 'user');
         conversation.push({ role: 'user', content: message });

@@ -88,6 +88,17 @@
         </div>
 
         <div id="chatLog" class="chat-log" style="display:none;"></div>
+        <div class="chat-starters" id="chatStarters" style="display:none;">
+            <button type="button" id="startersToggle" class="chat-starters-toggle" aria-expanded="false"
+                aria-controls="startersList">Not sure where to start?</button>
+            <div id="startersList" class="chat-starters-list" hidden>
+                <button type="button" class="chat-chip">3 bedroom homes in Edgemont under $500k</button>
+                <button type="button" class="chat-chip">What promotions are on right now?</button>
+                <button type="button" class="chat-chip">When are the show homes open in The Orchards?</button>
+                <button type="button" class="chat-chip">Can someone call me back?</button>
+                <button type="button" class="chat-chip">How does the building process work?</button>
+            </div>
+        </div>
         <div class="chat-input-row" id="chatInputRow" style="display:none;">
             <input id="chatInput" type="text" placeholder="e.g. 3 bed under $550k near a school..." />
             <button id="chatSend" class="btn primary dt-btn">Send</button>
