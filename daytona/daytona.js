@@ -91,10 +91,43 @@
         return withLinks.replace(/\n/g, '<br>');
     }
 
+    // The private Claude test link (?llm=claude&k=<key>) asks the server for a session with that key instead of the maths question.
+    // The server only agrees when the key matches the one set in Vercel; otherwise (or on any error) the question is shown as usual,
+    // so the public link and a wrong key behave exactly as before.
+    async function tryTestLinkSession() {
+        if (!LLM_TEST || !LLM_TEST.llmKey) return false;
+        try {
+            var res = await fetch(CAPTCHA_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: sessionId, llm: LLM_TEST.llm, llmKey: LLM_TEST.llmKey })
+            });
+            var data = await res.json();
+            if (data && data.correct && data.sessionToken) {
+                sessionToken = data.sessionToken;
+                captchaLoaded = true;
+                beginChat();
+                return true;
+            }
+        } catch (err) { /* fall back to the question */ }
+        return false;
+    }
+
+    // Opens the chat after verification (the maths question, or the private test link).
+    function beginChat() {
+        chatIntake.style.display = 'none';
+        chatLog.style.display = 'block';
+        chatInputRow.style.display = 'flex';
+        if (chatStarters && !conversation.length) chatStarters.style.display = 'block';
+        addMsg("Hi, I'm Dakota, an AI demo assistant for Daytona Homes — not a real employee, just a prototype. Ask me about the building process, communities, or describe the home you're looking for.\n\nFor example: \"3 bedroom homes in Edgemont under $500k\".", 'assistant');
+        chatInput.focus();
+    }
+
     async function loadCaptcha() {
         if (!startChat || !captchaQuestion) return;
         startChat.disabled = true;
         captchaQuestion.textContent = 'Loading verification...';
+        if (await tryTestLinkSession()) return;
         try {
             var res = await fetch(CAPTCHA_ENDPOINT, {
                 method: 'POST',
@@ -308,12 +341,7 @@
 
                 sessionToken = data.sessionToken;
 
-                chatIntake.style.display = 'none';
-                chatLog.style.display = 'block';
-                chatInputRow.style.display = 'flex';
-                if (chatStarters && !conversation.length) chatStarters.style.display = 'block';
-                addMsg("Hi, I'm Dakota, an AI demo assistant for Daytona Homes — not a real employee, just a prototype. Ask me about the building process, communities, or describe the home you're looking for.\n\nFor example: \"3 bedroom homes in Edgemont under $500k\".", 'assistant');
-                chatInput.focus();
+                beginChat();
             } catch (err) {
                 alert('Something went wrong verifying. Try again.');
                 startChat.textContent = 'Start chat';
