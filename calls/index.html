@@ -82,6 +82,10 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     const app = document.getElementById('app');
 
+    // Everything that comes from the server or from a caller is escaped before it goes into the page.
+    const esc = (v) => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const safeHttpUrl = (u) => (typeof u === 'string' && /^https?:\/\//i.test(u) ? u : '');
+
     function renderLogin(error) {
       app.innerHTML = `
         <div class="login-shell">
@@ -91,7 +95,7 @@
               <div class="field"><label>Email</label><input type="email" id="email" required /></div>
               <div class="field"><label>Password</label><input type="password" id="password" required /></div>
               <button class="btn" type="submit">Sign in</button>
-              ${error ? `<p class="error-text">${error}</p>` : ''}
+              ${error ? `<p class="error-text">${esc(error)}</p>` : ''}
             </form>
           </div>
         </div>`;
@@ -127,7 +131,7 @@
     function renderReport(content, data, { skipProGate }) {
       const tier = data.tenant?.subscription_tier;
       if (!skipProGate && tier !== 'pro') {
-        content.innerHTML = `<div class="pro-gate"><h2>Call reports are a Pro feature</h2><p>Your current plan is <strong>${tier || 'unknown'}</strong>. Contact us to upgrade and unlock call minutes tracking and recordings.</p></div>`;
+        content.innerHTML = `<div class="pro-gate"><h2>Call reports are a Pro feature</h2><p>Your current plan is <strong>${esc(tier || 'unknown')}</strong>. Contact us to upgrade and unlock call minutes tracking and recordings.</p></div>`;
         return;
       }
 
@@ -156,15 +160,15 @@
               <tbody>
                 ${voice.calls.map((c) => `
                   <tr>
-                    <td>${c.caller_name}</td>
-                    <td>${c.phone || '—'}</td>
+                    <td>${esc(c.caller_name)}</td>
+                    <td>${esc(c.phone || '—')}</td>
                     <td>${new Date(c.created_at).toLocaleString()}</td>
                     <td>${formatDuration(c.duration_seconds)}</td>
-                    <td><span class="status-pill ${c.ended_reason === 'customer-ended-call' || c.ended_reason === 'assistant-ended-call' ? 'customer' : 'silence'}">${c.ended_reason || 'unknown'}</span></td>
+                    <td><span class="status-pill ${c.ended_reason === 'customer-ended-call' || c.ended_reason === 'assistant-ended-call' ? 'customer' : 'silence'}">${esc(c.ended_reason || 'unknown')}</span></td>
                     ${skipProGate ? `<td>$${Number(c.cost_usd || 0).toFixed(2)}</td>` : ''}
-                    <td>${c.recording_url ? `<button class="replay-btn" data-url="${c.recording_url}">▶ Play</button>` : '<span class="no-recording">No recording</span>'}</td>
+                    <td>${safeHttpUrl(c.recording_url) ? `<button class="replay-btn" data-url="${esc(safeHttpUrl(c.recording_url))}">▶ Play</button>` : '<span class="no-recording">No recording</span>'}</td>
                   </tr>
-                  <tr class="audio-row" id="audio-row-${c.id}" style="display:none"><td colspan="${skipProGate ? 7 : 6}"><audio controls id="audio-${c.id}"></audio></td></tr>
+                  <tr class="audio-row" id="audio-row-${esc(c.id)}" style="display:none"><td colspan="${skipProGate ? 7 : 6}"><audio controls id="audio-${esc(c.id)}"></audio></td></tr>
                 `).join('')}
               </tbody>
             </table>`}
@@ -302,14 +306,14 @@
 
           const picker = document.getElementById('picker-slot');
           picker.innerHTML = `<select id="tenant-picker" style="margin-bottom:20px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);font-family:var(--sans);font-size:14px;">
-            ${listData.tenants.map((t) => `<option value="${t.id}">${t.name} (${t.slug})</option>`).join('')}
+            ${listData.tenants.map((t) => `<option value="${esc(t.id)}">${esc(t.name)} (${esc(t.slug)})</option>`).join('')}
           </select>`;
 
           async function loadTenant(id) {
             content.innerHTML = '<div class="empty-state">Loading…</div>';
-            const res = await fetch(`${TENANTS_URL}?id=${id}`, { headers: authHeader });
+            const res = await fetch(`${TENANTS_URL}?id=${encodeURIComponent(id)}`, { headers: authHeader });
             const data = await res.json();
-            if (!res.ok) return (content.innerHTML = `<p class="error-text">${data.error}</p>`);
+            if (!res.ok) return (content.innerHTML = `<p class="error-text">${esc(data.error)}</p>`);
             document.getElementById('page-title').textContent = `${data.tenant?.name || 'Tenant'} — Call Report`;
             renderVoiceSettings(document.getElementById('settings-slot'), data.tenant, authHeader);
             renderReport(content, data, { skipProGate: true });
@@ -331,7 +335,7 @@
           renderReport(content, data, { skipProGate: false });
         }
       } catch (err) {
-        content.innerHTML = `<p class="error-text">${err.message}</p>`;
+        content.innerHTML = `<p class="error-text">${esc(err.message)}</p>`;
       }
     }
 

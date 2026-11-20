@@ -159,7 +159,11 @@
     function addMsg(text, who) {
         var div = document.createElement('div');
         div.className = 'msg ' + who;
-        div.innerHTML = '<span class="who">' + (who === 'user' ? 'you' : 'assistant') + '</span>' + text;
+        var whoEl = document.createElement('span');
+        whoEl.className = 'who';
+        whoEl.textContent = who === 'user' ? 'you' : 'assistant';
+        div.appendChild(whoEl);
+        div.appendChild(document.createTextNode(String(text)));
         chatLog.appendChild(div);
         chatLog.scrollTop = chatLog.scrollHeight;
     }

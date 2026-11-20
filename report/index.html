@@ -392,8 +392,9 @@ function exportCSV() {
   const header = cols.join(',');
   const rows = filteredRows.map(row =>
     cols.map(c => {
-      let v = row[c] ?? '';
-      v = String(v).replace(/"/g, '""');
+      let v = String(row[c] ?? '');
+      if (/^[\s]*[=+\-@]|^[\t\r]/.test(v)) v = "'" + v; // spreadsheets run a cell that starts with = + - @ as a formula
+      v = v.replace(/"/g, '""');
       return `"${v}"`;
     }).join(',')
   );
