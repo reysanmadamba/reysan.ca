@@ -219,9 +219,26 @@ function assess(it) {
       }
     }
     if (!it.reviewed && x.confidence < LOW_CONFIDENCE) issues.push({ level: 'yellow', text: 'Low confidence. Double-check the numbers.' });
+    if (it.unpaid && !it.softOk) {
+      issues.push({ level: 'yellow', text: "Invoice, not paid yet: there's no receipt for it and it isn't marked paid, so it isn't counted. Add the receipt, or click Looks right if it was paid", soft: true, review: true });
+    }
+    if (it.billFor?.length) {
+      const list = it.billFor.map((id) => S.items.find((o) => o.id === id)).filter(Boolean);
+      issues.push({ level: 'grey', text: `Invoice for ${list.length > 1 ? `${list.length} payments` : 'a payment'} in your list (${list.map(label).join(', ')}): the payment${list.length > 1 ? 's are' : ' is'} counted instead` });
+    }
+    if (isRefund(x)) {
+      const orig = S.items.find((o) => o.id === it.refundOf);
+      if (!orig && !it.softOk) {
+        issues.push({ level: 'yellow', text: 'Refund with no matching purchase in your list. Add the purchase, or click Looks right to count it', soft: true, review: true });
+      } else if (orig && (orig.chargeOf || orig.dupOf)) {
+        issues.push({ level: 'grey', text: `Refund for ${label(orig)}, which isn't counted: the charge and the refund cancel out` });
+      }
+    }
     if (it.chargeOf) {
       const other = S.items.find((o) => o.id === it.chargeOf);
-      if (other) {
+      if (other && it.refundedCents >= cents(x.total)) {
+        issues.push({ level: 'grey', text: `Second charge, refunded in full: it and its refund cancel out` });
+      } else if (other) {
         const gap = Math.abs(paidAt(x) - paidAt(other.extraction));
         const apart = gap === 0 ? 'at the same time' : `${gap} minute${gap === 1 ? '' : 's'} apart`;
         issues.unshift({ level: 'yellow', text: `Same amount as ${other.extraction.vendor || 'another receipt'} at ${clockTime(other.extraction.time)}, ${apart}. Is this really a second purchase? If not, ask for a refund`, dup: true, charge: true, of: other.id });
@@ -242,7 +259,10 @@ function assess(it) {
 function finish(it, issues, action) {
   it.issues = issues;
   it.action = action;
-  it.level = it.status === 'reading' ? null : issues.some((i) => i.level === 'red') ? 'red' : issues.length ? 'yellow' : 'green';
+  it.level = it.status === 'reading' ? null
+    : issues.some((i) => i.level === 'red') ? 'red'
+      : issues.some((i) => i.level !== 'grey') ? 'yellow'
+        : issues.length ? 'grey' : 'green';
   return it;
 }
 
@@ -266,36 +286,84 @@ function clockTime(t) {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
 }
 
+const numberKey = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const isRefund = (x) => x?.document_type === 'refund';
+// Refunds are kept as positive amounts and shown and totalled as money back.
+const signedCents = (it, field = 'total') => { const c = cents(it.extraction?.[field]); return c === null ? null : isRefund(it.extraction) ? -c : c; };
+
+// Links rows that belong together, strongest evidence first, and stops at the first rule that decides:
+// 1 same receipt number (with the same vendor, or the same amount and day): the same document twice
+// 2 same invoice number, one without a receipt number: an invoice and its receipt
+// 3 same invoice number, different receipt numbers: installment payments on one bill (not duplicates)
+// 4 same vendor, amount and day, at the same time or with no time to tell: probably the same receipt
+// 5 same vendor and amount 2 to 30 minutes apart: maybe paid twice (not for rows from one email)
+// Then: an invoice with no payment isn't counted and needs review; a refund is linked to its purchase.
 function findDuplicates() {
+  const rows = [...S.items].sort((a, b) => a.id - b.id);
+  for (const it of rows) Object.assign(it, { dupOf: null, chargeOf: null, refundOf: null, payment: null, billFor: null, unpaid: false, refundedCents: 0 });
+  const long = (k) => k.length >= 4;
   const seen = [];
-  for (const it of [...S.items].sort((a, b) => a.id - b.id)) {
-    it.dupOf = null;
-    it.chargeOf = null;
+  const refunds = [];
+  for (const it of rows) {
     const x = it.extraction;
     if (!x?.is_receipt) continue;
-    const v = normVendor(x.vendor);
     const t = cents(x.total);
-    if (!v || !x.date || t === null) continue;
-    const rn = String(x.receipt_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const inv = String(x.invoice_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const swapped = swappedDate(x.date);
-    const at = paidAt(x);
-    // Same receipt number means the same receipt; otherwise two payments minutes apart may be a double charge.
-    // Not when both came from one email, like a ticket for each passenger on one booking.
-    const charge = at === null ? null : seen.find((s) => s.v === v && s.t === t && s.at !== null
-      && Math.abs(s.at - at) <= DOUBLE_CHARGE_MINUTES && !(s.rn && s.rn === rn) && (s.at !== at || (s.rn && rn))
-      && !(it.groupId && s.group === it.groupId) && !(inv && s.inv === inv));
-    // An invoice and its receipt carry different numbers but the same invoice number: one payment, not two.
-    // A receipt or invoice number names one payment, so with the same total it's a match even when the
-    // vendor is written differently ("Claude" and "Anthropic, PBC"). Very short numbers are too common for that.
-    const sameNumber = (s) => (rn.length >= 4 && s.rn === rn) || (inv.length >= 4 && s.inv === inv);
-    const hit = seen.find((s) => s.t === t && (sameNumber(s)
-      || (s.v === v && (s.date === x.date || s.date === swapped) && (!s.rn || !rn || s.rn === rn || (inv && s.inv === inv)))));
+    if (t === null) continue;
+    const e = { it, id: it.id, v: normVendor(x.vendor), date: x.date, t, rn: numberKey(x.receipt_number), inv: numberKey(x.invoice_number), ref: numberKey(x.refers_to), at: paidAt(x), group: it.groupId, kind: x.document_type || 'receipt' };
+    if (e.kind === 'refund') { refunds.push(e); continue; }
     if (!it.dupOk) {
-      if (charge) it.chargeOf = charge.id;
-      else if (hit) it.dupOf = hit.id;
+      const sameDay = (s) => !!(s.date && e.date && (s.date === e.date || s.date === swappedDate(e.date)));
+      const otherBill = (s) => long(s.inv) && long(e.inv) && s.inv !== e.inv;
+      const hit = (long(e.rn) && seen.find((s) => s.rn === e.rn && (s.v === e.v || (s.t === e.t && sameDay(s)))))
+        || (long(e.inv) && seen.find((s) => s.inv === e.inv && s.t === e.t && (!s.rn || !e.rn)))
+        || (e.v && seen.find((s) => s.v === e.v && s.t === e.t && sameDay(s) && (!s.rn || !e.rn || s.rn === e.rn) && !otherBill(s)
+          && (s.at === null || e.at === null || Math.abs(s.at - e.at) < 2)));
+      if (hit && hit.kind === 'invoice' && e.kind !== 'invoice' && !hit.it.dupOk) {
+        // An invoice and its receipt: the receipt is the proof of payment, so it's the one that counts.
+        hit.it.dupOf = it.id;
+      } else if (hit) {
+        it.dupOf = hit.id;
+      } else if (e.at !== null && e.v) {
+        const charge = seen.find((s) => s.v === e.v && s.t === e.t && s.at !== null && Math.abs(s.at - e.at) <= DOUBLE_CHARGE_MINUTES
+          && (Math.abs(s.at - e.at) >= 2 || (s.rn && e.rn && s.rn !== e.rn))
+          && !(it.groupId && s.group === it.groupId) && !(long(e.inv) && s.inv === e.inv) && !(long(e.rn) && s.rn === e.rn));
+        if (charge) it.chargeOf = charge.id;
+      }
     }
-    seen.push({ id: it.id, v, date: x.date, t, rn, inv, at, group: it.groupId });
+    seen.push(e);
+  }
+
+  const live = seen.filter((s) => !s.it.dupOf);
+  const payments = live.filter((s) => s.kind !== 'invoice' && long(s.inv));
+  for (const s of live.filter((b) => b.kind === 'invoice')) {
+    const paid = long(s.inv) ? payments.filter((p) => p.inv === s.inv) : [];
+    if (paid.length) s.it.billFor = paid.map((p) => p.id);
+    else s.it.unpaid = true;
+  }
+  const byBill = new Map();
+  for (const p of payments) byBill.set(p.inv, [...(byBill.get(p.inv) || []), p]);
+  for (const [inv, list] of byBill) {
+    if (list.length < 2) continue;
+    const bill = live.find((b) => b.kind === 'invoice' && b.inv === inv);
+    let paid = 0;
+    list.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || a.id - b.id).forEach((p, i) => {
+      paid += p.t;
+      p.it.payment = { n: i + 1, count: list.length, paid, of: bill ? bill.t : null, number: p.it.extraction.invoice_number };
+    });
+  }
+
+  const refundSeen = [];
+  for (const r of refunds) {
+    const copy = refundSeen.find((s) => (long(r.rn) && s.rn === r.rn) || (s.v === r.v && s.t === r.t && s.date === r.date && (!s.rn || !r.rn)));
+    if (copy && !r.it.dupOk) { r.it.dupOf = copy.id; continue; }
+    refundSeen.push(r);
+    const keys = [r.ref, r.inv, r.rn].filter(long);
+    const orig = live.find((s) => keys.some((k) => k === s.rn || k === s.inv))
+      || [...live].reverse().find((s) => s.v && s.v === r.v && s.t >= r.t && (!r.date || !s.date || s.date <= r.date));
+    if (orig) {
+      r.it.refundOf = orig.id;
+      orig.it.refundedCents += r.t;
+    }
   }
 }
 
@@ -835,7 +903,7 @@ const BLANK = {
   is_receipt: true, vendor: null, date: null, receipt_number: null, subtotal: null, gst: null, pst: null, hst: null,
   other_tax: null, tip: null, total: null, currency: 'CAD', payment_method: 'credit_card', category: null,
   image_quality: 'clear', cut_off: false, cut_off_detail: null, receipt_count: 1, email_sender: null,
-  email_subject: null, email_date: null, confidence: 0.95, notes: null, time: null, date_ambiguous: false, attachments: [], invoice_number: null, document_type: 'receipt',
+  email_subject: null, email_date: null, confidence: 0.95, notes: null, time: null, date_ambiguous: false, attachments: [], invoice_number: null, document_type: 'receipt', refers_to: null,
 };
 const DEMO = [
   () => ({ vendor: 'Staples #2045', date: daysAgo(3), receipt_number: '2045-118832', subtotal: 43.04, gst: 2.15, pst: 3.01, total: 48.2, category: 'office_supplies', email_sender: 'Staples Canada', email_subject: 'Your Staples receipt' }),
@@ -1172,7 +1240,28 @@ boxEl.addEventListener('keydown', (e) => {
 
 function statusIcon(it) {
   if (it.status === 'reading') return '<span class="spin" aria-label="Reading"></span>';
+  if (it.level === 'grey') return '<span class="not-counted" aria-label="Not counted">–</span>';
   return it.level === 'green' ? ICON.check : it.level === 'yellow' ? ICON.warn : ICON.error;
+}
+
+// How a row relates to others: an installment, a refund, or a purchase that was refunded.
+function linkLine(it) {
+  const x = it.extraction;
+  if (!x) return '';
+  const cur = x.currency;
+  if (it.payment) {
+    const p = it.payment;
+    return `Payment ${p.n} on invoice ${p.number}: ${money(p.paid, cur)}${p.of !== null ? ` of ${money(p.of, cur)}` : ''} paid so far`;
+  }
+  if (isRefund(x)) {
+    const orig = S.items.find((o) => o.id === it.refundOf);
+    return orig ? `Refund for ${label(orig)}` : 'Refund';
+  }
+  if (it.refundedCents) {
+    const t = cents(x.total);
+    return it.refundedCents >= t ? 'Refunded in full' : `${money(it.refundedCents, cur)} of ${money(t, cur)} refunded`;
+  }
+  return '';
 }
 
 const SOURCE_NAMES = { capture: 'Scan', upload: 'Upload', paste: 'Paste', email: 'Email' };
@@ -1225,11 +1314,22 @@ function detailLine(it) {
       if (cents(x[f])) bits.push(`${n} ${money(cents(x[f]), x.currency)}`);
     }
   }
+  const link = linkLine(it);
+  if (link) bits.push(`<b class="link-line">${esc(link)}</b>`);
   bits.push(`<span class="src">${sourceLabel(it)}</span>`);
   return bits.join(' · ');
 }
 
 const FOLLOW_UP = { review: 'Needs review', refund: 'For refund' };
+
+// A row's tab: the one a person chose, or Needs review when a check sends it there (an unpaid invoice, say).
+const followUpOf = (it) => it.followUp || (it.issues?.some((i) => i.review) ? 'review' : null);
+
+function pill(it) {
+  const f = followUpOf(it);
+  if (f === 'refund' && it.refundedCents) return '<span class="pill done">Refunded</span>';
+  return f ? `<span class="pill ${f}">${FOLLOW_UP[f]}</span>` : '';
+}
 
 function dupButton(it) {
   const issue = it.issues?.find((i) => i.dup);
@@ -1256,9 +1356,9 @@ function fixButtons(it) {
 
 function renderList() {
   const list = $('#list');
-  const items = [...S.items].filter((i) => S.tab === 'all' || i.followUp === S.tab).sort((a, b) => b.id - a.id);
-  const inTab = (t) => S.items.filter((i) => i.followUp === t).length;
-  $('#listTabs').innerHTML = [['all', 'All', S.items.length], ['review', FOLLOW_UP.review, inTab('review')], ['refund', FOLLOW_UP.refund, inTab('refund')]]
+  const inTab = (t) => S.items.filter((i) => followUpOf(i) === t);
+  const items = (S.tab === 'all' ? [...S.items] : inTab(S.tab)).sort((a, b) => b.id - a.id);
+  $('#listTabs').innerHTML = [['all', 'All', S.items.length], ['review', FOLLOW_UP.review, inTab('review').length], ['refund', FOLLOW_UP.refund, inTab('refund').length]]
     .map(([t, name, n]) => `<button class="list-tab ${S.tab === t ? 'on' : ''}" role="tab" aria-selected="${S.tab === t}" data-act="tab" data-field="${t}">${name}<span>${n}</span></button>`).join('');
   list.innerHTML = S.tab !== 'all' && !items.length ? `<p class="tab-empty">Nothing here yet.</p>` : items.map((it) => {
     const x = it.extraction;
@@ -1274,32 +1374,32 @@ function renderList() {
     const more = (it.issues?.length || 0) > 1 ? ` <span class="muted">+${it.issues.length - 1} more</span>` : '';
     const why = issue ? `<div class="why">${esc(issue.text)}${issue.detail ? `. ${esc(issue.detail)}` : ''}${more}</div>` : '';
     const target = S.target?.id === it.id ? '<div class="why" style="color:var(--accent)">Waiting for your next capture…</div>' : '';
-    const total = x && cents(x.total) !== null ? `${money(cents(x.total), x.currency)}<small>${esc(x.currency || '')}</small>` : '';
+    const total = x && cents(x.total) !== null ? `${money(signedCents(it), x.currency)}<small>${esc(x.currency || '')}</small>` : '';
     const name = it.status === 'reading' ? '<span class="muted">Reading…</span>' : esc(x?.vendor || it.name || (it.source === 'capture' ? `Capture ${it.n}` : 'Unknown vendor'));
     return `<div class="row ${it.level || ''}" data-act="open" data-id="${it.id}">
       <div class="st">${statusIcon(it)}</div>
       ${thumb}
-      <div style="min-width:0"><div class="v">${name}${it.followUp ? `<span class="pill ${it.followUp}">${FOLLOW_UP[it.followUp]}</span>` : ''}</div><div class="d">${detailLine(it)}</div>${target || why}${fixButtons(it)}</div>
+      <div style="min-width:0"><div class="v">${name}${pill(it)}</div><div class="d">${detailLine(it)}</div>${target || why}${fixButtons(it)}</div>
       <div class="amt">${total}</div>
       <button class="trash" data-act="trash" data-id="${it.id}" aria-label="Delete receipt">${ICON.trash}</button>
     </div>`;
   }).join('');
 
-  const counts = { green: 0, yellow: 0, red: 0, reading: 0 };
+  const counts = { green: 0, yellow: 0, red: 0, grey: 0, reading: 0 };
   S.items.forEach((i) => { counts[i.status === 'reading' ? 'reading' : i.level || 'reading']++; });
   $('#countLabel').textContent = S.items.length
-    ? [`${S.items.length} total`, counts.green && `${counts.green} ready`, counts.yellow && `${counts.yellow} to check`, counts.red && `${counts.red} to fix`, counts.reading && `${counts.reading} reading`].filter(Boolean).join(' · ')
+    ? [`${S.items.length} total`, counts.green && `${counts.green} ready`, counts.yellow && `${counts.yellow} to check`, counts.red && `${counts.red} to fix`, counts.grey && `${counts.grey} not counted`, counts.reading && `${counts.reading} reading`].filter(Boolean).join(' · ')
     : 'Nothing yet';
 
   // "Your total": green rows only, one line per currency, never mixed. A follow-up tab totals its own rows.
   const byCur = new Map();
   for (const it of S.items) {
-    if (S.tab === 'all' ? it.level !== 'green' : it.followUp !== S.tab || !it.extraction) continue;
+    if (S.tab === 'all' ? it.level !== 'green' : followUpOf(it) !== S.tab || !it.extraction) continue;
     const cur = (it.extraction.currency || 'CAD').toUpperCase();
     const t = byCur.get(cur) || { n: 0, total: 0, tax: 0 };
     t.n++;
-    t.total += cents(it.extraction.total) || 0;
-    t.tax += ['gst', 'pst', 'hst', 'other_tax'].reduce((s, f) => s + (cents(it.extraction[f]) || 0), 0);
+    t.total += signedCents(it) || 0;
+    t.tax += ['gst', 'pst', 'hst', 'other_tax'].reduce((s, f) => s + (signedCents(it, f) || 0), 0);
     byCur.set(cur, t);
   }
   $('#totals').innerHTML = byCur.size
@@ -1315,7 +1415,9 @@ function partNote(it, lineOf) {
   const other = dup && S.items.find((o) => o.id === dup.of);
   const ref = other ? (lineOf(other.id) ? `#${lineOf(other.id)}` : label(other)) : 'another receipt';
   const amount = other && cents(other.extraction?.total) !== null ? `the ${money(cents(other.extraction.total), other.extraction.currency)} ` : '';
-  if (it.level === 'green') return x?.document_type === 'invoice' ? 'Invoice, counted' : 'Receipt, counted';
+  if (it.level === 'green') return linkLine(it) ? `${linkLine(it)}, counted` : x?.document_type === 'invoice' ? 'Invoice, counted' : 'Receipt, counted';
+  if (it.level === 'grey') return `${it.issues[0]?.text || 'Not counted'}`;
+  if (it.unpaid) return 'Invoice, not paid yet: not counted, needs review';
   if (dup?.charge) return `Paid twice? Same amount as ${ref}`;
   if (dup && x?.document_type === 'invoice') return `Invoice for ${amount}receipt ${ref}, possible duplicate, not counted`;
   if (dup && dup.pair) return `Receipt for ${amount}invoice ${ref}, possible duplicate, not counted`;
@@ -1605,15 +1707,19 @@ function loadScript(src) {
   });
 }
 
+// Amounts as numbers for Excel, negative for a refund.
+const money2 = (it, field) => { const c = signedCents(it, field); return c === null ? null : c / 100; };
+
 const EXPORT_COLUMNS = [
   ['Employee name', () => S.user.name], ['Employee email', () => S.user.email],
-  ['Status', (it) => (it.level === 'green' ? 'Ready' : it.level === 'yellow' ? 'Check' : 'Fix')],
+  ['Status', (it) => ({ green: 'Ready', yellow: 'Check', grey: 'Not counted' }[it.level] || 'Fix')],
+  ['Type', (it, x) => (it.payment ? 'Payment' : titleCase(x.document_type || 'receipt'))],
   ['Follow-up', (it) => FOLLOW_UP[it.followUp] || ''],
   ['Vendor', (it, x) => x.vendor], ['Date', (it, x) => x.date], ['Time', (it, x) => x.time], ['Receipt #', (it, x) => x.receipt_number], ['Invoice #', (it, x) => x.invoice_number],
-  ['Subtotal', (it, x) => x.subtotal], ['GST', (it, x) => x.gst], ['PST', (it, x) => x.pst], ['HST', (it, x) => x.hst],
-  ['Other tax', (it, x) => x.other_tax], ['Tip', (it, x) => x.tip], ['Total', (it, x) => x.total], ['Currency', (it, x) => x.currency],
+  ['Subtotal', (it) => money2(it, 'subtotal')], ['GST', (it) => money2(it, 'gst')], ['PST', (it) => money2(it, 'pst')], ['HST', (it) => money2(it, 'hst')],
+  ['Other tax', (it) => money2(it, 'other_tax')], ['Tip', (it) => money2(it, 'tip')], ['Total', (it) => money2(it, 'total')], ['Currency', (it, x) => x.currency],
   ['Category', (it, x) => titleCase(x.category)], ['Payment', (it, x) => titleCase(x.payment_method)],
-  ['Notes', (it) => (it.issues || []).map((i) => i.text).join('; ')],
+  ['Notes', (it) => [linkLine(it), ...(it.issues || []).map((i) => i.text)].filter(Boolean).join('; ')],
   ['Source', (it) => sourceLabel(it)],
   ['Manual fields', (it) => (it.manual || []).map(fieldName).join(', ')],
   ['File', (it) => (it.source === 'capture' ? '' : it.name)],
