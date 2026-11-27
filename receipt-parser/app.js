@@ -7,14 +7,8 @@ const MAX_LONG_EDGE = 2000;           // px; plenty for receipt text, keeps uplo
 const MAX_PDF_BYTES = 3 * 1024 * 1024; // Vercel's 4.5 MB body limit, after base64
 const LOW_CONFIDENCE = 0.7;
 const DOUBLE_CHARGE_MINUTES = 30;
-const MOTION_GAP_MS = 250;
-const MOVING_SHARE = 0.01;
-const AUTO_STILL_MS = 700;    // how long the email must sit still before auto-capture takes it
-const AUTO_NEW_SHARE = 0.03;  // how different from the last capture a screen must be to count as a new email
-const AUTO_GAP_MS = 1000;
-const MAX_PARTS = 5;          // the reader takes up to 5 images of one receipt
 const MAX_TEXT_CHARS = 100_000; // pasted email text, the reader's limit too
-const PASTE_HINT = 'In the email, right-click and choose Select All, then right-click and choose Copy (or press Ctrl+A, then Ctrl+C). Then click Paste copied email.';
+const PASTE_HINT = 'Gmail or a long email? Click in the email, press Ctrl+A then Ctrl+C, then click Paste copied email.';
 
 const store = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -24,30 +18,13 @@ const store = {
 const S = {
   items: [],
   nextId: 1,
-  stream: null,
-  track: null,
-  grabber: null,
-  video: null,
-  pip: null,
-  target: null,      // { id, mode: 'append' | 'replace' } for the next capture
-  lastSig: null,
+  pip: null,         // the floating drop box, when it's open
   replaceId: null,   // upload row waiting for a replacement file
-  crop: store.get('rp.crop'),
   code: store.get('rp.code', ''),
   demoTick: 0,
-  undo: null,
-  grabbing: false,   // between the two frames of the moving-email check
-  moving: null,      // { mode } when the last capture was refused because the email was moving
-  adding: null,      // { id, field, value, error } or { id, more: true } for the + buttons in the box
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
-  attach: [],        // checklists: { id, fromId, sig, title, sender, subject, dropped, files: [{ name, itemId, skipped }] }
+  attach: [],        // dropped emails: { id, title, sender, subject, files: [{ name, itemId, skipped, reason, hidden }] }
   nextGroup: 1,
-  auto: false,       // auto-capture: off by default, and off again whenever capturing stops
-  autoPrev: null,    // signature of the last frame looked at, to tell when the screen stops moving
-  autoStill: 0,
-  autoLast: 0,
-  autoBusy: false,
-  autoNote: '',
   user: store.get('rp.user', { name: '', email: '' }), // typed in for now; comes from the login once accounts exist
 };
 const API = store.get('rp.api', DEFAULT_API);
@@ -127,7 +104,7 @@ function toast(msg, undoFn) {
 
 const label = (it) => {
   const x = it.extraction;
-  const parts = [x?.vendor || it.name || (it.source === 'capture' ? `Capture ${it.n}` : 'Receipt')];
+  const parts = [x?.vendor || it.name || 'Receipt'];
   if (x?.date) parts.push(shortDate(x.date));
   return parts.join(' · ');
 };
@@ -150,7 +127,7 @@ function lowTax(x, sub) {
 
 function assess(it) {
   const issues = [];
-  let action = it.source === 'capture' ? 'replace' : it.source === 'upload' ? 'file' : 'paste';
+  let action = it.source === 'upload' ? 'file' : 'paste';
   const x = it.extraction;
 
   if (it.status === 'error') {
@@ -161,17 +138,14 @@ function assess(it) {
 
   if (!it.reviewed) {
     if (!x.is_receipt) {
-      issues.push({ level: 'red', text: "This doesn't look like a receipt", detail: x.notes || 'Open the receipt email and capture it again.' });
+      issues.push({ level: 'red', text: "This doesn't look like a receipt", detail: x.notes || 'Drop the receipt email or its PDF instead.' });
     } else if (x.image_quality !== 'clear') {
-      issues.push({ level: 'red', text: `Too ${x.image_quality === 'dark' ? 'dark' : 'blurry'} to read reliably`, detail: 'Zoom the email in a bit, then recapture.' });
+      issues.push({ level: 'red', text: `Too ${x.image_quality === 'dark' ? 'dark' : 'blurry'} to read reliably`, detail: 'Try the PDF, or a clearer picture.' });
     } else if ((x.cut_off && !it.manual?.includes('total')) || x.total === null) {
-      action = it.source === 'capture' ? 'append' : 'file';
       issues.push({
         level: 'red',
         text: x.total === null ? "Can't see the total" : 'Part of the receipt is cut off',
-        detail: (x.cut_off_detail ? `${x.cut_off_detail} ` : '') + (it.source === 'paste' ? `The copied text stops early. ${PASTE_HINT}`
-          : it.source !== 'capture' ? 'Try the full PDF, or enter the total.'
-            : `Long receipt? Copy it instead: ${PASTE_HINT}`),
+        detail: (x.cut_off_detail ? `${x.cut_off_detail} ` : '') + (it.source === 'upload' ? 'Try the full PDF, or enter the total.' : `The text stops before the total. ${PASTE_HINT}`),
       });
     }
   }
@@ -180,7 +154,7 @@ function assess(it) {
   }
 
   if (x.is_receipt || it.reviewed) {
-    if (x.receipt_count > 1) issues.push({ level: 'yellow', text: `Shows ${x.receipt_count} receipts; only the first was read. Capture each one on its own.` });
+    if (x.receipt_count > 1) issues.push({ level: 'yellow', text: `Shows ${x.receipt_count} receipts; only the first was read. Drop each one on its own.` });
 
     // Before review a missing total is already a red "can't see the total".
     const required = it.reviewed ? ['vendor', 'date', 'subtotal', 'total', 'currency'] : ['vendor', 'date', 'subtotal', 'currency'];
@@ -372,57 +346,17 @@ function reassessAll() {
   S.items.forEach(assess);
 }
 
-// ---------- screen capture ----------
+// ---------- the floating drop box ----------
 
-async function startCapture() {
-  if (!navigator.mediaDevices?.getDisplayMedia) {
-    toast('Capturing needs Edge or Chrome on a computer. You can still drop PDFs below.');
-    return false;
-  }
-  let stream;
-  try {
-    stream = await navigator.mediaDevices.getDisplayMedia({
-      video: { displaySurface: 'window', frameRate: 5, cursor: 'never' },
-      audio: false,
-      selfBrowserSurface: 'exclude',
-      surfaceSwitching: 'include',
-    });
-  } catch (e) {
-    if (e.name !== 'NotAllowedError') toast(`Couldn't start capturing: ${e.message}`);
-    return false;
-  }
-  S.stream = stream;
-  S.track = stream.getVideoTracks()[0];
-  S.track.addEventListener('ended', () => stopCapture(true));
-  S.grabber = 'ImageCapture' in window ? new ImageCapture(S.track) : null;
-  S.video = document.createElement('video');
-  Object.assign(S.video, { muted: true, playsInline: true, srcObject: stream });
-  S.video.style.cssText = 'position:fixed;width:2px;height:2px;opacity:0;pointer-events:none;left:0;top:0';
-  document.body.append(S.video);
-  S.video.play().catch(() => {});
-  render();
-  await openPip();
-  return true;
-}
-
-function stopCapture(fromBrowser = false) {
-  setAuto(false);
-  S.stream?.getTracks().forEach((t) => t.stop());
-  S.video?.remove();
-  Object.assign(S, { stream: null, track: null, grabber: null, video: null, target: null });
-  if (S.pip) S.pip.close();
-  if (fromBrowser) toast('Capturing stopped.');
-  render();
-}
-
+// A small window that stays on top of every other window, Outlook included, to drop emails onto.
 async function openPip() {
   if (!('documentPictureInPicture' in window)) {
-    $('#pipBtn').hidden = true;
-    toast("This browser can't float the box. Put this window next to Outlook and use the box on this page.");
+    toast("This browser can't float the drop box. Keep this window beside Outlook and use the drop box on this page.");
     return false;
   }
+  if (S.pip) return true;
   try {
-    const pip = await window.documentPictureInPicture.requestWindow({ width: 340, height: 380 });
+    const pip = await window.documentPictureInPicture.requestWindow({ width: 380, height: 680 });
     for (const sheet of document.styleSheets) {
       try {
         const style = pip.document.createElement('style');
@@ -435,12 +369,12 @@ async function openPip() {
         pip.document.head.append(link);
       }
     }
-    pip.document.title = 'Receipt capture';
+    pip.document.title = 'Receipt drop box';
     pip.document.body.classList.add('pip');
     pip.document.body.append(boxEl);
+    pip.document.addEventListener('paste', takePaste);
     pip.document.addEventListener('dragover', (e) => { e.preventDefault(); boxEl.classList.add('over'); });
     pip.document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) boxEl.classList.remove('over'); });
-    pip.document.addEventListener('paste', takePaste);
     pip.document.addEventListener('drop', (e) => {
       e.preventDefault();
       boxEl.classList.remove('over');
@@ -452,162 +386,44 @@ async function openPip() {
       render();
     });
     S.pip = pip;
-    $('#pipBtn').hidden = true;
     render();
     return true;
   } catch {
-    // Needs a fresh click: the share dialog can use up the browser's "user clicked" allowance.
-    $('#pipBtn').hidden = false;
-    render();
+    toast("Couldn't open the drop box. Click Open drop box again.");
     return false;
   }
 }
 
-async function grabBitmap() {
-  if (S.grabber) {
-    try { return await S.grabber.grabFrame(); } catch { /* fall back to the video element */ }
-  }
-  if (!S.video.videoWidth) await new Promise((r) => setTimeout(r, 400));
-  return createImageBitmap(S.video);
+// What the browser's own "back to tab" button does, for anyone who doesn't spot it: closes the
+// drop box and shows the full list, where receipts are reviewed and exported.
+function openApp() {
+  S.pip?.close();
+  window.focus();
+  $('.list-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// Crops (if set), scales and encodes a frame. Also returns a 64x64 grey
-// signature for the instant blank / same-as-last checks.
-function cropRect(w, h, crop) {
-  if (!crop) return [0, 0, w, h];
-  return [Math.round(crop.x * w), Math.round(crop.y * h), Math.max(1, Math.round(crop.w * w)), Math.max(1, Math.round(crop.h * h))];
+// A file picker from whichever window was clicked, so it opens from the floating drop box too.
+function pickFiles() {
+  const input = boxEl.ownerDocument.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = 'application/pdf,image/*,.msg,.eml';
+  input.addEventListener('change', () => handleFiles(input.files));
+  input.click();
 }
 
-// 256px is fine enough that two emails differing only in a few digits don't look identical.
-function signature(src, sx, sy, sw, sh) {
-  const SIG = 256;
-  const small = document.createElement('canvas');
-  small.width = SIG; small.height = SIG;
-  const sctx = small.getContext('2d', { willReadFrequently: true });
-  sctx.drawImage(src, sx, sy, sw, sh, 0, 0, SIG, SIG);
-  const px = sctx.getImageData(0, 0, SIG, SIG).data;
-  const grey = new Uint8ClampedArray(SIG * SIG);
-  let sum = 0;
-  for (let i = 0; i < grey.length; i++) { grey[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]; sum += grey[i]; }
-  const mean = sum / grey.length;
-  let v = 0;
-  for (const g of grey) v += (g - mean) ** 2;
-  return { grey, std: Math.sqrt(v / grey.length) };
-}
-
-function encodeFrame(src, w, h, crop) {
-  const [sx, sy, sw, sh] = cropRect(w, h, crop);
-  const scale = Math.min(1, MAX_LONG_EDGE / Math.max(sw, sh));
-  const cw = Math.round(sw * scale), ch = Math.round(sh * scale);
+// Shrinks a picture to a size that's plenty for receipt text, as a JPEG for the reader.
+function encodeImage(src, w, h) {
+  const scale = Math.min(1, MAX_LONG_EDGE / Math.max(w, h));
+  const cw = Math.round(w * scale), ch = Math.round(h * scale);
   const canvas = document.createElement('canvas');
   canvas.width = cw; canvas.height = ch;
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(src, sx, sy, sw, sh, 0, 0, cw, ch);
-
+  ctx.drawImage(src, 0, 0, cw, ch);
   let dataUrl = canvas.toDataURL('image/jpeg', 0.9);
   if (dataUrl.length > 1_300_000) dataUrl = canvas.toDataURL('image/jpeg', 0.75);
-
-  return {
-    media_type: 'image/jpeg',
-    dataUrl,
-    data: dataUrl.slice(dataUrl.indexOf(',') + 1),
-    w: cw, h: ch,
-    sig: signature(canvas, 0, 0, cw, ch),
-  };
-}
-
-// Same email captured twice: practically every pixel matches. A false "same" would
-// block a real receipt, so this only fires on near-identical frames; true repeats
-// that slip through are still caught by the vendor/date/total duplicate check.
-function changedShare(a, b) {
-  if (a.grey.length !== b.grey.length) return 1;
-  let changed = 0;
-  for (let i = 0; i < a.grey.length; i++) if (Math.abs(a.grey[i] - b.grey[i]) > 32) changed++;
-  return changed / a.grey.length;
-}
-
-const sameImage = (a, b) => changedShare(a, b) < 0.0005;
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const isBusy = () => S.grabbing || S.items.some((i) => i.source === 'capture' && i.status === 'reading');
-
-// We can't see scrolling in another app, so two frames a moment apart stand in for it.
-async function grabStill(force) {
-  const first = await grabBitmap();
-  const img = encodeFrame(first, first.width, first.height, S.crop);
-  first.close?.();
-  if (force) return img;
-  await wait(MOTION_GAP_MS);
-  // A window with nothing changing may not send a new frame at all, which also means it's still.
-  const second = await Promise.race([grabBitmap(), wait(700)]);
-  if (!second) return img;
-  const later = encodeFrame(second, second.width, second.height, S.crop);
-  second.close?.();
-  return changedShare(img.sig, later.sig) > MOVING_SHARE ? null : later;
-}
-
-async function capture(mode, force, auto) {
-  if (!S.stream) { if (!auto) await startCapture(); return; }
-  // A person's click waits for the last read, so a double click can't make two rows. Auto-capture has
-  // already waited for a still, new screen, so it goes straight away.
-  if (S.grabbing || (!auto && isBusy())) return;
-  S.grabbing = true;
-  S.moving = null;
-  S.adding = null;
-  render();
-  let img;
-  try { img = await grabStill(force); }
-  catch { S.grabbing = false; render(); toast("Couldn't grab the window. Is it minimized?"); return; }
-  S.grabbing = false;
-  if (!img) {
-    // Auto-capture just waits for the screen to settle; a person clicking gets told why nothing happened.
-    if (!auto) S.moving = { mode: mode || null };
-    render();
-    return;
-  }
-  if (auto && (img.w < 300 || img.h < 150 || img.sig.std < 3 || (S.lastSig && sameImage(img.sig, S.lastSig)))) {
-    render();
-    return;
-  }
-  // Finished checklists make way; one with PDFs still waiting stays until they're dropped or skipped.
-  S.attach = S.attach.filter((g) => g.files.some(isWaiting));
-
-  // Recapture: the next capture goes to the row being fixed.
-  const target = mode ? { id: mode.id, mode: mode.mode } : S.target;
-  S.target = null;
-  if (target) {
-    const it = S.items.find((i) => i.id === target.id);
-    if (it && target.mode === 'append' && it.images.length >= MAX_PARTS) {
-      toast(`That's ${MAX_PARTS} parts already. Zoom out in Outlook (Ctrl and minus), then Recapture all.`);
-      render();
-      return;
-    }
-    if (it) {
-      it.snapshot = { images: it.images, extraction: it.extraction };
-      it.images = target.mode === 'append' ? [...it.images, img] : [img];
-      it.keep = false;
-      it.local = null;
-      S.lastSig = img.sig;
-      return read(it);
-    }
-  }
-
-  const it = addItem('capture', [img]);
-  if (auto) {
-    it.auto = true;
-    S.autoNote = '';
-  }
-  if (img.w < 300 || img.h < 150) {
-    setLocal(it, 'Capture is too small', 'Make the Outlook window bigger, or redo the crop area.', 'replace');
-  } else if (img.sig.std < 3) {
-    setLocal(it, 'Capture looks blank', 'Is Outlook minimized? Restore the window, then recapture.', 'replace');
-  } else if (S.lastSig && sameImage(img.sig, S.lastSig)) {
-    setLocal(it, 'Same as your last capture', 'Did you click the next email first?', 'same');
-  } else {
-    S.lastSig = img.sig;
-    read(it);
-  }
-  S.lastSig = img.sig;
+  return { media_type: 'image/jpeg', dataUrl, data: dataUrl.slice(dataUrl.indexOf(',') + 1), w: cw, h: ch };
 }
 
 function setLocal(it, title, detail, action) {
@@ -625,102 +441,6 @@ function addItem(source, images, name) {
 
 // Clicking Capture again after a red cut-off is a retry, not a second receipt:
 // a complete capture of the same receipt takes the cut-off row's place.
-function replaceCutOff(it) {
-  const x = it.extraction;
-  if (!['capture', 'paste'].includes(it.source) || !x.is_receipt || x.cut_off || x.total === null || x.image_quality !== 'clear') return;
-  const v = normVendor(x.vendor);
-  if (!v) return;
-  const number = (r) => String(r.receipt_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const previous = S.items.filter((o) => o.source === 'capture' && o.id < it.id).sort((a, b) => b.id - a.id)[0];
-  const old = S.items.find((o) => {
-    const y = o.extraction;
-    if (o.source !== 'capture' || o.id >= it.id || o.level !== 'red' || !y?.is_receipt || !(y.cut_off || y.total === null)) return false;
-    if (normVendor(y.vendor) !== v) return false;
-    if (y.date && y.date !== x.date && y.date !== swappedDate(x.date)) return false;
-    if (number(y) && number(x) && number(y) !== number(x)) return false;
-    // With no total to compare, only the capture right before this one counts.
-    return y.total === null ? o === previous : cents(y.total) === cents(x.total);
-  });
-  if (!old) return;
-  const idx = S.items.indexOf(old);
-  S.items.splice(idx, 1);
-  toast('Replaced the cut-off capture with this one.', () => {
-    S.items.splice(Math.min(idx, S.items.length), 0, old);
-    reassessAll();
-    render();
-  });
-}
-
-// ---------- attachments the capture can't see into ----------
-
-const UNREADABLE_ATTACHMENT = /\.(docx?|xlsx?|pptx?|csv|zip|ics|msg|eml)$/i;
-
-const attachKey = (n) => String(n).toLowerCase().replace(/\.[a-z0-9]{2,5}$/, '').replace(/[^a-z0-9]+/g, ' ').trim();
-
-// Long names show cut short in Outlook, like "Invoice_20...1042.pdf".
-function attachmentMatches(visible, dropped) {
-  if (attachKey(visible) === attachKey(dropped)) return true;
-  const parts = String(visible).split(/\.{3}|…/);
-  if (parts.length < 2) return false;
-  const keys = parts.map(attachKey).filter(Boolean);
-  return keys.length > 0 && keys.every((k) => attachKey(dropped).includes(k));
-}
-
-const isWaiting = (f) => !f.skipped && !S.items.some((i) => i.id === f.itemId);
-
-function trackAttachments(it) {
-  const x = it.extraction;
-  if (it.source !== 'capture') return;
-  const names = (x.attachments || []).filter((n) => n && !UNREADABLE_ATTACHMENT.test(n));
-  if (!names.length) return;
-  const sig = names.map(attachKey).sort().join('|');
-  let group = S.attach.find((g) => g.sig === sig);
-  if (!group) {
-    group = {
-      id: S.nextGroup++, fromId: it.id, sig, title: x.email_subject || x.email_sender || 'This email',
-      sender: x.email_sender, subject: x.email_subject, files: names.map((name) => ({ name })),
-    };
-    S.attach.push(group);
-  }
-  it.groupId = group.id;
-  // "See attached" isn't a receipt, but it isn't a mistake either: the checklist takes over from the red row.
-  if (!x.is_receipt) S.items.splice(S.items.indexOf(it), 1);
-}
-
-function linkFile(group, file, it) {
-  file.name = it.name;
-  file.itemId = it.id;
-  it.groupId = group.id;
-  it.fromEmail = { sender: group.sender, subject: group.subject };
-}
-
-// Ticks dropped files off by name. Claude can misread small names, so if the number
-// left over equals the number still waiting, those are taken to be the same files.
-function linkUploads(items) {
-  const left = items.filter((it) => {
-    for (const g of [...S.attach].reverse()) {
-      const f = g.files.find((c) => isWaiting(c) && attachmentMatches(c.name, it.name));
-      if (f) { linkFile(g, f, it); return false; }
-    }
-    return true;
-  });
-  if (!left.length) return;
-  const open = [...S.attach].reverse().find((g) => g.files.some(isWaiting));
-  if (open) {
-    const waiting = open.files.filter(isWaiting);
-    if (waiting.length === left.length) left.forEach((it, i) => linkFile(open, waiting[i], it));
-    else left.forEach((it) => open.files.push({ name: it.name, itemId: it.id }));
-  } else if (S.pip) {
-    // The page may be hidden behind Outlook, so the box has to show how drops went.
-    let g = S.attach.find((c) => c.dropped && !c.email);
-    if (!g) {
-      g = { id: S.nextGroup++, fromId: -1, sig: '', title: 'Dropped files', dropped: true, files: [] };
-      S.attach.push(g);
-    }
-    left.forEach((it) => g.files.push({ name: it.name, itemId: it.id }));
-  }
-}
-
 // ---------- reading (Claude via backend, or demo data) ----------
 
 async function read(it) {
@@ -740,136 +460,27 @@ async function read(it) {
     it.model = result.model;
     it.status = 'done';
     it.snapshot = null;
-    replaceCutOff(it);
-    trackAttachments(it);
   } catch (e) {
     if (it.snapshot?.extraction) {
-      // A failed recapture never loses the first one.
+      // A replacement file that can't be read never loses the first one.
       it.images = it.snapshot.images;
       it.extraction = it.snapshot.extraction;
       it.status = 'done';
       it.snapshot = null;
-      toast(`The recapture couldn't be read (${e.message}). Kept the first one.`);
+      toast(`The new file couldn't be read (${e.message}). Kept the first one.`);
     } else {
       it.status = 'error';
       it.error = e.message;
     }
   }
   reassessAll();
-  if (it.auto && it.status === 'done') autoTidy(it);
   if (it.source === 'email' && it.emailHasFiles && it.status === 'done' && !it.extraction.is_receipt && S.items.includes(it)) {
-    // The email's own text just points to its attachments: off the receipt list, but still in the box's list.
+    // The email's own text just points to its attachments: off the receipt list, but still in the drop box's list.
     S.items.splice(S.items.indexOf(it), 1);
     S.attach.forEach((g) => g.files.forEach((f) => { if (f.itemId === it.id) Object.assign(f, { itemId: null, skipped: true, reason: 'No receipt in the text' }); }));
     reassessAll();
   }
   render();
-}
-
-// ---------- auto-capture ----------
-
-// Auto-capture reads everything you open, so it keeps only receipts, and a second
-// view of the same email (scrolled a little, say) doesn't become a second row.
-function autoTidy(it) {
-  if (!S.items.includes(it) || it.reviewed) return;
-  const x = it.extraction;
-  const previous = S.items.filter((o) => o.source === 'capture' && o.id < it.id).sort((a, b) => b.id - a.id)[0];
-  let note = '';
-  if (!x.is_receipt) note = 'Skipped an email that isn\'t a receipt.';
-  else if (previous && it.dupOf === previous.id) note = `Skipped a second view of ${label(previous)}.`;
-  if (!note) return;
-  S.items.splice(S.items.indexOf(it), 1);
-  S.autoNote = note;
-  reassessAll();
-}
-
-// A worker keeps time even while this page sits behind Outlook, where the browser slows page timers down.
-let autoWorker = null;
-
-function setAuto(on) {
-  S.auto = on;
-  S.autoPrev = null;
-  S.autoNote = '';
-  autoWorker?.terminate();
-  autoWorker = null;
-  if (on) {
-    const url = URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 400);'], { type: 'text/javascript' }));
-    autoWorker = new Worker(url);
-    autoWorker.onmessage = autoTick;
-  }
-}
-
-async function autoFrame() {
-  if (S.grabber) {
-    const frame = await Promise.race([S.grabber.grabFrame().catch(() => null), wait(500)]);
-    if (frame) return frame;
-  }
-  return S.video?.videoWidth ? createImageBitmap(S.video) : null;
-}
-
-// Rows of the new frame that line up with rows of the old one moved up or down: a scroll,
-// not a new email. Blank rows match anything, so only rows with text in them count.
-function scrollShift(a, b) {
-  const N = 256;
-  const inked = [];
-  for (let y = 0; y < N; y++) {
-    let lo = 255, hi = 0;
-    for (let x = 0; x < N; x += 4) { const v = b[y * N + x]; if (v < lo) lo = v; if (v > hi) hi = v; }
-    if (hi - lo > 40) inked.push(y);
-  }
-  if (inked.length < 16) return 0;
-  let best = 0, bestScore = 0;
-  for (let dy = -240; dy <= 240; dy++) {
-    if (Math.abs(dy) < 3) continue;
-    let rows = 0, match = 0;
-    for (const y of inked) {
-      const yo = y + dy;
-      if (yo < 0 || yo >= N) continue;
-      rows++;
-      let d = 0;
-      for (let x = 0; x < N; x += 4) d += Math.abs(b[y * N + x] - a[yo * N + x]);
-      if (d / 64 < 8) match++;
-    }
-    if (rows >= 8 && match / rows > bestScore) { bestScore = match / rows; best = dy; }
-  }
-  return bestScore >= 0.6 ? best : 0;
-}
-
-async function autoTick() {
-  if (!S.auto || !S.stream || S.autoBusy || S.grabbing || S.adding) return;
-  S.autoBusy = true;
-  try {
-    const frame = await autoFrame();
-    if (!frame) return;
-    const sig = signature(frame, ...cropRect(frame.width, frame.height, S.crop));
-    frame.close?.();
-    const now = Date.now();
-    if (!S.autoPrev || changedShare(S.autoPrev, sig) > 0.002) {
-      S.autoPrev = sig;
-      S.autoStill = now;
-      return;
-    }
-    if (now - S.autoStill < AUTO_STILL_MS || now - S.autoLast < AUTO_GAP_MS || sig.std < 3) return;
-    if (S.lastSig && changedShare(S.lastSig, sig) < AUTO_NEW_SHARE) return;
-    if (S.lastSig && !S.target && scrollShift(S.lastSig.grey, sig.grey)) {
-      // Scrolled within the same email: finish a cut-off receipt with it, otherwise there's nothing new.
-      const latest = S.items.filter((i) => i.source === 'capture').sort((a, b) => b.id - a.id)[0];
-      if (latest?.status === 'reading') return; // wait to hear whether it was cut off
-      if (latest?.status === 'done' && latest.level === 'red' && latest.action === 'append') {
-        S.autoLast = now;
-        await capture({ id: latest.id, mode: 'append' }, true, true);
-      } else {
-        S.lastSig = sig;
-      }
-      return;
-    }
-    S.autoLast = now;
-    await capture(undefined, true, true);
-  } catch {
-    // A missed look is fine; the next tick tries again.
-  } finally {
-    S.autoBusy = false;
-  }
 }
 
 async function callApi(it) {
@@ -898,7 +509,7 @@ async function callApi(it) {
 }
 
 // Demo mode: sample results so anyone can try the flow without an access code.
-// The scenarios walk through green, cut-off, duplicate, math, not-a-receipt, double charge, a missing subtotal and an email with attachments.
+// The scenarios walk through green, cut-off, duplicate, math, not-a-receipt, double charge and a missing subtotal.
 const BLANK = {
   is_receipt: true, vendor: null, date: null, receipt_number: null, subtotal: null, gst: null, pst: null, hst: null,
   other_tax: null, tip: null, total: null, currency: 'CAD', payment_method: 'credit_card', category: null,
@@ -907,7 +518,7 @@ const BLANK = {
 };
 const DEMO = [
   () => ({ vendor: 'Staples #2045', date: daysAgo(3), receipt_number: '2045-118832', subtotal: 43.04, gst: 2.15, pst: 3.01, total: 48.2, category: 'office_supplies', email_sender: 'Staples Canada', email_subject: 'Your Staples receipt' }),
-  () => ({ vendor: 'Air Canada', date: daysAgo(6), receipt_number: 'AC7Q2K', subtotal: 392.84, gst: 19.91, total: 412.75, category: 'travel', email_sender: 'Air Canada', email_subject: 'Your booking receipt: Calgary to Toronto' }),
+  () => ({ vendor: 'Air Canada', date: daysAgo(6), receipt_number: 'AC7Q2K', subtotal: 393.1, gst: 19.65, total: 412.75, category: 'travel', email_sender: 'Air Canada', email_subject: 'Your booking receipt: Calgary to Toronto' }),
   () => ({ vendor: 'Uber', date: daysAgo(12), subtotal: 23.4, gst: 1.17, total: null, category: 'travel', cut_off: true, cut_off_detail: 'The total and payment lines are below the bottom edge.', email_sender: 'Uber Receipts', email_subject: 'Your Tuesday evening trip with Uber', confidence: 0.8 }),
   () => ({ vendor: 'Staples #2045', date: daysAgo(3), receipt_number: '2045-118832', subtotal: 43.04, gst: 2.15, pst: 3.01, total: 48.2, category: 'office_supplies', email_sender: 'Staples Canada', email_subject: 'Fwd: Your Staples receipt' }),
   () => ({ vendor: 'Tim Hortons', date: daysAgo(2), subtotal: 12.5, gst: 0.63, total: 13.4, category: 'meals', payment_method: 'debit', confidence: 0.86 }),
@@ -916,15 +527,11 @@ const DEMO = [
   () => ({ vendor: 'Amazon.ca', date: daysAgo(1), time: '14:12', receipt_number: '702-118', subtotal: 59.99, gst: 3.0, total: 62.99, category: 'office_supplies' }),
   () => ({ vendor: 'Amazon.ca', date: daysAgo(1), time: '14:31', receipt_number: '702-204', subtotal: 59.99, gst: 3.0, total: 62.99, category: 'office_supplies' }),
   () => ({ vendor: 'Petro-Canada', date: daysAgo(4), gst: 2.86, total: 60.06, category: 'fuel', payment_method: 'debit' }),
-  () => ({ is_receipt: false, category: null, currency: null, email_sender: 'Northside Supply', email_subject: 'Your October invoices', attachments: ['invoice-1042.pdf', 'invoice-1043.pdf'] }),
   () => ({ vendor: 'Shell', date: daysAgo(1), subtotal: 61.9, gst: 3.1, total: 65.0, category: 'fuel', payment_method: 'credit_card' }),
 ];
 
 async function mockExtract(it) {
   await new Promise((r) => setTimeout(r, 1400 + Math.random() * 1400));
-  if (it.images.length > 1 && it.extraction?.vendor === 'Uber') {
-    return { extraction: { ...it.extraction, total: 27.92, tip: 3.35, cut_off: false, cut_off_detail: null, confidence: 0.94 }, ms: 2100 };
-  }
   if (it.snapshot && it.extraction) {
     return { extraction: { ...it.extraction, cut_off: false, image_quality: 'clear', is_receipt: true, total: it.extraction.total ?? 19.95 }, ms: 1900 };
   }
@@ -941,9 +548,9 @@ const readAsDataUrl = (file) => new Promise((resolve, reject) => {
   r.readAsDataURL(file);
 });
 
-async function imageFileToCapture(file) {
+async function imageFileToPart(file) {
   const bitmap = await createImageBitmap(file);
-  const img = encodeFrame(bitmap, bitmap.width, bitmap.height, null);
+  const img = encodeImage(bitmap, bitmap.width, bitmap.height);
   bitmap.close?.();
   return img;
 }
@@ -1085,7 +692,6 @@ async function handleFiles(fileList) {
     if (part.error) setLocal(it, part.error, part.detail, 'file');
     else read(it);
   }
-  linkUploads(added);
   render();
 }
 
@@ -1097,7 +703,7 @@ async function fileToPart(f) {
     return { media_type: 'application/pdf', pdf: true, dataUrl, data: dataUrl.slice(dataUrl.indexOf(',') + 1) };
   }
   if (f.type.startsWith('image/')) {
-    try { return await imageFileToCapture(f); } catch { return { error: "Couldn't open that image", detail: 'Try a JPG or PNG.' }; }
+    try { return await imageFileToPart(f); } catch { return { error: "Couldn't open that image", detail: 'Try a JPG or PNG.' }; }
   }
   if (name.endsWith('.msg') || name.endsWith('.eml')) {
     return { error: "An email can't replace a receipt", detail: 'Drop the email on the box to read it as a new receipt instead.' };
@@ -1121,57 +727,29 @@ function removeItem(id) {
 }
 
 function startFix(it) {
-  if (it.source !== 'capture') {
-    S.replaceId = it.id;
-    $('#fileInput').click();
-    return;
-  }
-  S.target = { id: it.id, mode: it.action === 'append' ? 'append' : 'replace' };
-  render();
-  if (!S.stream) startCapture();
-  else toast(`Go to that email in Outlook, then click Capture in the box. It'll go to ${label(it)}.`);
-}
-
-function saveAdded() {
-  const a = S.adding;
-  const it = S.items.find((i) => i.id === a?.id);
-  if (!it?.extraction) { S.adding = null; return render(); }
-  const type = FIELDS.find(([f]) => f === a.field)?.[2];
-  const raw = String(a.value ?? '').trim();
-  let value = raw;
-  let error = '';
-  if (type === 'num') {
-    value = Number(raw.replace(/[$,\s]/g, ''));
-    if (raw === '' || !Number.isFinite(value) || value < 0) error = 'Type an amount, like 43.04';
-  } else if (a.field === 'currency') {
-    value = raw.toUpperCase();
-    if (!/^[A-Z]{3}$/.test(value)) error = 'Use a 3-letter code like CAD or USD';
-  } else if (type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    error = 'Pick the date';
-  } else if (type === 'time' && !/^\d{2}:\d{2}$/.test(raw)) {
-    error = 'Pick the time';
-  } else if (raw === '') {
-    error = 'Type something first';
-  }
-  if (error) { a.error = error; return render(); }
-  it.extraction[a.field] = value;
-  it.manual = [...new Set([...(it.manual || []), a.field])];
-  S.adding = null;
-  reassessAll();
-  render();
+  S.replaceId = it.id;
+  $('#fileInput').click();
 }
 
 function onAction(act, id, field) {
   const it = S.items.find((i) => i.id === id);
   switch (act) {
-    case 'capture': return capture();
-    case 'auto': setAuto(!S.auto); return render();
+    case 'pick': return pickFiles();
     case 'paste': return pasteFromButton();
-    case 'capture-anyway': return capture(S.moving?.mode || undefined, true);
-    case 'add': S.adding = { id, field, value: '' }; return render();
-    case 'add-more': S.adding = { id, more: true }; return render();
-    case 'add-cancel': S.adding = null; return render();
-    case 'add-save': return saveAdded();
+    case 'pip': return openPip();
+    case 'open-app': return openApp();
+    case 'box-done':
+      if (it) it.boxDone = true;
+      return render();
+    case 'box-done-all':
+      S.items.forEach((i) => { if (i.status !== 'reading') i.boxDone = true; });
+      S.attach.forEach((g) => g.files.forEach((f) => { if (f.skipped) f.hidden = true; }));
+      return render();
+    case 'skip-hide': {
+      const file = S.attach.find((g) => g.id === id)?.files[Number(field)];
+      if (file) file.hidden = true;
+      return render();
+    }
     case 'not-dup':
       if (!it) return;
       it.dupOk = true; it.followUp = null; reassessAll(); return render();
@@ -1185,26 +763,10 @@ function onAction(act, id, field) {
       render();
       return field && toast(`Saved to the ${FOLLOW_UP[field]} tab.`);
     case 'tab': S.tab = field; return render();
-    case 'att-done':
-      S.attach = S.attach.filter((g) => g.id !== id);
-      return render();
-    case 'att-skip': {
-      const file = S.attach.find((g) => g.id === id)?.files[Number(field)];
-      if (file) file.skipped = true;
-      return render();
-    }
-    case 'start': return startCapture();
-    case 'stop': return stopCapture();
-    case 'crop': return openCrop();
-    case 'pip': return openPip();
-    case 'append': return it && capture({ id: it.id, mode: 'append' });
-    case 'replace': return it && capture({ id: it.id, mode: 'replace' });
     case 'fix': return it && startFix(it);
     case 'retry': return it && read(it);
-    case 'cancel-target': S.target = null; return render();
     case 'keep':
       if (!it) return;
-      if (it.local?.action === 'same') { it.local = null; return read(it); }
       it.keep = true; assess(it); return render();
     case 'delete':
     case 'trash': return it && removeItem(it.id);
@@ -1226,14 +788,6 @@ boxEl.addEventListener('click', (e) => {
   // Rendering replaces the clicked button, so the page-wide listener would no longer see it inside the box.
   e.stopPropagation();
   onAction(el.dataset.act, Number(el.dataset.id), el.dataset.field);
-});
-boxEl.addEventListener('input', (e) => {
-  if (S.adding && e.target.matches('[data-add-input]')) { S.adding.value = e.target.value; S.adding.error = ''; }
-});
-boxEl.addEventListener('keydown', (e) => {
-  if (!e.target.matches('[data-add-input]')) return;
-  if (e.key === 'Enter') { e.preventDefault(); saveAdded(); }
-  if (e.key === 'Escape') { S.adding = null; render(); }
 });
 
 // ---------- rendering ----------
@@ -1264,7 +818,7 @@ function linkLine(it) {
   return '';
 }
 
-const SOURCE_NAMES = { capture: 'Scan', upload: 'Upload', paste: 'Paste', email: 'Email' };
+const SOURCE_NAMES = { upload: 'Upload', paste: 'Paste', email: 'Email' };
 const sourceLabel = (it) => `${SOURCE_NAMES[it.source]}${it.manual?.length ? ' + manual input' : ''}`;
 
 const fieldName = (f) => FIELDS.find(([k]) => k === f)?.[1] || titleCase(f);
@@ -1276,34 +830,9 @@ function missingFields(it) {
   return ['vendor', 'date', 'subtotal', 'total', 'currency'].filter((f) => (x[f] === null || x[f] === undefined || x[f] === '') && !(f === 'subtotal' && cents(x.total) === 0));
 }
 
-function otherEmptyFields(it) {
-  const x = it.extraction;
-  if (!x || (!x.is_receipt && !it.reviewed)) return [];
-  const missing = missingFields(it);
-  return FIELDS.map(([f]) => f).filter((f) => !missing.includes(f) && (x[f] === null || x[f] === undefined || x[f] === ''));
-}
-
-// The + buttons in the floating box, so a missing value can be typed while the email is open.
-function addControls(it) {
-  const a = S.adding?.id === it.id ? S.adding : null;
-  if (a?.field) {
-    const type = FIELDS.find(([f]) => f === a.field)?.[2];
-    const inputType = type === 'num' ? 'text' : type;
-    return `<div class="add-field"><label>${esc(fieldName(a.field))}
-        <input data-add-input type="${inputType}" ${type === 'num' ? 'inputmode="decimal" placeholder="0.00"' : ''} value="${esc(a.value || '')}"></label>
-      ${a.error ? `<div class="add-err">${esc(a.error)}</div>` : ''}
-      <div class="acts"><button class="btn sm primary" data-act="add-save">Save</button><button class="btn sm" data-act="add-cancel">Cancel</button></div></div>`;
-  }
-  const chip = (f) => `<button class="chip" data-act="add" data-id="${it.id}" data-field="${f}">+ ${esc(fieldName(f))}</button>`;
-  const missing = missingFields(it).map(chip);
-  const others = otherEmptyFields(it);
-  const rest = a?.more ? others.map(chip) : others.length ? [`<button class="chip plain" data-act="add-more" data-id="${it.id}">+ More</button>`] : [];
-  return missing.length || rest.length ? `<div class="chips">${[...missing, ...rest].join('')}</div>` : '';
-}
-
 function detailLine(it) {
   const x = it.extraction;
-  if (!x) return it.source === 'upload' ? esc(it.name || '') : it.source === 'paste' ? 'Pasted text' : it.source === 'email' ? 'Email text' : `Captured ${new Date(it.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  if (!x) return it.source === 'upload' ? esc(it.name || '') : it.source === 'paste' ? 'Pasted text' : 'Email text';
   const bits = [];
   if (it.level !== 'green' && (x.email_sender || x.email_subject)) {
     bits.push(`From ${esc(x.email_sender || 'unknown')}${x.email_subject ? ` · “${esc(x.email_subject)}”` : ''}`);
@@ -1344,14 +873,14 @@ const softButton = (it) => (it.issues?.some((i) => i.soft) ? `<button class="btn
 
 function fixButtons(it) {
   const chips = missingFields(it).map((f) => `<button class="chip" data-act="open" data-id="${it.id}" data-field="${f}">+ ${esc(fieldName(f))}</button>`).join('');
-  const extras = `${dupButton(it)}${softButton(it)}${chips}`;
-  if (it.level !== 'red' && !(it.level === 'yellow' && it.source === 'capture' && it.issues.some((i) => !i.dup && /cut off|blurry|dark/i.test(i.text)))) return extras ? `<div class="rbtns">${extras}</div>` : '';
   const btns = [];
-  if (it.action === 'retry') btns.push(`<button class="btn sm" data-act="retry" data-id="${it.id}">Try again</button>`);
-  else if (it.source === 'capture') btns.push(`<button class="btn sm" data-act="fix" data-id="${it.id}">${ICON.camera}${it.action === 'append' ? 'Capture the rest' : 'Recapture'}</button>`);
-  else if (it.source === 'upload') btns.push(`<button class="btn sm" data-act="fix" data-id="${it.id}">${ICON.file}Replace file</button>`);
-  if (it.extraction) btns.push(`<button class="btn sm" data-act="open" data-id="${it.id}">Edit</button>`);
-  return `<div class="rbtns">${btns.join('')}${extras}</div>`;
+  if (it.level === 'red') {
+    if (it.action === 'retry') btns.push(`<button class="btn sm" data-act="retry" data-id="${it.id}">Try again</button>`);
+    else if (it.source === 'upload') btns.push(`<button class="btn sm" data-act="fix" data-id="${it.id}">${ICON.file}Replace file</button>`);
+    if (it.extraction) btns.push(`<button class="btn sm" data-act="open" data-id="${it.id}">Edit</button>`);
+  }
+  const all = `${btns.join('')}${dupButton(it)}${softButton(it)}${chips}`;
+  return all ? `<div class="rbtns">${all}</div>` : '';
 }
 
 function renderList() {
@@ -1373,13 +902,12 @@ function renderList() {
     const issue = it.issues?.[0];
     const more = (it.issues?.length || 0) > 1 ? ` <span class="muted">+${it.issues.length - 1} more</span>` : '';
     const why = issue ? `<div class="why">${esc(issue.text)}${issue.detail ? `. ${esc(issue.detail)}` : ''}${more}</div>` : '';
-    const target = S.target?.id === it.id ? '<div class="why" style="color:var(--accent)">Waiting for your next capture…</div>' : '';
     const total = x && cents(x.total) !== null ? `${money(signedCents(it), x.currency)}<small>${esc(x.currency || '')}</small>` : '';
-    const name = it.status === 'reading' ? '<span class="muted">Reading…</span>' : esc(x?.vendor || it.name || (it.source === 'capture' ? `Capture ${it.n}` : 'Unknown vendor'));
+    const name = it.status === 'reading' ? '<span class="muted">Reading…</span>' : esc(x?.vendor || it.name || 'Unknown vendor');
     return `<div class="row ${it.level || ''}" data-act="open" data-id="${it.id}">
       <div class="st">${statusIcon(it)}</div>
       ${thumb}
-      <div style="min-width:0"><div class="v">${name}${pill(it)}</div><div class="d">${detailLine(it)}</div>${target || why}${fixButtons(it)}</div>
+      <div style="min-width:0"><div class="v">${name}${pill(it)}</div><div class="d">${detailLine(it)}</div>${why}${fixButtons(it)}</div>
       <div class="amt">${total}</div>
       <button class="trash" data-act="trash" data-id="${it.id}" aria-label="Delete receipt">${ICON.trash}</button>
     </div>`;
@@ -1427,122 +955,49 @@ function partNote(it, lineOf) {
   return `${it.issues[0]?.text || 'Check it'}, check in your list`;
 }
 
-function attachCard(group) {
-  const shown = group.files.map((f, i) => [f, i]).filter(([f]) => !group.dropped || !isWaiting(f));
-  const waiting = shown.filter(([f]) => isWaiting(f)).length;
-  const lineOf = (id) => shown.findIndex(([f]) => f.itemId === id) + 1;
-  const rows = shown.map(([f, i], n) => {
-    const it = S.items.find((o) => o.id === f.itemId);
-    const x = it?.extraction;
-    const total = cents(x?.total);
-    let icon = '<span class="att-dot"></span>';
-    let main = esc(f.name);
-    let note = f.skipped ? f.reason || 'Skipped' : 'Not read yet';
-    if (it?.status === 'reading') { icon = '<span class="spin"></span>'; note = 'Reading…'; }
-    else if (it?.status === 'local' || it?.status === 'error') { icon = ICON.error; note = it.local?.title || it.error || 'Couldn\'t read it'; }
-    else if (it) {
-      icon = it.level === 'green' ? ICON.check : it.level === 'yellow' ? ICON.warn : ICON.error;
-      if (x?.is_receipt) main = `${total !== null ? `<b>${money(total, x.currency)}</b> ` : ''}${esc(x.vendor || f.name)}`;
-      note = partNote(it, lineOf);
-    }
-    const sub = main === esc(f.name) ? note : `${note} · ${f.name}`;
-    return `<li class="att ${it?.level || ''}"><span class="att-n">${n + 1}.</span>${icon}<div class="att-text"><span class="att-main" title="${esc(f.name)}">${main}</span><span class="att-note">${esc(sub)}</span></div>
-      ${waiting && isWaiting(f) ? `<button class="link" data-act="att-skip" data-id="${group.id}" data-field="${i}">Skip</button>` : ''}</li>`;
-  }).join('');
-  const title = group.email ? `From ${group.title}` : group.dropped ? 'Dropped files' : waiting ? `${waiting} attachment${waiting > 1 ? 's' : ''} not read yet` : 'All attachments done';
-  const hint = group.note ? `<div class="d">${esc(group.note)}</div>`
-    : group.dropped ? '' : `<div class="d">${esc(group.title)}.${waiting ? ' Select them in Outlook and drag them onto this box.' : ''}</div>`;
-  return `<div class="card attach"><div class="t">${ICON.file}${esc(title)}</div>${hint}<ul class="att-list">${rows}</ul>
-    <div class="acts"><button class="btn sm" data-act="att-done" data-id="${group.id}">${waiting ? 'Skip the rest' : 'Done'}</button></div></div>`;
-}
-
+// The drop box: one big place to drop emails and files, and a list of everything scanned with
+// what happened to it. Done (✓) clears a line from here; it stays in the full list.
 function renderBox() {
-  // A paste happens in the box too, so its result shows here like a capture's.
-  const latest = [...S.items].filter((i) => i.source === 'capture' || i.source === 'paste').sort((a, b) => b.id - a.id)[0];
-  const capturing = !!S.stream;
-  const n = S.items.filter((i) => i.source === 'capture').length;
-  let html = `<div class="box-head"><span><span class="dot ${capturing ? 'live' : ''}"></span>${capturing ? (S.auto ? 'Auto-capturing' : 'Capturing') : 'Not capturing'}</span><span>${n} captured</span></div>`;
+  const shown = S.items.filter((i) => !i.boxDone).sort((a, b) => b.id - a.id);
+  const skipped = S.attach.flatMap((g) => g.files.map((f, i) => ({ g, f, i })).filter(({ f }) => f.skipped && !f.hidden));
+  const lineOf = (id) => shown.findIndex((i) => i.id === id) + 1;
+  const word = { green: 'Done', yellow: 'Review', grey: 'Not counted', red: 'Failed' };
+  const from = (it) => (it.fromEmail?.subject ? `From “${it.fromEmail.subject}”` : it.source === 'upload' ? it.name : it.source === 'paste' ? 'Pasted text' : '');
+  const rows = shown.map((it, n) => {
+    const x = it.extraction;
+    const total = signedCents(it);
+    const reading = it.status === 'reading';
+    const main = x?.is_receipt ? `${total !== null ? `<b>${money(total, x.currency)}</b> ` : ''}${esc(x.vendor || it.name || 'Receipt')}` : esc(it.name || label(it));
+    const note = reading ? 'Reading…' : partNote(it, lineOf);
+    return `<li class="scan ${reading ? 'reading' : it.level}"><span class="att-n">${n + 1}.</span>${statusIcon(it)}
+      <div class="att-text"><span class="att-main">${main}</span>
+        <span class="att-note">${reading ? '' : `<b class="tag ${it.level}">${word[it.level] || ''}</b> `}${esc(note)}</span>
+        ${from(it) ? `<span class="att-from">${esc(from(it))}</span>` : ''}</div>
+      <div class="scan-acts">${reading ? '' : `<button class="icon-btn" data-act="box-done" data-id="${it.id}" title="Done: clear from the drop box" aria-label="Done">${ICON.check}</button>`}
+        <button class="icon-btn" data-act="trash" data-id="${it.id}" title="Delete" aria-label="Delete">${ICON.trash}</button></div></li>`;
+  }).join('') + skipped.map(({ g, f, i }) => `<li class="scan grey"><span class="att-n">–</span><span class="not-counted">–</span>
+      <div class="att-text"><span class="att-main">${esc(f.name)}</span><span class="att-note"><b class="tag grey">Not read</b> ${esc(f.reason || 'Skipped')}</span>
+        <span class="att-from">${esc(`From “${g.subject || g.title}”`)}</span></div>
+      <div class="scan-acts"><button class="icon-btn" data-act="skip-hide" data-id="${g.id}" data-field="${i}" title="Done: clear from the drop box" aria-label="Done">${ICON.check}</button></div></li>`).join('');
 
-  const group = [...S.attach].reverse().find((g) => !g.dropped && g.files.some(isWaiting)) || S.attach[S.attach.length - 1];
-  if (S.moving) {
-    html += `<div class="card red"><div class="t">${ICON.error}The email was moving</div>
-      <div class="d">Don't scroll while capturing. Nothing was saved. Stop scrolling, then click Capture.</div>
-      <div class="acts"><button class="btn sm" data-act="capture-anyway">Capture anyway</button></div></div>`;
-  } else if (S.target) {
-    const t = S.items.find((i) => i.id === S.target.id);
-    html += `<div class="card target"><div class="t">${S.target.mode === 'append' ? 'Capturing the rest of' : 'Recapturing'} ${esc(t ? label(t) : 'receipt')}</div>
-      <div class="d">Open that email${S.target.mode === 'append' ? ', scroll to the total' : ''}, then click Capture.</div>
-      <div class="acts"><button class="btn sm" data-act="cancel-target">Cancel</button></div></div>`;
-  } else if (group && (!latest || latest.id < group.fromId)) {
-    // The email was only "see attached", so its checklist below is all there is to say.
-  } else if (!latest) {
-    html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${!capturing ? 'Click Start capturing and pick your Outlook window.' : S.auto ? 'Click a receipt email in Outlook and keep still for a second. It\'s captured by itself.' : 'Click a receipt email, then click Capture.'}</div>
-      <div class="d">Long receipt? ${PASTE_HINT}</div></div>`;
-  } else if (latest.status === 'reading') {
-    html += `<div class="card"><div class="t"><span class="spin"></span>Reading…</div><div class="d">Stay on this email. Capture comes back when it's done.</div></div>`;
-  } else if (latest.level === 'red') {
-    const issue = latest.issues[0];
-    const acts = latest.local?.action === 'same'
-      ? `<button class="btn sm danger" data-act="delete" data-id="${latest.id}">Delete it</button><button class="btn sm" data-act="keep" data-id="${latest.id}">Keep it</button>`
-      : latest.action === 'retry'
-        ? `<button class="btn sm danger" data-act="retry" data-id="${latest.id}">Try again</button><button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button>`
-        : latest.source === 'paste'
-          ? `${latest.extraction ? `<button class="btn sm" data-act="keep" data-id="${latest.id}">Keep anyway</button>` : ''}<button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button>`
-        : `${latest.action === 'append' ? `<button class="btn sm danger" data-act="append" data-id="${latest.id}">${ICON.plus}Capture the rest</button>` : ''}
-           <button class="btn sm ${latest.action === 'append' ? '' : 'danger'}" data-act="replace" data-id="${latest.id}">${ICON.camera}Recapture${latest.action === 'append' ? ' all' : ''}</button>
-           ${latest.extraction ? `<button class="btn sm" data-act="keep" data-id="${latest.id}">Keep anyway</button>` : ''}
-           <button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button>`;
-    html += `<div class="card red"><div class="t">${ICON.error}${esc(issue.text)}</div>
-      <div class="d">${esc(label(latest))}${issue.detail ? `. ${esc(issue.detail)}` : ''}</div><div class="acts">${acts}</div>${addControls(latest)}</div>`;
-  } else if (latest.level === 'yellow') {
-    const first = latest.issues[0];
-    html += `<div class="card yellow"><div class="t">${ICON.warn}${latest.followUp ? `Saved to ${FOLLOW_UP[latest.followUp]}` : first.charge ? 'Paid twice?' : 'Saved, check it later'}</div>
-      <div class="d">${esc(label(latest))}. ${esc(first.text)}</div>
-      ${dupButton(latest) || softButton(latest) ? `<div class="acts">${dupButton(latest)}${softButton(latest)}<button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button></div>` : ''}${addControls(latest)}</div>`;
-  } else {
-    const x = latest.extraction;
-    html += `<div class="card green"><div class="t">${ICON.check}${esc(x.vendor || 'Receipt')} · ${money(cents(x.total), x.currency)}</div>
-      <div class="d">${[shortDate(x.date), titleCase(x.category)].filter(Boolean).map(esc).join(' · ')}. Go to the next email.</div>${addControls(latest)}</div>`;
-  }
-
-  if (group && !S.target) {
-    html += attachCard(group);
-    const more = S.attach.filter((g) => g !== group && g.files.some(isWaiting)).length;
-    if (more) html += `<div class="pending"><span>${more} more email${more > 1 ? 's have' : ' has'} attachments waiting</span></div>`;
-  }
-
-  const earlierRed = S.items.filter((i) => i.level === 'red' && i !== latest && i.source === 'capture');
-  if (earlierRed.length && !S.target) {
-    const r = earlierRed[earlierRed.length - 1];
-    html += `<div class="pending"><span>${earlierRed.length} earlier capture${earlierRed.length > 1 ? 's' : ''} need${earlierRed.length > 1 ? '' : 's'} fixing: ${esc(label(r))}</span><button class="btn sm" data-act="fix" data-id="${r.id}">Fix</button></div>`;
-  }
-
-  const busy = isBusy();
-  html += capturing
-    ? `<button class="btn primary big" data-act="capture" ${busy ? 'disabled' : ''}>${busy ? `<span class="spin"></span>${S.grabbing ? 'Hold still…' : 'Reading…'}` : `${ICON.camera}Capture`}</button>`
-    : `<button class="btn primary big" data-act="start">${ICON.camera}Start capturing</button>`;
-  if (capturing) {
-    html += `<button class="auto-switch" role="switch" aria-checked="${S.auto}" data-act="auto"><span class="knob"></span>Auto-capture</button>`;
-    if (S.auto) html += '<div class="auto-note">Every email you open is sent to Claude. Turn this off when you\'re done with receipts.</div>';
-    if (S.auto && S.autoNote) html += `<div class="auto-note muted">${esc(S.autoNote)}</div>`;
-  }
-  html += `<button class="btn paste-btn" data-act="paste">${ICON.file}Paste copied email</button>`;
-  html += '<div class="auto-note muted">Outlook: you can also drag the email itself onto this box.</div>';
-  html += `<div class="box-foot"><button class="link" data-act="crop">${S.crop ? 'Crop area: on' : 'Set crop area'}</button>${capturing ? '<button class="link" data-act="stop">Stop</button>' : ''}</div>`;
-  boxEl.innerHTML = html;
-  boxEl.querySelector('[data-add-input]')?.focus();
+  boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned</span></div>
+    <button class="dropzone" data-act="pick">
+      <svg class="i" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <b>Drop the email here to scan</b>
+      <span>Drag a receipt email from Outlook, or PDFs and pictures. Or click to choose files.</span>
+    </button>
+    <button class="btn paste-btn" data-act="paste">${ICON.file}Paste copied email</button>
+    <div class="scan-head"><b>Scanned</b>${rows ? '<button class="link" data-act="box-done-all">Clear all done</button>' : ''}</div>
+    ${rows ? `<ul class="scan-list">${rows}</ul>` : '<p class="scan-empty">Nothing yet. Each email and file you drop shows up here: Done, Review or Failed, with the reason.</p>'}
+    ${S.pip ? '<button class="btn primary open-app" data-act="open-app">Open the app to review and export</button>' : ''}`;
 }
 
 function render() {
   renderBox();
   renderList();
-  const capturing = !!S.stream;
-  $('#startLabel').textContent = capturing ? 'Stop capturing' : 'Start capturing';
-  $('#startBtn').classList.toggle('primary', !capturing);
-  $('#pipBtn').hidden = !capturing || !!S.pip || !('documentPictureInPicture' in window);
-  $('#cropLabel').textContent = S.crop ? 'Change crop area' : 'Set crop area';
+  $('#dropBoxBtn').hidden = !!S.pip || !('documentPictureInPicture' in window);
   $('#modeNote').innerHTML = S.code
-    ? '<b>Live:</b> captures are read by Claude, well under a cent each.'
+    ? '<b>Live:</b> receipts are read by Claude, well under a cent each.'
     : '<b>Demo mode:</b> results are sample data, so you can practise the flow. Enter an access code to read real receipts.';
 }
 
@@ -1594,7 +1049,7 @@ function openDetail(it, focusField) {
       <div class="modal-foot">
         <div style="display:flex;gap:8px">
           <button class="btn danger" data-m="delete">${ICON.trash}Delete</button>
-          ${it.source === 'capture' ? `<button class="btn" data-m="fix">${ICON.camera}Recapture</button>` : it.source === 'upload' ? `<button class="btn" data-m="fix">${ICON.file}Replace file</button>` : ''}
+          ${it.source === 'upload' ? `<button class="btn" data-m="fix">${ICON.file}Replace file</button>` : ''}
         </div>
         <div style="display:flex;gap:8px"><button class="btn" data-close>Cancel</button><button class="btn primary" data-m="save">Save</button></div>
       </div>
@@ -1642,61 +1097,6 @@ function openDetail(it, focusField) {
   });
 }
 
-// ---------- crop area ----------
-
-async function openCrop() {
-  if (!S.stream && !(await startCapture())) return;
-  window.focus();
-  const bitmap = await grabBitmap();
-  const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width; canvas.height = bitmap.height;
-  canvas.getContext('2d').drawImage(bitmap, 0, 0);
-  bitmap.close?.();
-
-  $('#modalRoot').innerHTML = `<div class="overlay"><div class="modal" role="dialog" aria-modal="true" aria-label="Set crop area">
-    <div class="modal-head"><h3>Set crop area</h3><button class="trash" data-c="cancel" aria-label="Close">${ICON.x}</button></div>
-    <p class="crop-help">Drag a box around Outlook's reading pane, where the email shows. Every capture will be cut to this area. Leave a little room at the bottom for longer emails.</p>
-    <div class="crop-stage" id="stage"><div class="crop-rect" id="rect" hidden></div></div>
-    <div class="modal-foot"><button class="btn" data-c="clear">No crop (whole window)</button>
-      <div style="display:flex;gap:8px"><button class="btn" data-c="cancel">Cancel</button><button class="btn primary" data-c="save">Save crop area</button></div></div>
-  </div></div>`;
-  const stage = $('#stage');
-  const rect = $('#rect');
-  stage.prepend(canvas);
-  let sel = S.crop ? { ...S.crop } : null;
-  const draw = () => {
-    if (!sel) { rect.hidden = true; return; }
-    rect.hidden = false;
-    Object.assign(rect.style, { left: `${sel.x * 100}%`, top: `${sel.y * 100}%`, width: `${sel.w * 100}%`, height: `${sel.h * 100}%` });
-  };
-  draw();
-  let start = null;
-  const pos = (e) => {
-    const r = canvas.getBoundingClientRect();
-    return { x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height)) };
-  };
-  stage.addEventListener('pointerdown', (e) => { start = pos(e); stage.setPointerCapture(e.pointerId); });
-  stage.addEventListener('pointermove', (e) => {
-    if (!start) return;
-    const p = pos(e);
-    sel = { x: Math.min(start.x, p.x), y: Math.min(start.y, p.y), w: Math.abs(p.x - start.x), h: Math.abs(p.y - start.y) };
-    draw();
-  });
-  stage.addEventListener('pointerup', () => { start = null; if (sel && (sel.w < 0.05 || sel.h < 0.05)) { sel = null; draw(); } });
-
-  $('#modalRoot').querySelector('.modal').addEventListener('click', (e) => {
-    const c = e.target.closest('[data-c]')?.dataset.c;
-    if (!c) return;
-    if (c === 'clear') { S.crop = null; store.set('rp.crop', null); toast('Crop removed. Captures use the whole window.'); }
-    if (c === 'save') {
-      if (!sel) return toast('Drag a box on the picture first.');
-      S.crop = sel; store.set('rp.crop', sel); toast('Crop area saved.');
-    }
-    closeModal();
-    render();
-  });
-}
-
 // ---------- Excel export ----------
 
 function loadScript(src) {
@@ -1722,7 +1122,7 @@ const EXPORT_COLUMNS = [
   ['Notes', (it) => [linkLine(it), ...(it.issues || []).map((i) => i.text)].filter(Boolean).join('; ')],
   ['Source', (it) => sourceLabel(it)],
   ['Manual fields', (it) => (it.manual || []).map(fieldName).join(', ')],
-  ['File', (it) => (it.source === 'capture' ? '' : it.name)],
+  ['File', (it) => it.name || ''],
 ];
 
 const exportRows = () => [...S.items].filter((i) => i.extraction).sort((a, b) => a.id - b.id);
@@ -1808,37 +1208,27 @@ async function downloadExcel(file, headers) {
 
 const ILL = {
   flow: `<div class="ill"><div class="ill-flow">
-    <div class="s">Click email<small>in Outlook</small></div><span class="arr">→</span>
-    <div class="s">Capture<small>in the box</small></div><span class="arr">→</span>
-    <div class="s" style="color:var(--green)">✓ Done<small>in seconds</small></div></div></div>`,
-  share: `<div class="ill"><div class="share">
-    <div class="bar">Choose what to share</div>
-    <div class="tabs"><span>Chrome tab</span><span class="on">Window</span><span>Entire screen</span></div>
-    <div class="wins"><div class="win">Excel</div><div class="win on pulse">Outlook</div><div class="win">Teams</div></div>
-    <div class="btns"><span>Cancel</span><span class="on">Share</span></div></div></div>`,
-  box: `<div class="ill"><div class="box" style="max-width:240px;margin:0 auto">
-    <div class="box-head"><span><span class="dot live"></span>Capturing</span><span>3 captured</span></div>
-    <div class="card green"><div class="t">✓ Staples · $48.20</div><div class="d">Oct 3 · Office supplies. Go to the next email.</div></div>
-    <div class="btn primary big pulse">Capture</div></div></div>`,
-  red: `<div class="ill"><div class="card red" style="animation:none"><div class="t">Part of the receipt is cut off</div>
-    <div class="d">Uber · Oct 14. Scroll down in the email, then capture the rest.</div>
-    <div class="acts"><span class="btn sm danger pulse">Capture the rest</span><span class="btn sm">Recapture all</span></div></div>
-    <div class="card yellow"><div class="t">Saved, check it later</div><div class="d">Looks like the same receipt as Staples · Oct 3</div></div></div>`,
+    <div class="s">Drag an email<small>from Outlook</small></div><span class="arr">→</span>
+    <div class="s">Drop box<small>drop it here</small></div><span class="arr">→</span>
+    <div class="s" style="color:var(--green)">✓ Read<small>in seconds</small></div></div></div>`,
+  box: `<div class="ill"><div class="box" style="max-width:250px;margin:0 auto">
+    <div class="box-head"><span>Drop box</span><span>3 scanned</span></div>
+    <div class="dropzone pulse"><b>Drop the email here to scan</b></div>
+    <ul class="scan-list">
+      <li class="scan green"><span class="att-n">1.</span>✓<div class="att-text"><span class="att-main"><b>$132.24</b> Anthropic</span><span class="att-note"><b class="tag green">Done</b> Receipt, counted</span></div></li>
+      <li class="scan yellow"><span class="att-n">2.</span>!<div class="att-text"><span class="att-main"><b>$132.24</b> Anthropic</span><span class="att-note"><b class="tag yellow">Review</b> Invoice for the receipt #1, possible duplicate</span></div></li>
+    </ul></div></div>`,
 };
 
 const TOUR = [
-  { title: 'Capture receipts in two clicks', html: '<p>No downloading, no saving to folders. You click a receipt email, click Capture, and it\'s read for you.</p>' + ILL.flow },
+  { title: 'Drop your receipts, that\'s it', html: '<p>Drag a receipt email from Outlook onto the drop box. Its text and every PDF attached are read, the math is checked, and duplicates are flagged. Nothing to download or save first.</p>' + ILL.flow },
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
-  { target: '#startBtn', title: 'Start capturing', html: '<p>Click this, and your browser asks what to share:</p>' + ILL.share + '<ol><li>Click the <b>Window</b> tab</li><li>Click your <b>Outlook</b> window</li><li>Click <b>Share</b></li></ol><p>Outlook has to be open, not minimized. It works with the Outlook app or Outlook in a browser.</p>' },
-  { title: 'A box floats on top of Outlook', html: '<p>After you share, a small box pops out and stays on top of every window, even when you click into Outlook. Drag it to a corner.</p>' + ILL.box + "<p>Don't see it? Click <b>Open floating box</b>. In Firefox or Safari it stays on this page; put this window next to Outlook.</p>" },
-  { title: 'Your rhythm', html: '<ol><li>Click a receipt email in Outlook</li><li>Click <b>Capture</b> in the box</li><li>Wait a few seconds for the green check, then click the next email</li></ol><p>Tired of clicking Capture? Turn on <b>Auto-capture</b> in the box: click an email, keep still for a second, and it\'s captured by itself. Emails that aren\'t receipts are skipped.</p><p>Capture locks while a receipt is being read, so nothing gets saved twice. Don\'t scroll while you click it: if the email is moving, you\'ll get a warning and nothing is saved.</p><p>Prefer to stay on one email until it\'s green: if something\'s wrong, you\'re already in the right place to fix it.</p>' },
-  { title: 'When it goes red', html: ILL.red + '<p><b>Red means fix it now</b>, while the email is still open. If the total is cut off, scroll down and click <b>Capture the rest</b>: both parts are read as one receipt.</p><p><b>Yellow</b> means it\'s saved; check it later in your list.</p>' },
-  { title: 'Long receipts: copy and paste', html: '<p>A long receipt doesn\'t fit in one capture. Copy it instead:</p><ol><li>In the email, right-click and choose <b>Select All</b>, then right-click and choose <b>Copy</b>. Or press <b>Ctrl+A</b>, then <b>Ctrl+C</b>.</li><li>Click <b>Paste copied email</b> in the box, or click the box and press <b>Ctrl+V</b>.</li></ol><p>The first time, the browser asks to let reysan.ca see what you copied: click <b>Allow</b>.</p><p>The whole email is read as text, however long it is. Messy formatting is fine. Receipts that are a picture inside the email still need a capture.</p>' },
-  { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The box shows a <b>+</b> button, like <b>+ Subtotal</b>. Click it and type what you see in the email. The receipt\'s source then says <b>Scan + manual input</b>.</p><p><b>Paid twice?</b> If two receipts from the same vendor have the same amount within 30 minutes, you\'ll get a warning. Click <b>Yes, it\'s a real purchase</b> to clear it, or send it to the <b>Needs review</b> or <b>For refund</b> tab above your list so you can come back to it.</p>' },
-  { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
-  { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here. In Outlook you can drag <b>the whole email</b> from your inbox onto the box: its text and every PDF attached to it are read together. Gmail doesn\'t allow dragging files out, so download the attachment first, then drag it from the browser\'s downloads list.</p><p><b>An email with several PDFs?</b> Capture it with the attachment names showing. The box lists them, then ticks each one off as you drag it onto the box, so none get forgotten.</p>' },
-  { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: good to go. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing.</p><p>Click any row to see the image next to the fields and fix anything. The trash icon deletes it, and you get a few seconds to Undo.</p>' },
-  { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need. It remembers your ticks for next time.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
+  { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Doesn\'t pop out? Use the drop box on this page and keep this window beside Outlook.</p>' },
+  { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p>Click ✓ to clear a line from the drop box (it stays in your list), or the trash to delete it. <b>Open the app</b> takes you back here to review and export.</p>' },
+  { target: '#dropZone', title: 'Files and Gmail', html: '<p>Drop PDFs or pictures here or on the drop box, or click to choose files.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and click <b>Paste copied email</b> (or press Ctrl+V here). For a Gmail attachment, download it, then drag it in.</p>' },
+  { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p>' },
+  { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The row shows a <b>+</b> button, like <b>+ Subtotal</b>: click it and type what the receipt says. Its source then says <b>manual input</b>.</p><p><b>Paid twice?</b> The same vendor and amount within 30 minutes gets a warning. Send it to <b>For refund</b>, and when the refund arrives it shows as <b>Refunded</b>. An invoice that was never paid goes to <b>Needs review</b> and isn\'t counted.</p>' },
+  { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, minus refunds, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
 ];
 
 let tourStep = -1;
@@ -1921,9 +1311,8 @@ document.addEventListener('keydown', (e) => {
 
 // ---------- wiring ----------
 
-$('#startBtn').addEventListener('click', () => (S.stream ? stopCapture() : startCapture()));
-$('#pipBtn').addEventListener('click', () => openPip());
-$('#cropBtn').addEventListener('click', () => openCrop());
+$('#dropBoxBtn').addEventListener('click', () => openPip());
+$('#chooseBtn').addEventListener('click', () => $('#fileInput').click());
 $('#helpBtn').addEventListener('click', () => openTour(0));
 $('#exportBtn').addEventListener('click', openExport);
 $('#pickBtn').addEventListener('click', () => $('#fileInput').click());
@@ -1940,13 +1329,14 @@ codeInput.addEventListener('change', () => {
 
 const drop = $('#dropZone');
 let dragDepth = 0;
-window.addEventListener('dragenter', (e) => { e.preventDefault(); dragDepth++; drop.classList.add('over'); });
-window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) drop.classList.remove('over'); });
+window.addEventListener('dragenter', (e) => { e.preventDefault(); dragDepth++; drop.classList.add('over'); boxEl.classList.add('over'); });
+window.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) { drop.classList.remove('over'); boxEl.classList.remove('over'); } });
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => {
   e.preventDefault();
   dragDepth = 0;
   drop.classList.remove('over');
+  boxEl.classList.remove('over');
   takeDrop(e);
 });
 drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#fileInput').click(); } });

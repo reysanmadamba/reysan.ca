@@ -35,31 +35,30 @@
   <main class="wrap">
     <section class="hero">
       <div class="hero-text">
-        <h2>Click an email. Click capture. Done.</h2>
-        <p>Share your Outlook window once, then a small box floats on top of it. Every capture is read in a few seconds and you'll know right away if it needs fixing.</p>
+        <h2>Drag a receipt email. Done.</h2>
+        <p>Open the drop box and drag receipt emails onto it, straight from your Outlook inbox. The email and every PDF attached are read in seconds, checked, and listed below.</p>
         <div class="hero-actions">
-          <button class="btn primary" id="startBtn">
-            <svg class="i" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1.5-2h6l1.5 2H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.5"/></svg>
-            <span id="startLabel">Start capturing</span>
+          <button class="btn primary" id="dropBoxBtn">
+            <svg class="i" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+            Open drop box
           </button>
-          <button class="btn" id="pipBtn" hidden>Open floating box</button>
-          <button class="btn" id="cropBtn">
-            <svg class="i" viewBox="0 0 24 24"><path d="M7 3v14h14M3 7h14v14"/></svg>
-            <span id="cropLabel">Set crop area</span>
+          <button class="btn" id="chooseBtn">
+            <svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+            Choose files
           </button>
         </div>
         <p class="mode" id="modeNote"></p>
       </div>
 
-      <!-- The capture box. Lives here until it pops out on top of Outlook. -->
+      <!-- The drop box. Lives here until it pops out on top of Outlook. -->
       <aside class="box" id="box" aria-live="polite"></aside>
     </section>
 
     <section class="drop" id="dropZone" tabindex="0">
       <svg class="i lg" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
       <div>
-        <strong>Drop PDFs or receipt images here</strong>
-        <span>In Outlook, drag the whole email here: its text and attachments are read together. Or <button class="link" id="pickBtn">choose files</button>. Long receipt in Gmail? Copy the email (Ctrl+A, Ctrl+C) and press Ctrl+V here.</span>
+        <strong>Drop emails, PDFs or receipt pictures here</strong>
+        <span>From Outlook, drag the email itself: its text and attachments are read together. Or <button class="link" id="pickBtn">choose files</button>. Gmail? Copy the email (Ctrl+A, Ctrl+C) and press Ctrl+V here.</span>
       </div>
       <input type="file" id="fileInput" accept="application/pdf,image/*,.msg,.eml" multiple hidden>
     </section>

@@ -165,6 +165,36 @@ body.pip .box { border: 0; padding: 4px; }
 .att .link { font-size: 12px; }
 .pending { font-size: 12px; color: var(--red); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .paste-btn { width: 100%; justify-content: center; }
+.dropzone { display: grid; justify-items: center; gap: 6px; width: 100%; min-height: 150px; padding: 18px 14px; border: 2px dashed var(--accent); border-radius: 12px; background: var(--accent-bg); color: var(--accent); font: inherit; text-align: center; cursor: pointer; align-content: center; }
+.dropzone .i { width: 30px; height: 30px; }
+.dropzone b { font-size: 16px; font-weight: 650; }
+.dropzone span { font-size: 12px; color: var(--muted); max-width: 28ch; }
+.box.over .dropzone { background: var(--accent); color: #fff; border-style: solid; }
+.box.over .dropzone span { color: #fff; }
+.scan-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+.scan-head .link { font-size: 12px; }
+.scan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.scan { display: grid; grid-template-columns: 18px 18px 1fr auto; align-items: start; gap: 6px; padding: 8px 6px; border-radius: 8px; font-size: 12px; color: var(--text); }
+.scan.green { background: var(--green-bg); }
+.scan.yellow { background: var(--amber-bg); }
+.scan.red { background: var(--red-bg); }
+.scan.grey { opacity: 0.75; }
+.scan .i { width: 16px; height: 16px; margin-top: 1px; }
+.scan.green .i { color: var(--green); }
+.scan.yellow .i { color: var(--amber); }
+.scan.red .i { color: var(--red); }
+.att-from { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tag { font-weight: 700; }
+.tag.green { color: var(--green); }
+.tag.yellow { color: var(--amber); }
+.tag.red { color: var(--red); }
+.scan-acts { display: flex; gap: 2px; }
+.icon-btn { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+.icon-btn:hover { background: var(--surface); color: var(--text); }
+.icon-btn .i { width: 16px; height: 16px; margin: 0; color: inherit; }
+.scan-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 4px; }
+.open-app { width: 100%; justify-content: center; }
+body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .auto-switch { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 2px; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; }
 .auto-switch .knob { position: relative; flex: none; width: 34px; height: 20px; border-radius: 999px; background: var(--border); transition: background 0.15s; }
 .auto-switch .knob::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s; }
