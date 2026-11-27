@@ -104,12 +104,17 @@ button { font: inherit; color: inherit; }
 /* Layout */
 .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 24px 48px; display: grid; gap: 20px; }
 .hero {
-  display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; justify-items: center; text-align: center;
   background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: var(--shadow);
 }
 .hero h2 { font-size: 26px; line-height: 1.2; font-weight: 650; letter-spacing: -0.01em; }
-.hero-text > p { color: var(--muted); margin-top: 10px; max-width: 52ch; }
-.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.hero h2 { font-size: 30px; }
+.hero-text > p { color: var(--muted); margin: 10px auto 0; max-width: 52ch; }
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; justify-content: center; }
+.hero-actions .btn.primary { height: 48px; padding: 0 22px; font-size: 16px; }
+.float-note { margin-top: 12px; font-size: 13px; color: var(--accent); }
+.float-note:empty { display: none; }
+.box[hidden] { display: none; }
 .mode { margin-top: 14px; font-size: 13px; color: var(--muted); }
 .mode b { color: var(--text); font-weight: 600; }
 

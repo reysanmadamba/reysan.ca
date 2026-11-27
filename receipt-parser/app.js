@@ -357,7 +357,7 @@ function reassessAll() {
 // A small window that stays on top of every other window, Outlook included, to drop emails onto.
 async function openPip() {
   if (!('documentPictureInPicture' in window)) {
-    toast("This browser can't float the drop box. Keep this window beside Outlook and use the drop box on this page.");
+    toast("This browser can't float the drop box. Drop emails and files on this page instead, or use Edge or Chrome.");
     return false;
   }
   if (S.pip) return true;
@@ -1281,7 +1281,15 @@ function render() {
   renderList();
   renderSaved();
   saveSoon();
-  $('#dropBoxBtn').hidden = !!S.pip || !('documentPictureInPicture' in window);
+  // The drop box only shows as the floating window; the page keeps the one list, below.
+  const canFloat = 'documentPictureInPicture' in window;
+  boxEl.hidden = !S.pip;
+  const btn = $('#dropBoxBtn');
+  btn.hidden = !canFloat;
+  btn.disabled = !!S.pip;
+  btn.lastChild.textContent = S.pip ? ' Drop box is open' : ' Open drop box';
+  $('#floatNote').textContent = !canFloat ? "This browser can't float the drop box: drop emails and files on the area below, or use Edge or Chrome."
+    : S.pip ? 'The drop box is floating on your screen. Your list is below.' : '';
   $('#modeNote').innerHTML = S.code
     ? '<b>Live:</b> receipts are read by Claude, well under a cent each.'
     : '<b>Demo mode:</b> results are sample data, so you can practise the flow. Enter an access code to read real receipts.';
@@ -1521,7 +1529,7 @@ const ILL = {
 const TOUR = [
   { title: 'Drop your receipts, that\'s it', html: '<p>Drag a receipt email from Outlook onto the drop box. Its text and every PDF attached are read, the math is checked, and duplicates are flagged. Nothing to download or save first.</p>' + ILL.flow },
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
-  { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Doesn\'t pop out? Use the drop box on this page and keep this window beside Outlook.</p>' },
+  { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Using Firefox or Safari? They can\'t float it: drop emails and files on the area under the heading instead.</p>' },
   { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p><b>Review</b> opens the document next to what was read, so you can check it and fix anything. <b>Keep</b> says it\'s right: the line turns green and counts. The trash deletes it. <b>Clear counted</b> tidies the drop box (lines stay in your full list), and <b>Open the app</b> takes you back here to export.</p>' },
   { target: '#dropZone', title: 'Files and Gmail', html: '<p>Drop PDFs or pictures here or on the drop box, or use <b>Upload files</b>. <b>Upload folder</b> reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and click <b>Paste copied email</b> (or press Ctrl+V here). For a Gmail attachment, download it, then drag it in.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p><p>Tick the boxes to act on several at once: <b>Review later</b>, <b>Archive</b> (out of your list and total, kept under Archived) or <b>Delete</b>. Your list is saved on this computer, so it\'s still here when you come back. <b>Clear all</b> starts fresh.</p>' },
