@@ -13,6 +13,8 @@ const AUTO_STILL_MS = 700;    // how long the email must sit still before auto-c
 const AUTO_NEW_SHARE = 0.03;  // how different from the last capture a screen must be to count as a new email
 const AUTO_GAP_MS = 1000;
 const MAX_PARTS = 5;          // the reader takes up to 5 images of one receipt
+const MAX_TEXT_CHARS = 100_000; // pasted email text, the reader's limit too
+const PASTE_HINT = 'In the email, right-click and choose Select All, then right-click and choose Copy (or press Ctrl+A, then Ctrl+C). Then click Paste copied email.';
 
 const store = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -148,7 +150,7 @@ function lowTax(x, sub) {
 
 function assess(it) {
   const issues = [];
-  let action = it.source === 'capture' ? 'replace' : 'file';
+  let action = it.source === 'capture' ? 'replace' : it.source === 'paste' ? 'paste' : 'file';
   const x = it.extraction;
 
   if (it.status === 'error') {
@@ -167,9 +169,9 @@ function assess(it) {
       issues.push({
         level: 'red',
         text: x.total === null ? "Can't see the total" : 'Part of the receipt is cut off',
-        detail: (x.cut_off_detail ? `${x.cut_off_detail} ` : '') + (it.source !== 'capture' ? 'Try the full PDF, or enter the total.'
-          : S.auto ? 'Scroll down a little at a time and hold still: each part joins this receipt. Very long? Zoom out in Outlook (Ctrl and minus) to fit more in each shot.'
-            : 'Scroll down in the email, then capture the rest. Very long? Zoom out in Outlook (Ctrl and minus) to fit more in each shot.'),
+        detail: (x.cut_off_detail ? `${x.cut_off_detail} ` : '') + (it.source === 'paste' ? `The copied text stops early. ${PASTE_HINT}`
+          : it.source !== 'capture' ? 'Try the full PDF, or enter the total.'
+            : `Long receipt? Copy it instead: ${PASTE_HINT}`),
       });
     }
   }
@@ -363,6 +365,7 @@ async function openPip() {
     pip.document.body.append(boxEl);
     pip.document.addEventListener('dragover', (e) => { e.preventDefault(); boxEl.classList.add('over'); });
     pip.document.addEventListener('dragleave', (e) => { if (!e.relatedTarget) boxEl.classList.remove('over'); });
+    pip.document.addEventListener('paste', takePaste);
     pip.document.addEventListener('drop', (e) => {
       e.preventDefault();
       boxEl.classList.remove('over');
@@ -549,7 +552,7 @@ function addItem(source, images, name) {
 // a complete capture of the same receipt takes the cut-off row's place.
 function replaceCutOff(it) {
   const x = it.extraction;
-  if (it.source !== 'capture' || !x.is_receipt || x.cut_off || x.total === null || x.image_quality !== 'clear') return;
+  if (!['capture', 'paste'].includes(it.source) || !x.is_receipt || x.cut_off || x.total === null || x.image_quality !== 'clear') return;
   const v = normVendor(x.vendor);
   if (!v) return;
   const number = (r) => String(r.receipt_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -795,7 +798,9 @@ async function callApi(it) {
     const res = await fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: S.code, today: today(), files: it.images.map((i) => ({ media_type: i.media_type, data: i.data })) }),
+      body: JSON.stringify(it.text
+        ? { code: S.code, today: today(), text: it.text }
+        : { code: S.code, today: today(), files: it.images.map((i) => ({ media_type: i.media_type, data: i.data })) }),
       signal: ctrl.signal,
     });
     const body = await res.json().catch(() => ({}));
@@ -861,6 +866,50 @@ async function imageFileToCapture(file) {
   bitmap.close?.();
   return img;
 }
+
+// Ctrl+V of an email's text: the whole receipt however long, with nothing cut off or misread.
+function takePaste(e) {
+  if (e.target?.closest?.('input, textarea, select, [contenteditable]')) return;
+  const data = e.clipboardData;
+  if (!data) return;
+  if (data.files?.length) {
+    e.preventDefault();
+    handleFiles(data.files);
+    return;
+  }
+  let text = data.getData('text/plain');
+  if (!text.trim()) {
+    const html = data.getData('text/html');
+    // Keep rows and cells apart, or "Subtotal" and "12.00" from separate cells run together.
+    const spaced = html.replace(/<(br|\/p|\/div|\/tr|\/li|\/h\d)[^>]*>/gi, '\n$&').replace(/<\/t[dh]>/gi, ' $&');
+    if (html) text = new DOMParser().parseFromString(spaced, 'text/html').body.textContent || '';
+  }
+  e.preventDefault();
+  takeText(text);
+}
+
+function takeText(raw) {
+  const text = String(raw || '').trim();
+  if (text.length < 20) return toast(`Nothing to paste yet. ${PASTE_HINT}`);
+  if (text.length > MAX_TEXT_CHARS) return toast("That's too much text for one receipt. Copy just the one email.");
+  if (S.items.some((i) => i.text === text)) return toast('Already pasted that one.');
+  const it = addItem('paste', []);
+  it.text = text;
+  read(it);
+}
+
+// The Paste button reads what was copied. It asks through the window the box is in, because
+// the browser only hands the clipboard to the window that was just clicked.
+async function pasteFromButton() {
+  const nav = boxEl.ownerDocument.defaultView.navigator;
+  try {
+    takeText(await nav.clipboard.readText());
+  } catch {
+    toast('The browser didn\'t allow reading what you copied. Click Allow if it asks, or click the box and press Ctrl+V.');
+  }
+}
+
+document.addEventListener('paste', takePaste);
 
 function takeDrop(e) {
   if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files);
@@ -977,6 +1026,7 @@ function onAction(act, id, field) {
   switch (act) {
     case 'capture': return capture();
     case 'auto': setAuto(!S.auto); return render();
+    case 'paste': return pasteFromButton();
     case 'capture-anyway': return capture(S.moving?.mode || undefined, true);
     case 'add': S.adding = { id, field, value: '' }; return render();
     case 'add-more': S.adding = { id, more: true }; return render();
@@ -1053,7 +1103,8 @@ function statusIcon(it) {
   return it.level === 'green' ? ICON.check : it.level === 'yellow' ? ICON.warn : ICON.error;
 }
 
-const sourceLabel = (it) => `${it.source === 'capture' ? 'Scan' : 'Upload'}${it.manual?.length ? ' + manual input' : ''}`;
+const SOURCE_NAMES = { capture: 'Scan', upload: 'Upload', paste: 'Paste' };
+const sourceLabel = (it) => `${SOURCE_NAMES[it.source]}${it.manual?.length ? ' + manual input' : ''}`;
 
 const fieldName = (f) => FIELDS.find(([k]) => k === f)?.[1] || titleCase(f);
 
@@ -1091,7 +1142,7 @@ function addControls(it) {
 
 function detailLine(it) {
   const x = it.extraction;
-  if (!x) return it.source === 'upload' ? esc(it.name || '') : `Captured ${new Date(it.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  if (!x) return it.source === 'upload' ? esc(it.name || '') : it.source === 'paste' ? 'Pasted text' : `Captured ${new Date(it.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
   const bits = [];
   if (it.level !== 'green' && (x.email_sender || x.email_subject)) {
     bits.push(`From ${esc(x.email_sender || 'unknown')}${x.email_subject ? ` · “${esc(x.email_subject)}”` : ''}`);
@@ -1126,7 +1177,7 @@ function fixButtons(it) {
   const btns = [];
   if (it.action === 'retry') btns.push(`<button class="btn sm" data-act="retry" data-id="${it.id}">Try again</button>`);
   else if (it.source === 'capture') btns.push(`<button class="btn sm" data-act="fix" data-id="${it.id}">${ICON.camera}${it.action === 'append' ? 'Capture the rest' : 'Recapture'}</button>`);
-  else btns.push(`<button class="btn sm" data-act="fix" data-id="${it.id}">${ICON.file}Replace file</button>`);
+  else if (it.source === 'upload') btns.push(`<button class="btn sm" data-act="fix" data-id="${it.id}">${ICON.file}Replace file</button>`);
   if (it.extraction) btns.push(`<button class="btn sm" data-act="open" data-id="${it.id}">Edit</button>`);
   return `<div class="rbtns">${btns.join('')}${extras}</div>`;
 }
@@ -1140,7 +1191,9 @@ function renderList() {
   list.innerHTML = S.tab !== 'all' && !items.length ? `<p class="tab-empty">Nothing here yet.</p>` : items.map((it) => {
     const x = it.extraction;
     const first = it.images[0];
-    const thumb = !first
+    const thumb = it.text
+      ? '<div class="thumb pdf text">TEXT</div>'
+      : !first
       ? `<div class="thumb pdf">${ICON.file}</div>`
       : first.pdf
         ? '<div class="thumb pdf">PDF</div>'
@@ -1205,7 +1258,8 @@ function attachCard(group) {
 }
 
 function renderBox() {
-  const latest = [...S.items].filter((i) => i.source === 'capture').sort((a, b) => b.id - a.id)[0];
+  // A paste happens in the box too, so its result shows here like a capture's.
+  const latest = [...S.items].filter((i) => i.source === 'capture' || i.source === 'paste').sort((a, b) => b.id - a.id)[0];
   const capturing = !!S.stream;
   const n = S.items.filter((i) => i.source === 'capture').length;
   let html = `<div class="box-head"><span><span class="dot ${capturing ? 'live' : ''}"></span>${capturing ? (S.auto ? 'Auto-capturing' : 'Capturing') : 'Not capturing'}</span><span>${n} captured</span></div>`;
@@ -1223,7 +1277,8 @@ function renderBox() {
   } else if (group && (!latest || latest.id < group.fromId)) {
     // The email was only "see attached", so its checklist below is all there is to say.
   } else if (!latest) {
-    html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${!capturing ? 'Click Start capturing and pick your Outlook window.' : S.auto ? 'Click a receipt email in Outlook and keep still for a second. It\'s captured by itself.' : 'Click a receipt email in Outlook, then click Capture.'}</div></div>`;
+    html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${!capturing ? 'Click Start capturing and pick your Outlook window.' : S.auto ? 'Click a receipt email in Outlook and keep still for a second. It\'s captured by itself.' : 'Click a receipt email in Outlook, then click Capture.'}</div>
+      <div class="d">Long receipt? ${PASTE_HINT}</div></div>`;
   } else if (latest.status === 'reading') {
     html += `<div class="card"><div class="t"><span class="spin"></span>Reading…</div><div class="d">Stay on this email. Capture comes back when it's done.</div></div>`;
   } else if (latest.level === 'red') {
@@ -1232,6 +1287,8 @@ function renderBox() {
       ? `<button class="btn sm danger" data-act="delete" data-id="${latest.id}">Delete it</button><button class="btn sm" data-act="keep" data-id="${latest.id}">Keep it</button>`
       : latest.action === 'retry'
         ? `<button class="btn sm danger" data-act="retry" data-id="${latest.id}">Try again</button><button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button>`
+        : latest.source === 'paste'
+          ? `${latest.extraction ? `<button class="btn sm" data-act="keep" data-id="${latest.id}">Keep anyway</button>` : ''}<button class="btn sm" data-act="delete" data-id="${latest.id}">Delete</button>`
         : `${latest.action === 'append' ? `<button class="btn sm danger" data-act="append" data-id="${latest.id}">${ICON.plus}Capture the rest</button>` : ''}
            <button class="btn sm ${latest.action === 'append' ? '' : 'danger'}" data-act="replace" data-id="${latest.id}">${ICON.camera}Recapture${latest.action === 'append' ? ' all' : ''}</button>
            ${latest.extraction ? `<button class="btn sm" data-act="keep" data-id="${latest.id}">Keep anyway</button>` : ''}
@@ -1270,6 +1327,7 @@ function renderBox() {
     if (S.auto) html += '<div class="auto-note">Every email you open is sent to Claude. Turn this off when you\'re done with receipts.</div>';
     if (S.auto && S.autoNote) html += `<div class="auto-note muted">${esc(S.autoNote)}</div>`;
   }
+  html += `<button class="btn paste-btn" data-act="paste">${ICON.file}Paste copied email</button>`;
   html += `<div class="box-foot"><button class="link" data-act="crop">${S.crop ? 'Crop area: on' : 'Set crop area'}</button>${capturing ? '<button class="link" data-act="stop">Stop</button>' : ''}</div>`;
   boxEl.innerHTML = html;
   boxEl.querySelector('[data-add-input]')?.focus();
@@ -1303,7 +1361,7 @@ function openDetail(it, focusField) {
   const x = it.extraction || { ...BLANK, currency: 'CAD' };
   const imgs = it.images.map((p, i) => (p.pdf
     ? `<div class="pdfbox">${ICON.file}<p>PDF receipt</p><a href="${p.dataUrl}" target="_blank" rel="noopener" download="${esc(it.name || 'receipt.pdf')}">Open PDF</a></div>`
-    : `<img src="${p.dataUrl}" alt="Receipt image ${i + 1}">`)).join('') || '<div class="pdfbox">No image</div>';
+    : `<img src="${p.dataUrl}" alt="Receipt image ${i + 1}">`)).join('') || (it.text ? `<pre class="pasted">${esc(it.text)}</pre>` : '<div class="pdfbox">No image</div>');
   const issues = (it.issues?.length ? it.issues : [{ level: 'green', text: 'Looks good. Nothing to fix.' }])
     .map((i) => `<div class="issue ${i.level}">${esc(i.text)}${i.detail ? `. ${esc(i.detail)}` : ''}</div>`).join('');
   const inputs = FIELDS.map(([f, name, type, wide]) => {
@@ -1336,7 +1394,7 @@ function openDetail(it, focusField) {
       <div class="modal-foot">
         <div style="display:flex;gap:8px">
           <button class="btn danger" data-m="delete">${ICON.trash}Delete</button>
-          ${it.source === 'capture' ? `<button class="btn" data-m="fix">${ICON.camera}Recapture</button>` : `<button class="btn" data-m="fix">${ICON.file}Replace file</button>`}
+          ${it.source === 'capture' ? `<button class="btn" data-m="fix">${ICON.camera}Recapture</button>` : it.source === 'upload' ? `<button class="btn" data-m="fix">${ICON.file}Replace file</button>` : ''}
         </div>
         <div style="display:flex;gap:8px"><button class="btn" data-close>Cancel</button><button class="btn primary" data-m="save">Save</button></div>
       </div>
@@ -1571,6 +1629,7 @@ const TOUR = [
   { title: 'A box floats on top of Outlook', html: '<p>After you share, a small box pops out and stays on top of every window, even when you click into Outlook. Drag it to a corner.</p>' + ILL.box + "<p>Don't see it? Click <b>Open floating box</b>. In Firefox or Safari it stays on this page; put this window next to Outlook.</p>" },
   { title: 'Your rhythm', html: '<ol><li>Click a receipt email in Outlook</li><li>Click <b>Capture</b> in the box</li><li>Wait a few seconds for the green check, then click the next email</li></ol><p>Tired of clicking Capture? Turn on <b>Auto-capture</b> in the box: click an email, keep still for a second, and it\'s captured by itself. Emails that aren\'t receipts are skipped.</p><p>Capture locks while a receipt is being read, so nothing gets saved twice. Don\'t scroll while you click it: if the email is moving, you\'ll get a warning and nothing is saved.</p><p>Prefer to stay on one email until it\'s green: if something\'s wrong, you\'re already in the right place to fix it.</p>' },
   { title: 'When it goes red', html: ILL.red + '<p><b>Red means fix it now</b>, while the email is still open. If the total is cut off, scroll down and click <b>Capture the rest</b>: both parts are read as one receipt.</p><p><b>Yellow</b> means it\'s saved; check it later in your list.</p>' },
+  { title: 'Long receipts: copy and paste', html: '<p>A long receipt doesn\'t fit in one capture. Copy it instead:</p><ol><li>In the email, right-click and choose <b>Select All</b>, then right-click and choose <b>Copy</b>. Or press <b>Ctrl+A</b>, then <b>Ctrl+C</b>.</li><li>Click <b>Paste copied email</b> in the box, or click the box and press <b>Ctrl+V</b>.</li></ol><p>The first time, the browser asks to let reysan.ca see what you copied: click <b>Allow</b>.</p><p>The whole email is read as text, however long it is. Messy formatting is fine. Receipts that are a picture inside the email still need a capture.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The box shows a <b>+</b> button, like <b>+ Subtotal</b>. Click it and type what you see in the email. The receipt\'s source then says <b>Scan + manual input</b>.</p><p><b>Paid twice?</b> If two receipts from the same vendor have the same amount within 30 minutes, you\'ll get a warning. Click <b>Yes, it\'s a real purchase</b> to clear it, or send it to the <b>Needs review</b> or <b>For refund</b> tab above your list so you can come back to it.</p>' },
   { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
   { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here, or drag an attachment straight out of Outlook. Whole emails (.msg files) can\'t be read yet, so drag the attachment instead.</p><p><b>An email with several PDFs?</b> Capture it with the attachment names showing. The box lists them, then ticks each one off as you drag it onto the box, so none get forgotten.</p>' },
