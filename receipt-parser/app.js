@@ -25,6 +25,9 @@ const S = {
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
   totalScope: store.get('rp.totalScope', 'ready'), // the total: 'ready' receipts only, or 'all' including ones to review
   mini: false,       // the floating drop box shrunk to a small bar
+  editing: null,     // the drop box row being edited in place, and what's been typed so far
+  editDraft: {},
+  editError: '',
   savedAt: 0,        // when the list was last saved in this browser
   attach: [],        // dropped emails: { id, title, sender, subject, files: [{ name, itemId, skipped, reason, hidden }] }
   nextGroup: 1,
@@ -165,12 +168,14 @@ function assess(it) {
     // Before review a missing total is already a red "can't see the total".
     const required = it.reviewed ? ['vendor', 'date', 'subtotal', 'total', 'currency'] : ['vendor', 'date', 'subtotal', 'currency'];
     // A free receipt, like after-hours parking, has no subtotal to ask for.
-    const missing = required.filter((f) => (x[f] === null || x[f] === '') && !(f === 'subtotal' && cents(x.total) === 0));
+    // An installment payment is one part of a bill: Total is what was paid this time, and the
+    // subtotal and tax (if shown) belong to the whole bill, so neither is asked for nor added up.
+    const missing = required.filter((f) => (x[f] === null || x[f] === '') && !(f === 'subtotal' && (cents(x.total) === 0 || it.installment)));
     if (missing.length) issues.push({ level: 'yellow', text: `Missing ${missing.join(', ')}` });
 
     const sub = cents(x.subtotal);
     const total = cents(x.total);
-    if (sub !== null && total !== null) {
+    if (sub !== null && total !== null && !it.installment) {
       const extra = [x.gst, x.pst, x.hst, x.other_tax, x.tip].reduce((s, v) => s + (cents(v) ?? 0), 0);
       const diff = total - (sub + extra);
       if (Math.abs(diff) > 1) {
@@ -188,7 +193,7 @@ function assess(it) {
     }
     if (!it.reviewed && !it.softOk) {
       if (total === 0) issues.push({ level: 'yellow', text: 'Total is $0.00. Check it was read right', soft: true });
-      const low = sub > 0 && x.currency === 'CAD' ? lowTax(x, sub) : null;
+      const low = sub > 0 && x.currency === 'CAD' && !it.installment ? lowTax(x, sub) : null;
       if (low) issues.push({ level: 'yellow', text: low, soft: true });
     }
     if (x.date) {
@@ -397,7 +402,8 @@ async function openPip() {
     S.pip = pip;
     render();
     return true;
-  } catch {
+  } catch (e) {
+    console.error('Drop box failed to open', e);
     toast("Couldn't open the drop box. Click Open drop box again.");
     return false;
   }
@@ -850,14 +856,89 @@ function removeItem(id) {
   });
 }
 
+const TYPES = [['receipt', 'Receipt'], ['installment', 'Installment payment'], ['invoice', 'Invoice (not paid)'], ['refund', 'Refund']];
+const typeOf = (it) => (it.installment ? 'installment' : it.extraction?.document_type === 'invoice' ? 'invoice' : it.extraction?.document_type === 'refund' ? 'refund' : 'receipt');
+
+// Saves what a person typed or chose. Anything changed marks the source "manual input".
+// values holds only the fields shown; returns an error to show, or '' when saved.
+function applyEdits(it, values) {
+  const x = it.extraction || { ...BLANK, currency: 'CAD' };
+  const next = { ...x };
+  for (const [f, name, type] of FIELDS) {
+    if (!(f in values)) continue;
+    const raw = String(values[f] ?? '').trim();
+    next[f] = raw === '' ? null : type === 'num' ? Number(raw.replace(/[$,\s]/g, '')) : raw;
+    if (type === 'num' && next[f] !== null && !Number.isFinite(next[f])) return `${name} isn't a number.`;
+  }
+  if (next.currency) next.currency = next.currency.toUpperCase();
+  if (next.currency && !/^[A-Z]{3}$/.test(next.currency)) return 'Currency: use a 3-letter code like CAD or USD.';
+  const edited = FIELDS.filter(([f, , type]) => f in values && (type === 'num' ? cents(next[f]) !== cents(x[f]) : (next[f] ?? null) !== (x[f] ?? null))).map(([f]) => f);
+  if ('category' in values) {
+    next.category = values.category || null;
+    if ((next.category ?? null) !== (x.category ?? null)) edited.push('category');
+  }
+  if ('type' in values) {
+    if (values.type !== typeOf(it)) edited.push('type');
+    next.document_type = values.type === 'installment' ? 'receipt' : values.type;
+    it.installment = values.type === 'installment';
+  }
+  if (edited.length) it.manual = [...new Set([...(it.manual || []), ...edited])];
+  if ('note' in values) it.userNote = String(values.note || '').trim() || null;
+  if ('followUp' in values) it.followUp = values.followUp || null;
+  next.is_receipt = true;
+  Object.assign(it, { extraction: next, reviewed: true, status: 'done', local: null });
+  reassessAll();
+  render();
+  return '';
+}
+
+// The drop box can't show the page's review window (it's behind Outlook), so it edits in place.
+const BOX_FIELDS = ['vendor', 'date', 'total', 'subtotal', 'gst', 'pst', 'hst', 'tip'];
+
+function boxEditor(it) {
+  const x = it.extraction || {};
+  const d = S.editDraft;
+  const val = (f, type) => (f in d ? d[f] : x[f] === null || x[f] === undefined ? '' : type === 'num' ? Number(x[f]).toFixed(2) : x[f]);
+  const inputs = BOX_FIELDS.map((f) => {
+    const [, name, type] = FIELDS.find(([k]) => k === f);
+    return `<label class="${f === 'vendor' ? 'wide' : ''}">${name}<input name="${f}" type="${type === 'num' ? 'text' : type}" ${type === 'num' ? 'inputmode="decimal"' : ''} value="${esc(val(f, type))}"></label>`;
+  }).join('');
+  const type = 'type' in d ? d.type : typeOf(it);
+  const canKeep = (it.level === 'yellow' || it.level === 'red') && cents(x.total) !== null;
+  return `<div class="inline-edit">${inputs}
+    <label class="wide">Type<select name="type">${TYPES.map(([v, n]) => `<option value="${v}" ${type === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label class="wide">Your note<textarea name="note" rows="2" placeholder="For example: installment 2 of 3">${esc('note' in d ? d.note : it.userNote || '')}</textarea></label>
+    ${S.editError ? `<p class="add-err wide">${esc(S.editError)}</p>` : ''}
+    <div class="wide edit-btns">
+      ${it.images.length || it.html || it.text ? `<button class="mini" data-act="view-doc" data-id="${it.id}">${ICON.expand}See the document</button>` : ''}
+      <button class="mini keep" data-act="edit-save" data-id="${it.id}">${ICON.check}Save</button>
+      ${canKeep ? `<button class="mini" data-act="keep" data-id="${it.id}">Keep as is</button>` : ''}
+      <button class="link" data-act="edit-cancel" data-id="${it.id}">Cancel</button></div></div>`;
+}
+
+function saveBoxEdit(it) {
+  const form = boxEl.querySelector('.inline-edit');
+  const values = Object.fromEntries([...form.querySelectorAll('[name]')].map((el) => [el.name, el.value]));
+  S.editError = applyEdits(it, values);
+  if (S.editError) {
+    S.editDraft = values;
+    return render();
+  }
+  S.editing = null;
+  S.editDraft = {};
+  render();
+  toast(`Saved ${label(it)}.`);
+}
+
 // Review opens the document beside what was read, in the app's tab, so the drop box stays open.
 function reviewItem(it) {
   it.viewed = true;
-  render();
+  // In the floating drop box, edit right there: the page's window would open behind Outlook.
   if (S.pip) {
-    window.focus();
-    toast('Opened in the Receipt Parser tab.');
+    Object.assign(S, { editing: S.editing === it.id ? null : it.id, editDraft: {}, editError: '' });
+    return render();
   }
+  render();
   openDetail(it);
 }
 
@@ -931,6 +1012,11 @@ function onAction(act, id, field) {
     case 'retry': return it && read(it);
     case 'keep': return it && keepItem(it);
     case 'review': return it && reviewItem(it);
+    case 'edit-save': return it && saveBoxEdit(it);
+    case 'edit-cancel':
+      Object.assign(S, { editing: null, editDraft: {}, editError: '' });
+      return render();
+    case 'view-doc': return it && openViewer(it, boxEl.ownerDocument);
     case 'delete':
     case 'trash': return it && removeItem(it.id);
     case 'open': return it && openDetail(it, field);
@@ -951,6 +1037,11 @@ boxEl.addEventListener('input', (e) => {
   const text = e.target.value;
   e.target.value = '';
   takeText(text);
+});
+
+// What's typed in the drop box editor is kept, so a refresh of the list doesn't lose it.
+boxEl.addEventListener('input', (e) => {
+  if (S.editing && e.target.closest('.inline-edit') && e.target.name) S.editDraft[e.target.name] = e.target.value;
 });
 
 boxEl.addEventListener('click', (e) => {
@@ -1152,6 +1243,7 @@ function detailLine(it) {
   }
   const link = linkLine(it);
   if (it.part) bits.push(esc(partLabel(it)));
+  if (it.userNote) bits.push(`<i class="user-note">Note: ${esc(it.userNote)}</i>`);
   if (link) bits.push(`<b class="link-line">${esc(link)}</b>`);
   bits.push(`<span class="src">${sourceLabel(it)}</span>`);
   return bits.join(' · ');
@@ -1289,6 +1381,10 @@ function partNote(it, lineOf) {
 // The drop box: one big place to drop emails and files, and a list of everything scanned with
 // what happened to it. Done (✓) clears a line from here; it stays in the full list.
 function renderBox() {
+  // While someone is typing in the drop box editor, leave the box as it is so the cursor isn't lost.
+  const editor = boxEl.querySelector('.inline-edit');
+  const focused = boxEl.ownerDocument.activeElement;
+  if (S.editing && editor?.contains(focused) && focused.matches('input, textarea, select')) return;
   const shown = boxRows();
   const skipped = S.attach.flatMap((g) => g.files.map((f, i) => ({ g, f, i })).filter(({ f }) => f.skipped && !f.hidden));
   const lineOf = (id) => shown.findIndex((i) => i.id === id) + 1;
@@ -1302,13 +1398,14 @@ function renderBox() {
     const ahead = it.queued ? S.items.filter((o) => o.queued && o.id < it.id).length : 0;
     const note = !reading ? partNote(it, lineOf) : it.queued ? `Waiting in line${ahead ? `, ${ahead} ahead` : ''}` : 'Reading…';
     const canKeep = !reading && (it.level === 'yellow' || it.level === 'red') && cents(x?.total) !== null;
-    const acts = reading ? '' : `<div class="scan-btns">
+    const acts = reading ? '' : S.editing === it.id ? boxEditor(it) : `<div class="scan-btns">
         <button class="mini ${it.viewed ? 'viewed' : ''}" data-act="review" data-id="${it.id}" title="${it.viewed ? 'You opened this one. Click to open it again' : 'Open the document beside what was read'}">${it.viewed ? `${ICON.check}Reviewed` : `${ICON.eye}Review`}</button>
         ${canKeep ? `<button class="mini keep" data-act="keep" data-id="${it.id}">${ICON.check}Keep</button>` : ''}</div>`;
     return `<li class="scan ${reading ? 'reading' : it.level} ${it.selected ? 'selected' : ''}">${checkbox(it)}${statusIcon(it)}
       <div class="att-text"><span class="att-main"><span class="att-num">${n + 1}.</span> ${main}</span>
         <span class="att-note">${reading ? '' : `<b class="tag ${it.level}">${word[it.level] || ''}</b> `}${esc(note)}</span>
         ${from(it) && from(it) !== it.name ? `<span class="att-from">${esc(from(it))}</span>` : x?.is_receipt && from(it) ? `<span class="att-from">${esc(from(it))}</span>` : ''}
+        ${it.userNote ? `<span class="att-from user-note">Note: ${esc(it.userNote)}</span>` : ''}
         ${reading ? `<span class="progress ${it.queued ? 'queued' : ''}"></span>` : acts}</div>
       <div class="scan-acts"><button class="icon-btn" data-act="trash" data-id="${it.id}" title="Delete" aria-label="Delete">${ICON.trash}</button></div></li>`;
   }).join('') + skipped.map(({ g, f, i }) => `<li class="scan grey"><span class="att-n">–</span><span class="not-counted">–</span>
@@ -1407,25 +1504,25 @@ function emailDoc(it) {
 }
 
 // Expand: the document full screen, to read the email (or PDF, or picture) properly.
-function openViewer(it) {
+function openViewer(it, doc = document) {
   const body = it.images.length
     ? it.images.map((p, i) => (p.pdf ? `<iframe class="viewer-doc" src="${pdfUrl(p)}" title="${esc(it.name || 'PDF')}"></iframe>` : `<img class="viewer-img" src="${p.dataUrl}" alt="Receipt image ${i + 1}">`)).join('')
     : it.html ? `<iframe class="viewer-doc" sandbox srcdoc="${esc(emailDoc(it))}" title="The email"></iframe>`
       : `<pre class="viewer-text">${esc(it.text || '')}</pre>`;
-  let root = $('#viewerRoot');
+  let root = doc.getElementById('viewerRoot');
   if (!root) {
-    root = document.createElement('div');
+    root = doc.createElement('div');
     root.id = 'viewerRoot';
-    document.body.append(root);
+    doc.body.append(root);
   }
   root.innerHTML = `<div class="viewer" role="dialog" aria-modal="true" aria-label="${esc(label(it))}">
     <div class="viewer-head"><b>${esc(label(it))}</b><button class="btn sm" data-viewer-close>${ICON.x}Close</button></div>
     <div class="viewer-body">${body}</div></div>`;
-  root.querySelector('[data-viewer-close]').addEventListener('click', closeViewer);
+  root.querySelector('[data-viewer-close]').addEventListener('click', () => closeViewer(doc));
 }
 
-function closeViewer() {
-  const root = $('#viewerRoot');
+function closeViewer(doc = document) {
+  const root = doc.getElementById('viewerRoot');
   if (!root?.innerHTML) return false;
   root.innerHTML = '';
   return true;
@@ -1461,6 +1558,8 @@ function openDetail(it, focusField) {
         <div class="fields">
           <div class="issues">${issues}</div>
           ${inputs}
+          <label class="wide">Type<select name="type">${TYPES.map(([v, n]) => `<option value="${v}" ${typeOf(it) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+          <label class="wide">Your note<textarea name="note" rows="2" placeholder="For example: installment 2 of 3">${esc(it.userNote || '')}</textarea></label>
           <label class="wide">Follow-up<select name="followUp"><option value="">None</option>${Object.entries(FOLLOW_UP).map(([v, n]) => `<option value="${v}" ${it.followUp === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
           <label class="wide">Category<select name="category"><option value="">Unknown</option>${CATEGORIES.map((c) => `<option value="${c}" ${x.category === c ? 'selected' : ''}>${titleCase(c)}</option>`).join('')}</select></label>
           ${meta ? `<div class="meta">${meta}</div>` : ''}
@@ -1488,34 +1587,10 @@ function openDetail(it, focusField) {
     if (m === 'fix') { closeModal(); startFix(it); }
     if (m === 'save') {
       const form = new FormData($('#editForm'));
-      const next = { ...x };
-      for (const [f, , type] of FIELDS) {
-        const raw = String(form.get(f) ?? '').trim();
-        next[f] = raw === '' ? null : type === 'num' ? Number(raw) : raw;
-      }
-      if (next.currency) next.currency = next.currency.toUpperCase();
-      if (next.currency && !/^[A-Z]{3}$/.test(next.currency)) {
-        const input = $('#editForm input[name="currency"]');
-        input.setCustomValidity('Use a 3-letter code like CAD or USD');
-        input.reportValidity();
-        input.addEventListener('input', () => input.setCustomValidity(''), { once: true });
-        return;
-      }
-      const badNumber = FIELDS.find(([f, , type]) => type === 'num' && next[f] !== null && !Number.isFinite(next[f]));
-      if (badNumber) return toast(`${badNumber[1]} isn't a number.`);
-      next.category = form.get('category') || null;
-      const edited = FIELDS.filter(([f, , type]) => (type === 'num' ? cents(next[f]) !== cents(x[f]) : (next[f] ?? null) !== (x[f] ?? null))).map(([f]) => f);
-      if ((next.category ?? null) !== (x.category ?? null)) edited.push('category');
-      if (edited.length) it.manual = [...new Set([...(it.manual || []), ...edited])];
-      next.is_receipt = true;
-      it.followUp = form.get('followUp') || null;
-      it.extraction = next;
-      it.reviewed = true;
-      it.status = 'done';
-      it.local = null;
+      const values = Object.fromEntries([...FIELDS.map(([f]) => f), 'category', 'type', 'note', 'followUp'].map((f) => [f, form.get(f)]));
+      const err = applyEdits(it, values);
+      if (err) return toast(err);
       closeModal();
-      reassessAll();
-      render();
       toast('Saved.');
     }
   });
@@ -1531,13 +1606,13 @@ const EXPORT_COLUMNS = [
   ['Employee name', () => S.user.name], ['Employee email', () => S.user.email],
   ['Department', () => S.user.department || ''], ['Employee ID', () => S.user.employeeId || ''],
   ['Status', (it) => ({ green: 'Ready', yellow: 'Check', grey: 'Not counted' }[it.level] || 'Fix')],
-  ['Type', (it, x) => (it.payment ? 'Payment' : titleCase(x.document_type || 'receipt'))],
+  ['Type', (it, x) => (it.installment ? 'Installment payment' : it.payment ? 'Payment' : titleCase(x.document_type || 'receipt'))],
   ['Follow-up', (it) => FOLLOW_UP[it.followUp] || ''],
   ['Vendor', (it, x) => x.vendor], ['Date', (it, x) => x.date], ['Time', (it, x) => x.time], ['Receipt #', (it, x) => x.receipt_number], ['Invoice #', (it, x) => x.invoice_number],
   ['Subtotal', (it) => money2(it, 'subtotal')], ['GST', (it) => money2(it, 'gst')], ['PST', (it) => money2(it, 'pst')], ['HST', (it) => money2(it, 'hst')],
   ['Other tax', (it) => money2(it, 'other_tax')], ['Tip', (it) => money2(it, 'tip')], ['Total', (it) => money2(it, 'total')], ['Currency', (it, x) => x.currency],
   ['Category', (it, x) => titleCase(x.category)], ['Payment', (it, x) => titleCase(x.payment_method)],
-  ['Notes', (it) => [linkLine(it), ...(it.issues || []).map((i) => i.text)].filter(Boolean).join('; ')],
+  ['Notes', (it) => [it.userNote && `Your note: ${it.userNote}`, linkLine(it), ...(it.issues || []).map((i) => i.text)].filter(Boolean).join('; ')],
   ['Source', (it) => sourceLabel(it)],
   ['Manual fields', (it) => (it.manual || []).map(fieldName).join(', ')],
   ['File', (it) => it.name || ''],
@@ -1555,7 +1630,7 @@ const COLUMN_HELP = {
   Department: 'Your department, on every row, so receipts can be charged to the right budget. Always included.',
   'Employee ID': 'Your employee number, if your company uses one. Optional: leave it empty if you don\'t have one.',
   Status: 'Ready (checked and counted), Check (needs a look), Fix (invalid or failed) or Not counted. The row colour matches.',
-  Type: 'Receipt (proof of payment), Invoice (a bill), Payment (one installment on an invoice) or Refund (money back).',
+  Type: 'Receipt (proof of payment), Invoice (a bill), Payment or Installment payment (one payment of several on a bill) or Refund (money back).',
   'Follow-up': 'Needs review or For refund, if the receipt was sent to one of those tabs.',
   Vendor: 'The business that was paid, as printed on the receipt.',
   Date: 'The date of the purchase on the receipt, as year-month-day.',
@@ -1572,7 +1647,7 @@ const COLUMN_HELP = {
   Currency: 'The currency, like CAD or USD.',
   Category: 'The kind of expense: meals, travel, lodging, fuel, office supplies, software and so on.',
   Payment: 'How it was paid: credit card, debit, cash, e-transfer, cheque or other.',
-  Notes: 'What the checks found, like a possible duplicate, and how a row links to others.',
+  Notes: 'Your own note first, then what the checks found, like a possible duplicate, and how a row links to others.',
   Source: 'How it got in: Upload (a dropped or chosen file), Email (a dragged email) or Paste, plus manual input if someone typed a value.',
   'Manual fields': 'Which values a person typed or changed by hand.',
   File: 'The file name the receipt came from.',
