@@ -23,6 +23,7 @@ const S = {
   code: store.get('rp.code', ''),
   demoTick: 0,
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
+  totalScope: store.get('rp.totalScope', 'ready'), // the total: 'ready' receipts only, or 'all' including ones to review
   mini: false,       // the floating drop box shrunk to a small bar
   savedAt: 0,        // when the list was last saved in this browser
   attach: [],        // dropped emails: { id, title, sender, subject, files: [{ name, itemId, skipped, reason, hidden }] }
@@ -894,6 +895,10 @@ function onAction(act, id, field) {
       render();
       return field && toast(`Saved to the ${FOLLOW_UP[field]} tab.`);
     case 'tab': S.tab = field; return render();
+    case 'total-scope':
+      S.totalScope = field;
+      store.set('rp.totalScope', field);
+      return render();
     case 'fix': return it && startFix(it);
     case 'retry': return it && read(it);
     case 'keep': return it && keepItem(it);
@@ -1199,20 +1204,29 @@ function renderList() {
     ? [`${active().length} total`, counts.green && `${counts.green} ready`, counts.yellow && `${counts.yellow} to check`, counts.red && `${counts.red} to fix`, counts.grey && `${counts.grey} not counted`, counts.reading && `${counts.reading} reading`].filter(Boolean).join(' · ')
     : 'Nothing yet';
 
-  // "Your total": green rows only, one line per currency, never mixed. A follow-up tab totals its own rows.
+  // "Your total": ready rows, or with the toggle also the ones to review, one line per currency, never
+  // mixed. Possible duplicates stay out either way: they're likely the same receipt twice. A follow-up
+  // tab totals its own rows.
+  const withReview = S.tab === 'all' && S.totalScope === 'all';
+  const counts_ = (it) => it.level === 'green' || (withReview && it.level === 'yellow' && !it.dupOf && it.extraction);
   const byCur = new Map();
   for (const it of active()) {
-    if (S.tab === 'all' ? it.level !== 'green' : followUpOf(it) !== S.tab || !it.extraction) continue;
+    if (S.tab === 'all' ? !counts_(it) : followUpOf(it) !== S.tab || !it.extraction) continue;
     const cur = (it.extraction.currency || 'CAD').toUpperCase();
-    const t = byCur.get(cur) || { n: 0, total: 0, tax: 0 };
+    const t = byCur.get(cur) || { n: 0, review: 0, total: 0, tax: 0 };
     t.n++;
+    if (it.level === 'yellow') t.review++;
     t.total += signedCents(it) || 0;
     t.tax += ['gst', 'pst', 'hst', 'other_tax'].reduce((s, f) => s + (signedCents(it, f) || 0), 0);
     byCur.set(cur, t);
   }
-  $('#totals').innerHTML = byCur.size
-    ? `<span>${S.tab === 'refund' ? 'Total to get back' : S.tab === 'review' ? 'Total under review' : 'Your total (ready receipts only)'}</span>${[...byCur].map(([cur, t]) => `<div><b>${money(t.total, cur)}</b> <span>${cur} · ${t.n} receipt${t.n > 1 ? 's' : ''} · tax ${money(t.tax, cur)}</span></div>`).join('')}`
-    : `<span>${S.tab === 'all' ? 'Your total shows here once receipts are ready.' : ''}</span>`;
+  const toggle = S.tab === 'all' ? `<div class="total-toggle" role="group" aria-label="What the total counts">
+      <button type="button" class="${withReview ? '' : 'on'}" data-act="total-scope" data-field="ready" aria-pressed="${!withReview}">Ready only</button>
+      <button type="button" class="${withReview ? 'on' : ''}" data-act="total-scope" data-field="all" aria-pressed="${withReview}">Include to review</button></div>` : '';
+  const title = S.tab === 'refund' ? 'Total to get back' : S.tab === 'review' ? 'Total under review' : withReview ? 'Your total, including receipts to review' : 'Your total (ready receipts only)';
+  $('#totals').innerHTML = toggle + (byCur.size
+    ? `<span>${title}</span>${[...byCur].map(([cur, t]) => `<div><b>${money(t.total, cur)}</b> <span>${cur} · ${t.n} receipt${t.n > 1 ? 's' : ''}${t.review ? ` (${t.review} to review)` : ''} · tax ${money(t.tax, cur)}</span></div>`).join('')}${withReview ? '<span class="total-note">Possible duplicates are left out.</span>' : ''}`
+    : `<span>${S.tab === 'all' ? 'Your total shows here once receipts are ready.' : ''}</span>`);
 }
 
 // One short phrase per part of an email: its amount when it counts, otherwise why it doesn't.
@@ -1306,11 +1320,14 @@ function render() {
   btn.lastChild.textContent = S.pip ? ' Drop box is open' : ' Open drop box';
   // Firefox and Safari can't float a window: the page's own drop area takes over, with a clear alert.
   document.body.classList.toggle('no-float', !canFloat);
+  // Chrome and Edge use the floating drop box; the page's own drop area is for browsers that can't float it.
+  // Dropping anywhere on the page still works in every browser.
+  $('#dropZone').hidden = canFloat;
   $('#floatNote').innerHTML = !canFloat
     ? "<b>This browser can't float the drop box.</b> It works in Chrome or Edge. Here, put this window beside Outlook (on Windows: Windows key + Left arrow) and drag emails onto the big area below."
     : S.pip ? 'The drop box is floating on your screen. Your list is below.' : '';
   $('#modeNote').innerHTML = S.code
-    ? '<b>Live:</b> receipts are read by Claude, well under a cent each.'
+    ? '<b>Live:</b> receipts are read by Claude and converted into Excel.'
     : '<b>Demo mode:</b> results are sample data, so you can practise the flow. Enter an access code to read real receipts.';
 }
 
@@ -1701,7 +1718,7 @@ const TOUR = [
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
   { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Using Firefox or Safari? They can\'t float it: drop emails and files on the area under the heading instead.</p>' },
   { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p><b>Review</b> opens the document next to what was read, so you can check it and fix anything. <b>Keep</b> says it\'s right: the line turns green and counts. The trash deletes it. <b>Clear counted</b> tidies the drop box (lines stay in your full list), and <b>Open the app</b> takes you back here to export.</p>' },
-  { target: '#dropZone', title: 'Files and Gmail', html: '<p>Drop PDFs or pictures here or on the drop box, or use <b>Upload files</b>. <b>Upload folder</b> reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and click <b>Paste copied email</b> (or press Ctrl+V here). For a Gmail attachment, download it, then drag it in.</p>' },
+  { target: '#chooseBtn', title: 'Files, folders and Gmail', html: '<p>Drop PDFs or pictures on the drop box or anywhere on this page, or use <b>Choose files</b> (<b>Upload files</b> in the drop box). <b>Upload folder</b> reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and click <b>Paste copied email</b> (or press Ctrl+V here). For a Gmail attachment, download it, then drag it in.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p><p>Tick the boxes to act on several at once: <b>Review later</b>, <b>Archive</b> (out of your list and total, kept under Archived) or <b>Delete</b>. Your list is saved on this computer, so it\'s still here when you come back. <b>Clear all</b> starts fresh.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The row shows a <b>+</b> button, like <b>+ Subtotal</b>: click it and type what the receipt says. Its source then says <b>manual input</b>.</p><p><b>Paid twice?</b> The same vendor and amount within 30 minutes gets a warning. Send it to <b>For refund</b>, and when the refund arrives it shows as <b>Refunded</b>. An invoice that was never paid goes to <b>Needs review</b> and isn\'t counted.</p>' },
   { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, minus refunds, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
