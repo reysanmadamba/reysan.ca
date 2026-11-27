@@ -160,7 +160,7 @@ function assess(it) {
   }
 
   if (x.is_receipt || it.reviewed) {
-    if (x.receipt_count > 1) issues.push({ level: 'yellow', text: `Shows ${x.receipt_count} receipts; only the first was read. Drop each one on its own.` });
+    if (x.receipt_count > 1 && !it.part) issues.push({ level: 'yellow', text: `Shows ${x.receipt_count} receipts; only the first was read. Drop each one on its own.` });
 
     // Before review a missing total is already a red "can't see the total".
     const required = it.reviewed ? ['vendor', 'date', 'subtotal', 'total', 'currency'] : ['vendor', 'date', 'subtotal', 'currency'];
@@ -464,6 +464,33 @@ function addItem(source, images, name) {
 // a complete capture of the same receipt takes the cut-off row's place.
 // ---------- reading (Claude via backend, or demo data) ----------
 
+// One paste, email or file can hold several receipts (a Gmail thread with two parking receipts, a statement):
+// the first stays on this row and each of the others gets its own row from the same source.
+function splitExtras(it, extras) {
+  // Reading it again replaces the rows it made last time.
+  if (it.splitChildren?.length) S.items = S.items.filter((o) => !it.splitChildren.includes(o.id));
+  it.splitChildren = [];
+  it.part = null;
+  if (!extras.length) return;
+  // From one source, so they're never each other's "paid twice".
+  if (!it.groupId) it.groupId = S.nextGroup++;
+  it.part = { n: 1, of: extras.length + 1 };
+  extras.forEach((x, i) => {
+    if (it.fromEmail) {
+      x.email_sender ||= it.fromEmail.sender;
+      x.email_subject ||= it.fromEmail.subject;
+    }
+    const child = addItem(it.source, it.images, it.name);
+    Object.assign(child, {
+      text: it.text, html: it.html, fromEmail: it.fromEmail, emailDate: it.emailDate, folder: it.folder, groupId: it.groupId,
+      extraction: x, status: 'done', ms: it.ms, model: it.model, part: { n: i + 2, of: extras.length + 1 }, splitParent: it.id,
+    });
+    it.splitChildren.push(child.id);
+  });
+}
+
+const partLabel = (it) => (it.part ? `${it.part.n} of ${it.part.of} receipts in this ${it.source === 'paste' ? 'paste' : it.source === 'email' ? 'email' : 'file'}` : '');
+
 async function read(it) {
   it.status = 'reading';
   it.error = null;
@@ -481,6 +508,7 @@ async function read(it) {
     it.model = result.model;
     it.status = 'done';
     it.snapshot = null;
+    splitExtras(it, result.extras || []);
   } catch (e) {
     if (it.snapshot?.extraction) {
       // A replacement file that can't be read never loses the first one.
@@ -1123,6 +1151,7 @@ function detailLine(it) {
     }
   }
   const link = linkLine(it);
+  if (it.part) bits.push(esc(partLabel(it)));
   if (link) bits.push(`<b class="link-line">${esc(link)}</b>`);
   bits.push(`<span class="src">${sourceLabel(it)}</span>`);
   return bits.join(' · ');
@@ -1264,7 +1293,7 @@ function renderBox() {
   const skipped = S.attach.flatMap((g) => g.files.map((f, i) => ({ g, f, i })).filter(({ f }) => f.skipped && !f.hidden));
   const lineOf = (id) => shown.findIndex((i) => i.id === id) + 1;
   const word = { green: 'Done', yellow: 'Review', grey: 'Not counted', red: 'Failed' };
-  const from = (it) => (it.fromEmail?.subject ? `From “${it.fromEmail.subject}”` : it.folder ? `${it.name} · in “${it.folder}”` : it.source === 'upload' ? it.name : it.source === 'paste' ? 'Pasted text' : '');
+  const from = (it) => [it.fromEmail?.subject ? `From “${it.fromEmail.subject}”` : it.folder ? `${it.name} · in “${it.folder}”` : it.source === 'upload' ? it.name : it.source === 'paste' ? 'Pasted text' : '', partLabel(it)].filter(Boolean).join(' · ');
   const rows = shown.map((it, n) => {
     const x = it.extraction;
     const total = signedCents(it);
