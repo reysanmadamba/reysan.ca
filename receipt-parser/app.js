@@ -28,6 +28,7 @@ const S = {
   editing: null,     // the drop box row being edited in place, and what's been typed so far
   editDraft: {},
   editError: '',
+  moreOpen: new Set(), // rows whose warning explanation is open
   savedAt: 0,        // when the list was last saved in this browser
   attach: [],        // dropped emails: { id, title, sender, subject, files: [{ name, itemId, skipped, reason, hidden }] }
   nextGroup: 1,
@@ -122,16 +123,31 @@ const label = (it) => {
 
 // Canadian receipts only: no tax, or less than the lowest rate. Exempt items make this
 // legitimate sometimes, so it's a question for the person rather than an error.
+// The receipt itself often says "5%" (of the taxed items only), so the short line says this is the
+// page's own math, and See more shows the sum, so nobody thinks the numbers were made up.
 function lowTax(x, sub) {
   const part = (f) => cents(x[f]) ?? 0;
   const gst = part('gst');
   const hst = part('hst');
   const tax = gst + hst + part('pst') + part('other_tax');
+  const m = (c) => money(c, x.currency);
   const pct = (t) => `${((t / sub) * 100).toFixed(1)}%`;
-  if (tax === 0) return "No tax shown. Fine if it's tax-exempt or already in the price";
-  if (hst > 0) return hst < Math.round(sub * 0.13) - 2 ? `HST is ${pct(hst)} of the subtotal, usually 13% to 15%. Fine if some items aren't taxed, otherwise check it` : null;
-  if (gst > 0) return gst < Math.round(sub * 0.05) - 2 ? `GST is ${pct(gst)} of the subtotal, usually 5%. Fine if some items aren't taxed, otherwise check it` : null;
-  return tax < Math.round(sub * 0.05) - 2 ? `Tax is ${pct(tax)} of the subtotal, usually at least 5%. Fine if some items aren't taxed, otherwise check it` : null;
+  const why = (name, t, usual) => ({
+    text: `${name} works out to ${pct(t)} of the subtotal by our math, under the usual ${usual}`,
+    more: `The receipt may well say ${usual}, and that's fine. This page checks the math itself: ${name} ${m(t)} ÷ subtotal ${m(sub)} = ${pct(t)}. `
+      + `That usually means something on the receipt isn't taxed (like a fee marked N or an exempt item), so the ${usual} only applies to part of the subtotal. `
+      + 'The numbers were read from the receipt. If they match it, click Keep. If not, click Review and fix them.',
+  });
+  if (tax === 0) {
+    return {
+      text: "No tax shown. Fine if it's tax-exempt or already in the price",
+      more: `No GST, PST or HST was found on this receipt, so the page counts $0 tax on the ${m(sub)} subtotal. `
+        + "That's fine for tax-exempt purchases or prices that already include tax. If the receipt does show tax, click Review and add it. Otherwise click Keep.",
+    };
+  }
+  if (hst > 0) return hst < Math.round(sub * 0.13) - 2 ? why('HST', hst, '13% to 15%') : null;
+  if (gst > 0) return gst < Math.round(sub * 0.05) - 2 ? why('GST', gst, '5%') : null;
+  return tax < Math.round(sub * 0.05) - 2 ? why('Tax', tax, '5%') : null;
 }
 
 function assess(it) {
@@ -194,7 +210,7 @@ function assess(it) {
     if (!it.reviewed && !it.softOk) {
       if (total === 0) issues.push({ level: 'yellow', text: 'Total is $0.00. Check it was read right', soft: true });
       const low = sub > 0 && x.currency === 'CAD' && !it.installment ? lowTax(x, sub) : null;
-      if (low) issues.push({ level: 'yellow', text: low, soft: true });
+      if (low) issues.push({ level: 'yellow', text: low.text, more: low.more, soft: true });
     }
     if (x.date) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(x.date)) issues.push({ level: 'yellow', text: `Date "${x.date}" isn't a full date` });
@@ -856,6 +872,13 @@ function removeItem(id) {
   });
 }
 
+// A warning's longer explanation, behind See more so the list stays short.
+function seeMore(it, issue) {
+  if (!issue?.more) return '';
+  const open = S.moreOpen.has(it.id);
+  return ` <button class="link see-more" data-act="more" data-id="${it.id}" aria-expanded="${open}">${open ? 'See less' : 'See more'}</button>${open ? `<span class="more-text">${esc(issue.more)}</span>` : ''}`;
+}
+
 const TYPES = [['receipt', 'Receipt'], ['installment', 'Installment payment'], ['invoice', 'Invoice (not paid)'], ['refund', 'Refund']];
 const typeOf = (it) => (it.installment ? 'installment' : it.extraction?.document_type === 'invoice' ? 'invoice' : it.extraction?.document_type === 'refund' ? 'refund' : 'receipt');
 
@@ -1013,6 +1036,9 @@ function onAction(act, id, field) {
     case 'keep': return it && keepItem(it);
     case 'review': return it && reviewItem(it);
     case 'edit-save': return it && saveBoxEdit(it);
+    case 'more':
+      if (!S.moreOpen.delete(id)) S.moreOpen.add(id);
+      return render();
     case 'edit-cancel':
       Object.assign(S, { editing: null, editDraft: {}, editError: '' });
       return render();
@@ -1314,7 +1340,7 @@ function renderList() {
         : `<div class="thumb" style="background-image:url(${first.dataUrl})">${it.images.length > 1 ? `<span class="n">${it.images.length} parts</span>` : ''}</div>`;
     const issue = it.issues?.[0];
     const more = (it.issues?.length || 0) > 1 ? ` <span class="muted">+${it.issues.length - 1} more</span>` : '';
-    const why = issue ? `<div class="why">${esc(issue.text)}${issue.detail ? `. ${esc(issue.detail)}` : ''}${more}</div>` : '';
+    const why = issue ? `<div class="why">${esc(issue.text)}${issue.detail ? `. ${esc(issue.detail)}` : ''}${more}${seeMore(it, issue)}</div>` : '';
     const total = x && cents(x.total) !== null ? `${money(signedCents(it), x.currency)}<small>${esc(x.currency || '')}</small>` : '';
     const name = it.status === 'reading' ? '<span class="muted">Reading…</span>' : esc(x?.vendor || it.name || 'Unknown vendor');
     return `<div class="row ${it.level || ''} ${it.selected ? 'selected' : ''}" data-act="open" data-id="${it.id}">
@@ -1403,7 +1429,7 @@ function renderBox() {
         ${canKeep ? `<button class="mini keep" data-act="keep" data-id="${it.id}">${ICON.check}Keep</button>` : ''}</div>`;
     return `<li class="scan ${reading ? 'reading' : it.level} ${it.selected ? 'selected' : ''}">${checkbox(it)}${statusIcon(it)}
       <div class="att-text"><span class="att-main"><span class="att-num">${n + 1}.</span> ${main}</span>
-        <span class="att-note">${reading ? '' : `<b class="tag ${it.level}">${word[it.level] || ''}</b> `}${esc(note)}</span>
+        <span class="att-note">${reading ? '' : `<b class="tag ${it.level}">${word[it.level] || ''}</b> `}${esc(note)}${!reading && note === it.issues?.[0]?.text ? seeMore(it, it.issues[0]) : ''}</span>
         ${from(it) && from(it) !== it.name ? `<span class="att-from">${esc(from(it))}</span>` : x?.is_receipt && from(it) ? `<span class="att-from">${esc(from(it))}</span>` : ''}
         ${it.userNote ? `<span class="att-from user-note">Note: ${esc(it.userNote)}</span>` : ''}
         ${reading ? `<span class="progress ${it.queued ? 'queued' : ''}"></span>` : acts}</div>
@@ -1535,7 +1561,7 @@ function openDetail(it, focusField) {
     : `<img src="${p.dataUrl}" alt="Receipt image ${i + 1}">`)).join('') || (it.html ? `<iframe class="email-view" sandbox srcdoc="${esc(emailDoc(it))}" title="The email"></iframe>` : it.text ? `<pre class="pasted">${esc(it.text)}</pre>` : '<div class="pdfbox">No image</div>');
   const tools = it.images.length || it.html || it.text ? `<div class="doc-tools"><button type="button" class="btn sm" data-m="expand">${ICON.expand}Expand</button>${it.html ? '<span class="muted">Pictures from the internet are hidden for privacy.</span>' : ''}</div>` : '';
   const issues = (it.issues?.length ? it.issues : [{ level: 'green', text: 'Looks good. Nothing to fix.' }])
-    .map((i) => `<div class="issue ${i.level}">${esc(i.text)}${i.detail ? `. ${esc(i.detail)}` : ''}</div>`).join('');
+    .map((i) => `<div class="issue ${i.level}">${esc(i.text)}${i.detail ? `. ${esc(i.detail)}` : ''}${i.more ? `<span class="more-text">${esc(i.more)}</span>` : ''}</div>`).join('');
   const inputs = FIELDS.map(([f, name, type, wide]) => {
     const v = x[f];
     const val = v === null || v === undefined ? '' : type === 'num' ? Number(v).toFixed(2) : v;
