@@ -150,7 +150,7 @@ function lowTax(x, sub) {
 
 function assess(it) {
   const issues = [];
-  let action = it.source === 'capture' ? 'replace' : it.source === 'paste' ? 'paste' : 'file';
+  let action = it.source === 'capture' ? 'replace' : it.source === 'upload' ? 'file' : 'paste';
   const x = it.extraction;
 
   if (it.status === 'error') {
@@ -637,7 +637,7 @@ function linkUploads(items) {
     else left.forEach((it) => open.files.push({ name: it.name, itemId: it.id }));
   } else if (S.pip) {
     // The page may be hidden behind Outlook, so the box has to show how drops went.
-    let g = S.attach.find((c) => c.dropped);
+    let g = S.attach.find((c) => c.dropped && !c.email);
     if (!g) {
       g = { id: S.nextGroup++, fromId: -1, sig: '', title: 'Dropped files', dropped: true, files: [] };
       S.attach.push(g);
@@ -682,6 +682,11 @@ async function read(it) {
   }
   reassessAll();
   if (it.auto && it.status === 'done') autoTidy(it);
+  if (it.source === 'email' && it.emailHasFiles && it.status === 'done' && !it.extraction.is_receipt && S.items.includes(it)) {
+    S.items.splice(S.items.indexOf(it), 1);
+    S.attach.forEach((g) => { g.files = g.files.filter((f) => f.itemId !== it.id); });
+    reassessAll();
+  }
   render();
 }
 
@@ -912,8 +917,54 @@ async function pasteFromButton() {
 document.addEventListener('paste', takePaste);
 
 function takeDrop(e) {
-  if (e.dataTransfer?.files?.length) handleFiles(e.dataTransfer.files);
-  else toast('That drop had no files in it. Try dragging the attachment instead of the email.');
+  if (e.dataTransfer?.files?.length) return handleFiles(e.dataTransfer.files);
+  // Gmail hands over a link to the file inside Gmail, which another site isn't allowed to open.
+  const types = [...(e.dataTransfer?.types || [])];
+  if (types.some((t) => t.toLowerCase() === 'downloadurl') || /mail\.google\.com/.test(e.dataTransfer?.getData('text/uri-list') || '')) {
+    toast("Gmail doesn't hand over the file when you drag it. Click the download arrow on the attachment, then drag it from the browser's downloads list (top right) onto this box.");
+  } else {
+    toast('That drop had no files in it. Try dragging the attachment instead of the email.');
+  }
+}
+
+// An email dragged out of Outlook: its text is read like a paste, and each PDF or image attached to it
+// like a dropped file. They're listed together in the box, and count as one email for the paid-twice check.
+async function takeEmailFile(f) {
+  let mail;
+  try {
+    const { readEmailFile } = await import('./email.js');
+    mail = readEmailFile(new Uint8Array(await f.arrayBuffer()), f.name);
+  } catch {
+    return toast(`Couldn't open ${f.name}. Drag its attachment, or copy the email's text instead.`);
+  }
+  // PDFs and the pictures a browser can open; logos shown inside the email are left out.
+  const files = mail.attachments.filter((a) => !a.inline && (/pdf|image\/(png|jpe?g|webp|gif)/i.test(a.type) || /\.(pdf|png|jpe?g|webp|gif)$/i.test(a.name)));
+  const group = { id: S.nextGroup++, fromId: -1, sig: '', title: mail.subject || f.name, sender: mail.sender, subject: mail.subject, dropped: true, email: true, files: [] };
+  S.attach.push(group); // before the reads start, so a quick "see attached" answer can take itself off the list
+  const fromEmail = { sender: mail.sender, subject: mail.subject };
+  const text = [mail.sender && `From: ${mail.sender}`, mail.subject && `Subject: ${mail.subject}`, mail.date && `Date: ${mail.date}`]
+    .filter(Boolean).join('\n') + `\n\n${mail.text}`;
+  if (mail.text.trim().length >= 20) {
+    const it = addItem('email', [], f.name);
+    Object.assign(it, { text: text.slice(0, MAX_TEXT_CHARS), fromEmail, groupId: group.id, emailHasFiles: files.length > 0 });
+    group.files.push({ name: 'Email text', itemId: it.id });
+    read(it);
+  }
+  for (const a of files) {
+    const ext = (/\.(\w+)$/.exec(a.name) || [])[1]?.toLowerCase();
+    const type = a.type || { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }[ext] || '';
+    const part = await fileToPart(new File([a.bytes], a.name, { type }));
+    const it = addItem('upload', part.error ? [] : [part], a.name);
+    Object.assign(it, { fromEmail, groupId: group.id });
+    group.files.push({ name: a.name, itemId: it.id });
+    if (part.error) setLocal(it, part.error, part.detail, 'file');
+    else read(it);
+  }
+  if (!group.files.length) {
+    S.attach.splice(S.attach.indexOf(group), 1);
+    return toast(`${f.name} has no text or PDF to read.`);
+  }
+  render();
 }
 
 async function handleFiles(fileList) {
@@ -939,6 +990,10 @@ async function handleFiles(fileList) {
 
   const added = [];
   for (const f of files) {
+    if (/\.(msg|eml)$/i.test(f.name)) {
+      await takeEmailFile(f);
+      continue;
+    }
     const part = await fileToPart(f);
     const it = addItem('upload', part.error ? [] : [part], f.name);
     added.push(it);
@@ -960,7 +1015,7 @@ async function fileToPart(f) {
     try { return await imageFileToCapture(f); } catch { return { error: "Couldn't open that image", detail: 'Try a JPG or PNG.' }; }
   }
   if (name.endsWith('.msg') || name.endsWith('.eml')) {
-    return { error: "Email files can't be read in the trial yet", detail: 'Open the email and drag the PDF attachment instead, or capture it.' };
+    return { error: "An email can't replace a receipt", detail: 'Drop the email on the box to read it as a new receipt instead.' };
   }
   return { error: `Can't read ${f.type || 'this kind of file'}`, detail: 'Drop a PDF or an image of the receipt.' };
 }
@@ -1103,7 +1158,7 @@ function statusIcon(it) {
   return it.level === 'green' ? ICON.check : it.level === 'yellow' ? ICON.warn : ICON.error;
 }
 
-const SOURCE_NAMES = { capture: 'Scan', upload: 'Upload', paste: 'Paste' };
+const SOURCE_NAMES = { capture: 'Scan', upload: 'Upload', paste: 'Paste', email: 'Email' };
 const sourceLabel = (it) => `${SOURCE_NAMES[it.source]}${it.manual?.length ? ' + manual input' : ''}`;
 
 const fieldName = (f) => FIELDS.find(([k]) => k === f)?.[1] || titleCase(f);
@@ -1142,7 +1197,7 @@ function addControls(it) {
 
 function detailLine(it) {
   const x = it.extraction;
-  if (!x) return it.source === 'upload' ? esc(it.name || '') : it.source === 'paste' ? 'Pasted text' : `Captured ${new Date(it.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  if (!x) return it.source === 'upload' ? esc(it.name || '') : it.source === 'paste' ? 'Pasted text' : it.source === 'email' ? 'Email text' : `Captured ${new Date(it.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
   const bits = [];
   if (it.level !== 'green' && (x.email_sender || x.email_subject)) {
     bits.push(`From ${esc(x.email_sender || 'unknown')}${x.email_subject ? ` · “${esc(x.email_subject)}”` : ''}`);
@@ -1192,7 +1247,7 @@ function renderList() {
     const x = it.extraction;
     const first = it.images[0];
     const thumb = it.text
-      ? '<div class="thumb pdf text">TEXT</div>'
+      ? `<div class="thumb pdf text">${it.source === 'email' ? 'EMAIL' : 'TEXT'}</div>`
       : !first
       ? `<div class="thumb pdf">${ICON.file}</div>`
       : first.pdf
@@ -1251,7 +1306,7 @@ function attachCard(group) {
     return `<li class="att ${it?.level || ''}">${icon}<span class="att-name" title="${esc(f.name)}">${esc(f.name)}</span>
       ${waiting && isWaiting(f) ? `<button class="link" data-act="att-skip" data-id="${group.id}" data-field="${i}">Skip</button>` : `<span class="att-res">${esc(result)}</span>`}</li>`;
   }).join('');
-  const title = group.dropped ? 'Dropped files' : waiting ? `${waiting} attachment${waiting > 1 ? 's' : ''} not read yet` : 'All attachments done';
+  const title = group.email ? `From ${group.title}` : group.dropped ? 'Dropped files' : waiting ? `${waiting} attachment${waiting > 1 ? 's' : ''} not read yet` : 'All attachments done';
   const hint = group.dropped ? '' : `<div class="d">${esc(group.title)}.${waiting ? ' Select them in Outlook and drag them onto this box.' : ''}</div>`;
   return `<div class="card attach"><div class="t">${ICON.file}${esc(title)}</div>${hint}<ul class="att-list">${rows}</ul>
     <div class="acts"><button class="btn sm" data-act="att-done" data-id="${group.id}">${waiting ? 'Skip the rest' : 'Done'}</button></div></div>`;
@@ -1264,7 +1319,7 @@ function renderBox() {
   const n = S.items.filter((i) => i.source === 'capture').length;
   let html = `<div class="box-head"><span><span class="dot ${capturing ? 'live' : ''}"></span>${capturing ? (S.auto ? 'Auto-capturing' : 'Capturing') : 'Not capturing'}</span><span>${n} captured</span></div>`;
 
-  const group = [...S.attach].reverse().find((g) => g.files.some(isWaiting)) || S.attach[S.attach.length - 1];
+  const group = [...S.attach].reverse().find((g) => !g.dropped && g.files.some(isWaiting)) || S.attach[S.attach.length - 1];
   if (S.moving) {
     html += `<div class="card red"><div class="t">${ICON.error}The email was moving</div>
       <div class="d">Don't scroll while capturing. Nothing was saved. Stop scrolling, then click Capture.</div>
@@ -1277,7 +1332,7 @@ function renderBox() {
   } else if (group && (!latest || latest.id < group.fromId)) {
     // The email was only "see attached", so its checklist below is all there is to say.
   } else if (!latest) {
-    html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${!capturing ? 'Click Start capturing and pick your Outlook window.' : S.auto ? 'Click a receipt email in Outlook and keep still for a second. It\'s captured by itself.' : 'Click a receipt email in Outlook, then click Capture.'}</div>
+    html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${!capturing ? 'Click Start capturing and pick your Outlook window.' : S.auto ? 'Click a receipt email in Outlook and keep still for a second. It\'s captured by itself.' : 'Click a receipt email, then click Capture.'}</div>
       <div class="d">Long receipt? ${PASTE_HINT}</div></div>`;
   } else if (latest.status === 'reading') {
     html += `<div class="card"><div class="t"><span class="spin"></span>Reading…</div><div class="d">Stay on this email. Capture comes back when it's done.</div></div>`;
@@ -1328,6 +1383,7 @@ function renderBox() {
     if (S.auto && S.autoNote) html += `<div class="auto-note muted">${esc(S.autoNote)}</div>`;
   }
   html += `<button class="btn paste-btn" data-act="paste">${ICON.file}Paste copied email</button>`;
+  html += '<div class="auto-note muted">Outlook: you can also drag the email itself onto this box.</div>';
   html += `<div class="box-foot"><button class="link" data-act="crop">${S.crop ? 'Crop area: on' : 'Set crop area'}</button>${capturing ? '<button class="link" data-act="stop">Stop</button>' : ''}</div>`;
   boxEl.innerHTML = html;
   boxEl.querySelector('[data-add-input]')?.focus();
@@ -1632,7 +1688,7 @@ const TOUR = [
   { title: 'Long receipts: copy and paste', html: '<p>A long receipt doesn\'t fit in one capture. Copy it instead:</p><ol><li>In the email, right-click and choose <b>Select All</b>, then right-click and choose <b>Copy</b>. Or press <b>Ctrl+A</b>, then <b>Ctrl+C</b>.</li><li>Click <b>Paste copied email</b> in the box, or click the box and press <b>Ctrl+V</b>.</li></ol><p>The first time, the browser asks to let reysan.ca see what you copied: click <b>Allow</b>.</p><p>The whole email is read as text, however long it is. Messy formatting is fine. Receipts that are a picture inside the email still need a capture.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The box shows a <b>+</b> button, like <b>+ Subtotal</b>. Click it and type what you see in the email. The receipt\'s source then says <b>Scan + manual input</b>.</p><p><b>Paid twice?</b> If two receipts from the same vendor have the same amount within 30 minutes, you\'ll get a warning. Click <b>Yes, it\'s a real purchase</b> to clear it, or send it to the <b>Needs review</b> or <b>For refund</b> tab above your list so you can come back to it.</p>' },
   { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
-  { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here, or drag an attachment straight out of Outlook. Whole emails (.msg files) can\'t be read yet, so drag the attachment instead.</p><p><b>An email with several PDFs?</b> Capture it with the attachment names showing. The box lists them, then ticks each one off as you drag it onto the box, so none get forgotten.</p>' },
+  { target: '#dropZone', title: 'PDFs and attachments', html: '<p>Got PDF receipts? Drag them here. In Outlook you can drag <b>the whole email</b> from your inbox onto the box: its text and every PDF attached to it are read together. Gmail doesn\'t allow dragging files out, so download the attachment first, then drag it from the browser\'s downloads list.</p><p><b>An email with several PDFs?</b> Capture it with the attachment names showing. The box lists them, then ticks each one off as you drag it onto the box, so none get forgotten.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: good to go. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing.</p><p>Click any row to see the image next to the fields and fix anything. The trash icon deletes it, and you get a few seconds to Undo.</p>' },
   { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need. It remembers your ticks for next time.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
 ];
