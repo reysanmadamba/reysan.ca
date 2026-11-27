@@ -1577,9 +1577,9 @@ function openExport() {
         <span><input name="filename" type="text" value="receipts-${today()}" autocomplete="off" spellcheck="false"><b>.xlsx</b></span>
       </label>
       <div class="export-user">
-        <label>Your name <i>required</i><input name="username" type="text" value="${esc(S.user.name)}" autocomplete="name" required></label>
-        <label>Your email <i>required</i><input name="useremail" type="email" value="${esc(S.user.email)}" autocomplete="email" required></label>
-        <label>Department <i>required</i><input name="department" type="text" value="${esc(S.user.department || '')}" autocomplete="organization-title" required></label>
+        <label>Your name <i class="req">required</i><input name="username" type="text" value="${esc(S.user.name)}" autocomplete="name" required></label>
+        <label>Your email <i class="req">required</i><input name="useremail" type="email" value="${esc(S.user.email)}" autocomplete="email" required></label>
+        <label>Department <i class="req">required</i><input name="department" type="text" value="${esc(S.user.department || '')}" autocomplete="organization-title" required></label>
         <label>Employee ID <i>optional</i><input name="employeeid" type="text" value="${esc(S.user.employeeId || '')}" autocomplete="off"></label>
       </div>
       <fieldset>
@@ -1605,9 +1605,10 @@ function openExport() {
     const picked = boxes().filter((b) => b.checked).map((b) => b.value);
     const field = (n) => root.querySelector(`input[name="${n}"]`);
     const user = { name: field('username').value.trim(), email: field('useremail').value.trim(), department: field('department').value.trim(), employeeId: field('employeeid').value.trim() };
-    if (!user.name) { field('username').focus(); return showErr('Type your name.'); }
-    if (!/^\S+@\S+\.\S+$/.test(user.email)) { field('useremail').focus(); return showErr('Type your email.'); }
-    if (!user.department) { field('department').focus(); return showErr('Type your department.'); }
+    const missing = (n, msg) => { field(n).classList.add('missing'); field(n).focus(); showErr(msg); };
+    if (!user.name) return missing('username', 'Type your name (required).');
+    if (!/^\S+@\S+\.\S+$/.test(user.email)) return missing('useremail', 'Type your email (required).');
+    if (!user.department) return missing('department', 'Type your department (required).');
     S.user = user;
     store.set('rp.user', S.user);
     store.set('rp.exportOff', boxes().filter((b) => !b.checked && !b.disabled).map((b) => b.value));
@@ -1634,7 +1635,7 @@ function openExport() {
     }
     if (x === 'download') go();
   });
-  $('#exportForm').addEventListener('input', () => { $('#exportErr').hidden = true; });
+  $('#exportForm').addEventListener('input', (e) => { $('#exportErr').hidden = true; e.target.classList.remove('missing'); });
 }
 
 // The download: one row per receipt, coloured by its status, and a sheet explaining the colours.

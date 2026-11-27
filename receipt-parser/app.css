@@ -434,3 +434,5 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .viewer-doc { width: min(1000px, 100%); height: calc(100vh - 100px); border: 1px solid var(--border); border-radius: 8px; background: #fff; }
 .viewer-img { max-width: min(1000px, 100%); border-radius: 8px; }
 .viewer-text { width: min(900px, 100%); margin: 0; white-space: pre-wrap; font: 14px/1.6 ui-monospace, Consolas, monospace; color: var(--text); }
+.export-user i.req { color: var(--red); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.03em; }
+.export-user input.missing { border-color: var(--red); box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 25%, transparent); }
