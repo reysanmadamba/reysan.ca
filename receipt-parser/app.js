@@ -9,6 +9,9 @@ const LOW_CONFIDENCE = 0.7;
 const DOUBLE_CHARGE_MINUTES = 30;
 const MOTION_GAP_MS = 250;
 const MOVING_SHARE = 0.01;
+const AUTO_STILL_MS = 1200;   // how long the email must sit still before auto-capture takes it
+const AUTO_NEW_SHARE = 0.03;  // how different from the last capture a screen must be to count as a new email
+const AUTO_GAP_MS = 2000;
 
 const store = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -36,6 +39,12 @@ const S = {
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
   attach: [],        // checklists: { id, fromId, sig, title, sender, subject, dropped, files: [{ name, itemId, skipped }] }
   nextGroup: 1,
+  auto: false,       // auto-capture: off by default, and off again whenever capturing stops
+  autoPrev: null,    // signature of the last frame looked at, to tell when the screen stops moving
+  autoStill: 0,
+  autoLast: 0,
+  autoBusy: false,
+  autoNote: '',
   user: store.get('rp.user', { name: '', email: '' }), // typed in for now; comes from the login once accounts exist
 };
 const API = store.get('rp.api', DEFAULT_API);
@@ -265,14 +274,16 @@ function findDuplicates() {
     const swapped = swappedDate(x.date);
     const at = paidAt(x);
     // Same receipt number means the same receipt; otherwise two payments minutes apart may be a double charge.
+    // Not when both came from one email, like a ticket for each passenger on one booking.
     const charge = at === null ? null : seen.find((s) => s.v === v && s.t === t && s.at !== null
-      && Math.abs(s.at - at) <= DOUBLE_CHARGE_MINUTES && !(s.rn && s.rn === rn) && (s.at !== at || (s.rn && rn)));
+      && Math.abs(s.at - at) <= DOUBLE_CHARGE_MINUTES && !(s.rn && s.rn === rn) && (s.at !== at || (s.rn && rn))
+      && !(it.groupId && s.group === it.groupId));
     const hit = seen.find((s) => s.v === v && (s.date === x.date || s.date === swapped) && s.t === t && (!s.rn || !rn || s.rn === rn));
     if (!it.dupOk) {
       if (charge) it.chargeOf = charge.id;
       else if (hit) it.dupOf = hit.id;
     }
-    seen.push({ id: it.id, v, date: x.date, t, rn, at });
+    seen.push({ id: it.id, v, date: x.date, t, rn, at, group: it.groupId });
   }
 }
 
@@ -315,6 +326,7 @@ async function startCapture() {
 }
 
 function stopCapture(fromBrowser = false) {
+  setAuto(false);
   S.stream?.getTracks().forEach((t) => t.stop());
   S.video?.remove();
   Object.assign(S, { stream: null, track: null, grabber: null, video: null, target: null });
@@ -380,12 +392,30 @@ async function grabBitmap() {
 
 // Crops (if set), scales and encodes a frame. Also returns a 64x64 grey
 // signature for the instant blank / same-as-last checks.
+function cropRect(w, h, crop) {
+  if (!crop) return [0, 0, w, h];
+  return [Math.round(crop.x * w), Math.round(crop.y * h), Math.max(1, Math.round(crop.w * w)), Math.max(1, Math.round(crop.h * h))];
+}
+
+// 256px is fine enough that two emails differing only in a few digits don't look identical.
+function signature(src, sx, sy, sw, sh) {
+  const SIG = 256;
+  const small = document.createElement('canvas');
+  small.width = SIG; small.height = SIG;
+  const sctx = small.getContext('2d', { willReadFrequently: true });
+  sctx.drawImage(src, sx, sy, sw, sh, 0, 0, SIG, SIG);
+  const px = sctx.getImageData(0, 0, SIG, SIG).data;
+  const grey = new Uint8ClampedArray(SIG * SIG);
+  let sum = 0;
+  for (let i = 0; i < grey.length; i++) { grey[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]; sum += grey[i]; }
+  const mean = sum / grey.length;
+  let v = 0;
+  for (const g of grey) v += (g - mean) ** 2;
+  return { grey, std: Math.sqrt(v / grey.length) };
+}
+
 function encodeFrame(src, w, h, crop) {
-  let sx = 0, sy = 0, sw = w, sh = h;
-  if (crop) {
-    sx = Math.round(crop.x * w); sy = Math.round(crop.y * h);
-    sw = Math.max(1, Math.round(crop.w * w)); sh = Math.max(1, Math.round(crop.h * h));
-  }
+  const [sx, sy, sw, sh] = cropRect(w, h, crop);
   const scale = Math.min(1, MAX_LONG_EDGE / Math.max(sw, sh));
   const cw = Math.round(sw * scale), ch = Math.round(sh * scale);
   const canvas = document.createElement('canvas');
@@ -397,26 +427,12 @@ function encodeFrame(src, w, h, crop) {
   let dataUrl = canvas.toDataURL('image/jpeg', 0.9);
   if (dataUrl.length > 1_300_000) dataUrl = canvas.toDataURL('image/jpeg', 0.75);
 
-  // 256px is fine enough that two emails differing only in a few digits don't look identical.
-  const SIG = 256;
-  const small = document.createElement('canvas');
-  small.width = SIG; small.height = SIG;
-  const sctx = small.getContext('2d', { willReadFrequently: true });
-  sctx.drawImage(canvas, 0, 0, SIG, SIG);
-  const px = sctx.getImageData(0, 0, SIG, SIG).data;
-  const grey = new Uint8ClampedArray(SIG * SIG);
-  let sum = 0;
-  for (let i = 0; i < grey.length; i++) { grey[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]; sum += grey[i]; }
-  const mean = sum / grey.length;
-  let v = 0;
-  for (const g of grey) v += (g - mean) ** 2;
-
   return {
     media_type: 'image/jpeg',
     dataUrl,
     data: dataUrl.slice(dataUrl.indexOf(',') + 1),
     w: cw, h: ch,
-    sig: { grey, std: Math.sqrt(v / grey.length) },
+    sig: signature(canvas, 0, 0, cw, ch),
   };
 }
 
@@ -449,8 +465,8 @@ async function grabStill(force) {
   return changedShare(img.sig, later.sig) > MOVING_SHARE ? null : later;
 }
 
-async function capture(mode, force) {
-  if (!S.stream) { await startCapture(); return; }
+async function capture(mode, force, auto) {
+  if (!S.stream) { if (!auto) await startCapture(); return; }
   if (isBusy()) return;
   S.grabbing = true;
   S.moving = null;
@@ -461,7 +477,12 @@ async function capture(mode, force) {
   catch { S.grabbing = false; render(); toast("Couldn't grab the window. Is it minimized?"); return; }
   S.grabbing = false;
   if (!img) {
-    S.moving = { mode: mode || null };
+    // Auto-capture just waits for the screen to settle; a person clicking gets told why nothing happened.
+    if (!auto) S.moving = { mode: mode || null };
+    render();
+    return;
+  }
+  if (auto && (img.w < 300 || img.h < 150 || img.sig.std < 3 || (S.lastSig && sameImage(img.sig, S.lastSig)))) {
     render();
     return;
   }
@@ -484,6 +505,10 @@ async function capture(mode, force) {
   }
 
   const it = addItem('capture', [img]);
+  if (auto) {
+    it.auto = true;
+    S.autoNote = '';
+  }
   if (img.w < 300 || img.h < 150) {
     setLocal(it, 'Capture is too small', 'Make the Outlook window bigger, or redo the crop area.', 'replace');
   } else if (img.sig.std < 3) {
@@ -561,12 +586,15 @@ function trackAttachments(it) {
   const names = (x.attachments || []).filter((n) => n && !UNREADABLE_ATTACHMENT.test(n));
   if (!names.length) return;
   const sig = names.map(attachKey).sort().join('|');
-  if (!S.attach.some((g) => g.sig === sig)) {
-    S.attach.push({
+  let group = S.attach.find((g) => g.sig === sig);
+  if (!group) {
+    group = {
       id: S.nextGroup++, fromId: it.id, sig, title: x.email_subject || x.email_sender || 'This email',
       sender: x.email_sender, subject: x.email_subject, files: names.map((name) => ({ name })),
-    });
+    };
+    S.attach.push(group);
   }
+  it.groupId = group.id;
   // "See attached" isn't a receipt, but it isn't a mistake either: the checklist takes over from the red row.
   if (!x.is_receipt) S.items.splice(S.items.indexOf(it), 1);
 }
@@ -574,6 +602,7 @@ function trackAttachments(it) {
 function linkFile(group, file, it) {
   file.name = it.name;
   file.itemId = it.id;
+  it.groupId = group.id;
   it.fromEmail = { sender: group.sender, subject: group.subject };
 }
 
@@ -639,7 +668,112 @@ async function read(it) {
     }
   }
   reassessAll();
+  if (it.auto && it.status === 'done') autoTidy(it);
   render();
+}
+
+// ---------- auto-capture ----------
+
+// Auto-capture reads everything you open, so it keeps only receipts, and a second
+// view of the same email (scrolled a little, say) doesn't become a second row.
+function autoTidy(it) {
+  if (!S.items.includes(it) || it.reviewed) return;
+  const x = it.extraction;
+  const previous = S.items.filter((o) => o.source === 'capture' && o.id < it.id).sort((a, b) => b.id - a.id)[0];
+  let note = '';
+  if (!x.is_receipt) note = 'Skipped an email that isn\'t a receipt.';
+  else if (previous && it.dupOf === previous.id) note = `Skipped a second view of ${label(previous)}.`;
+  if (!note) return;
+  S.items.splice(S.items.indexOf(it), 1);
+  S.autoNote = note;
+  reassessAll();
+}
+
+// A worker keeps time even while this page sits behind Outlook, where the browser slows page timers down.
+let autoWorker = null;
+
+function setAuto(on) {
+  S.auto = on;
+  S.autoPrev = null;
+  S.autoNote = '';
+  autoWorker?.terminate();
+  autoWorker = null;
+  if (on) {
+    const url = URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 400);'], { type: 'text/javascript' }));
+    autoWorker = new Worker(url);
+    autoWorker.onmessage = autoTick;
+  }
+}
+
+async function autoFrame() {
+  if (S.grabber) {
+    const frame = await Promise.race([S.grabber.grabFrame().catch(() => null), wait(500)]);
+    if (frame) return frame;
+  }
+  return S.video?.videoWidth ? createImageBitmap(S.video) : null;
+}
+
+// Rows of the new frame that line up with rows of the old one moved up or down: a scroll,
+// not a new email. Blank rows match anything, so only rows with text in them count.
+function scrollShift(a, b) {
+  const N = 256;
+  const inked = [];
+  for (let y = 0; y < N; y++) {
+    let lo = 255, hi = 0;
+    for (let x = 0; x < N; x += 4) { const v = b[y * N + x]; if (v < lo) lo = v; if (v > hi) hi = v; }
+    if (hi - lo > 40) inked.push(y);
+  }
+  if (inked.length < 16) return 0;
+  let best = 0, bestScore = 0;
+  for (let dy = -200; dy <= 200; dy++) {
+    if (Math.abs(dy) < 3) continue;
+    let rows = 0, match = 0;
+    for (const y of inked) {
+      const yo = y + dy;
+      if (yo < 0 || yo >= N) continue;
+      rows++;
+      let d = 0;
+      for (let x = 0; x < N; x += 4) d += Math.abs(b[y * N + x] - a[yo * N + x]);
+      if (d / 64 < 8) match++;
+    }
+    if (rows >= 12 && match / rows > bestScore) { bestScore = match / rows; best = dy; }
+  }
+  return bestScore >= 0.6 ? best : 0;
+}
+
+async function autoTick() {
+  if (!S.auto || !S.stream || S.autoBusy || isBusy() || S.adding) return;
+  S.autoBusy = true;
+  try {
+    const frame = await autoFrame();
+    if (!frame) return;
+    const sig = signature(frame, ...cropRect(frame.width, frame.height, S.crop));
+    frame.close?.();
+    const now = Date.now();
+    if (!S.autoPrev || changedShare(S.autoPrev, sig) > 0.002) {
+      S.autoPrev = sig;
+      S.autoStill = now;
+      return;
+    }
+    if (now - S.autoStill < AUTO_STILL_MS || now - S.autoLast < AUTO_GAP_MS || sig.std < 3) return;
+    if (S.lastSig && changedShare(S.lastSig, sig) < AUTO_NEW_SHARE) return;
+    S.autoLast = now;
+    if (S.lastSig && !S.target && scrollShift(S.lastSig.grey, sig.grey)) {
+      // Scrolled within the same email: finish a cut-off receipt with it, otherwise there's nothing new.
+      const latest = S.items.filter((i) => i.source === 'capture').sort((a, b) => b.id - a.id)[0];
+      if (latest?.status === 'done' && latest.level === 'red' && latest.action === 'append') {
+        await capture({ id: latest.id, mode: 'append' }, false, true);
+      } else {
+        S.lastSig = sig;
+      }
+      return;
+    }
+    await capture(undefined, false, true);
+  } catch {
+    // A missed look is fine; the next tick tries again.
+  } finally {
+    S.autoBusy = false;
+  }
 }
 
 async function callApi(it) {
@@ -830,6 +964,7 @@ function onAction(act, id, field) {
   const it = S.items.find((i) => i.id === id);
   switch (act) {
     case 'capture': return capture();
+    case 'auto': setAuto(!S.auto); return render();
     case 'capture-anyway': return capture(S.moving?.mode || undefined, true);
     case 'add': S.adding = { id, field, value: '' }; return render();
     case 'add-more': S.adding = { id, more: true }; return render();
@@ -885,7 +1020,10 @@ document.addEventListener('click', (e) => {
 // The box may live in the floating window's document, so it gets its own listener.
 boxEl.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
-  if (el) onAction(el.dataset.act, Number(el.dataset.id), el.dataset.field);
+  if (!el) return;
+  // Rendering replaces the clicked button, so the page-wide listener would no longer see it inside the box.
+  e.stopPropagation();
+  onAction(el.dataset.act, Number(el.dataset.id), el.dataset.field);
 });
 boxEl.addEventListener('input', (e) => {
   if (S.adding && e.target.matches('[data-add-input]')) { S.adding.value = e.target.value; S.adding.error = ''; }
@@ -1058,7 +1196,7 @@ function renderBox() {
   const latest = [...S.items].filter((i) => i.source === 'capture').sort((a, b) => b.id - a.id)[0];
   const capturing = !!S.stream;
   const n = S.items.filter((i) => i.source === 'capture').length;
-  let html = `<div class="box-head"><span><span class="dot ${capturing ? 'live' : ''}"></span>${capturing ? 'Capturing' : 'Not capturing'}</span><span>${n} captured</span></div>`;
+  let html = `<div class="box-head"><span><span class="dot ${capturing ? 'live' : ''}"></span>${capturing ? (S.auto ? 'Auto-capturing' : 'Capturing') : 'Not capturing'}</span><span>${n} captured</span></div>`;
 
   const group = [...S.attach].reverse().find((g) => g.files.some(isWaiting)) || S.attach[S.attach.length - 1];
   if (S.moving) {
@@ -1073,7 +1211,7 @@ function renderBox() {
   } else if (group && (!latest || latest.id < group.fromId)) {
     // The email was only "see attached", so its checklist below is all there is to say.
   } else if (!latest) {
-    html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${capturing ? 'Click a receipt email in Outlook, then click Capture.' : 'Click Start capturing and pick your Outlook window.'}</div></div>`;
+    html += `<div class="card"><div class="t">${capturing ? 'Ready' : 'Start here'}</div><div class="d">${!capturing ? 'Click Start capturing and pick your Outlook window.' : S.auto ? 'Click a receipt email in Outlook and keep still for a second. It\'s captured by itself.' : 'Click a receipt email in Outlook, then click Capture.'}</div></div>`;
   } else if (latest.status === 'reading') {
     html += `<div class="card"><div class="t"><span class="spin"></span>Reading…</div><div class="d">Stay on this email. Capture comes back when it's done.</div></div>`;
   } else if (latest.level === 'red') {
@@ -1115,6 +1253,11 @@ function renderBox() {
   html += capturing
     ? `<button class="btn primary big" data-act="capture" ${busy ? 'disabled' : ''}>${busy ? `<span class="spin"></span>${S.grabbing ? 'Hold still…' : 'Reading…'}` : `${ICON.camera}Capture`}</button>`
     : `<button class="btn primary big" data-act="start">${ICON.camera}Start capturing</button>`;
+  if (capturing) {
+    html += `<button class="auto-switch" role="switch" aria-checked="${S.auto}" data-act="auto"><span class="knob"></span>Auto-capture</button>`;
+    if (S.auto) html += '<div class="auto-note">Every email you open is sent to Claude. Turn this off when you\'re done with receipts.</div>';
+    if (S.auto && S.autoNote) html += `<div class="auto-note muted">${esc(S.autoNote)}</div>`;
+  }
   html += `<div class="box-foot"><button class="link" data-act="crop">${S.crop ? 'Crop area: on' : 'Set crop area'}</button>${capturing ? '<button class="link" data-act="stop">Stop</button>' : ''}</div>`;
   boxEl.innerHTML = html;
   boxEl.querySelector('[data-add-input]')?.focus();
@@ -1414,7 +1557,7 @@ const TOUR = [
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
   { target: '#startBtn', title: 'Start capturing', html: '<p>Click this, and your browser asks what to share:</p>' + ILL.share + '<ol><li>Click the <b>Window</b> tab</li><li>Click your <b>Outlook</b> window</li><li>Click <b>Share</b></li></ol><p>Outlook has to be open, not minimized. It works with the Outlook app or Outlook in a browser.</p>' },
   { title: 'A box floats on top of Outlook', html: '<p>After you share, a small box pops out and stays on top of every window, even when you click into Outlook. Drag it to a corner.</p>' + ILL.box + "<p>Don't see it? Click <b>Open floating box</b>. In Firefox or Safari it stays on this page; put this window next to Outlook.</p>" },
-  { title: 'Your rhythm', html: '<ol><li>Click a receipt email in Outlook</li><li>Click <b>Capture</b> in the box</li><li>Wait a few seconds for the green check, then click the next email</li></ol><p>Capture locks while a receipt is being read, so nothing gets saved twice. Don\'t scroll while you click it: if the email is moving, you\'ll get a warning and nothing is saved.</p><p>Prefer to stay on one email until it\'s green: if something\'s wrong, you\'re already in the right place to fix it.</p>' },
+  { title: 'Your rhythm', html: '<ol><li>Click a receipt email in Outlook</li><li>Click <b>Capture</b> in the box</li><li>Wait a few seconds for the green check, then click the next email</li></ol><p>Tired of clicking Capture? Turn on <b>Auto-capture</b> in the box: click an email, keep still for a second, and it\'s captured by itself. Emails that aren\'t receipts are skipped.</p><p>Capture locks while a receipt is being read, so nothing gets saved twice. Don\'t scroll while you click it: if the email is moving, you\'ll get a warning and nothing is saved.</p><p>Prefer to stay on one email until it\'s green: if something\'s wrong, you\'re already in the right place to fix it.</p>' },
   { title: 'When it goes red', html: ILL.red + '<p><b>Red means fix it now</b>, while the email is still open. If the total is cut off, scroll down and click <b>Capture the rest</b>: both parts are read as one receipt.</p><p><b>Yellow</b> means it\'s saved; check it later in your list.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The box shows a <b>+</b> button, like <b>+ Subtotal</b>. Click it and type what you see in the email. The receipt\'s source then says <b>Scan + manual input</b>.</p><p><b>Paid twice?</b> If two receipts from the same vendor have the same amount within 30 minutes, you\'ll get a warning. Click <b>Yes, it\'s a real purchase</b> to clear it, or send it to the <b>Needs review</b> or <b>For refund</b> tab above your list so you can come back to it.</p>' },
   { target: '#cropBtn', title: 'Zoom in once (optional)', html: "<p>Draw a box around Outlook's reading pane, once. Every capture is cut to that area, so small text reads better and your inbox list stays out of the picture.</p>" },
