@@ -24,6 +24,7 @@ const S = {
   demoTick: 0,
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
   mini: false,       // the floating drop box shrunk to a small bar
+  savedAt: 0,        // when the list was last saved in this browser
   attach: [],        // dropped emails: { id, title, sender, subject, files: [{ name, itemId, skipped, reason, hidden }] }
   nextGroup: 1,
   user: store.get('rp.user', { name: '', email: '' }), // typed in for now; comes from the login once accounts exist
@@ -842,6 +843,12 @@ function onAction(act, id, field) {
     case 'pip': return openPip();
     case 'open-app': return openApp();
     case 'minimize': return setMini(true);
+    case 'select':
+      if (it) it.selected = !it.selected;
+      return render();
+    case 'select-all': return selectAll(field === 'box' ? boxRows() : listRows());
+    case 'bulk': return bulk(field);
+    case 'save': return saveNow(true);
     case 'expand': return setMini(false);
     case 'box-done':
       if (it) it.boxDone = true;
@@ -894,6 +901,142 @@ boxEl.addEventListener('click', (e) => {
   e.stopPropagation();
   onAction(el.dataset.act, Number(el.dataset.id), el.dataset.field);
 });
+
+// ---------- saved in this browser, so the list is still here next time ----------
+
+const DB = { name: 'receipt-parser', store: 'state', key: 'list' };
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB.name, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DB.store);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDo(mode, fn) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DB.store, mode);
+    const req = fn(tx.objectStore(DB.store));
+    tx.oncomplete = () => resolve(req?.result);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+let saveTimer = null;
+let restoring = true; // no saving until the saved list has loaded, or an empty page would overwrite it
+function saveSoon() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveNow(false), 800);
+}
+
+// A file still being read is saved as stopped, with Try again, since the read can't resume after a reload.
+async function saveNow(announce) {
+  clearTimeout(saveTimer);
+  if (restoring) return;
+  const items = S.items.map(({ snapshot, queued, ...it }) => ({
+    ...it,
+    images: it.images.map(({ blobUrl, ...p }) => p),
+    ...(it.status === 'reading' ? { status: 'error', error: 'Stopped before it was read. Click Try again' } : {}),
+  }));
+  try {
+    await dbDo('readwrite', (st) => st.put({ v: 1, items, attach: S.attach, nextId: S.nextId, nextGroup: S.nextGroup, savedAt: Date.now() }, DB.key));
+    S.savedAt = Date.now();
+    renderSaved();
+    if (announce) toast('Saved. Your list will be here when you come back to this page on this computer.');
+  } catch {
+    if (announce) toast("Couldn't save in this browser. Download Excel to keep a copy.");
+  }
+}
+
+async function restoreSaved() {
+  try {
+    const d = await dbDo('readonly', (st) => st.get(DB.key));
+    if (!d?.items?.length) return;
+    Object.assign(S, { items: d.items, attach: d.attach || [], nextId: d.nextId, nextGroup: d.nextGroup, savedAt: d.savedAt });
+    reassessAll();
+    render();
+    const active = S.items.filter((i) => !i.archived).length;
+    toast(`Welcome back: your ${active} receipt${active === 1 ? '' : 's'} from ${new Date(d.savedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} are here.`);
+  } catch { /* nothing saved, or storage blocked: start empty */ } finally {
+    restoring = false;
+  }
+}
+
+function renderSaved() {
+  const text = S.savedAt ? `Saved on this computer at ${new Date(S.savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : '';
+  $('#savedNote').textContent = text;
+  boxEl.querySelector('.saved-note')?.replaceChildren(text);
+}
+
+// ---------- picking several rows at once ----------
+
+const active = () => S.items.filter((i) => !i.archived);
+const selected = () => S.items.filter((i) => i.selected);
+
+function removeMany(list, message) {
+  const gone = new Set(list);
+  const before = [...S.items];
+  S.items = S.items.filter((i) => !gone.has(i));
+  list.forEach((i) => { i.selected = false; });
+  reassessAll();
+  render();
+  toast(message, () => {
+    S.items = before;
+    reassessAll();
+    render();
+  });
+}
+
+function bulk(what) {
+  const list = selected();
+  if (!list.length && what !== 'clear-all') return;
+  const n = list.length;
+  const many = `${n} receipt${n === 1 ? '' : 's'}`;
+  if (what === 'cancel') list.forEach((i) => { i.selected = false; });
+  if (what === 'review') {
+    list.forEach((i) => { i.followUp = 'review'; i.selected = false; });
+    toast(`${many} moved to Needs review.`);
+  }
+  if (what === 'archive' || what === 'unarchive') {
+    const on = what === 'archive';
+    list.forEach((i) => { i.archived = on; i.selected = false; if (on) i.boxDone = true; });
+    toast(on ? `${many} archived: out of your list and total, kept under Archived.` : `${many} back in your list.`, () => {
+      list.forEach((i) => { i.archived = !on; });
+      reassessAll();
+      render();
+    });
+  }
+  if (what === 'delete') return removeMany(list, `${many} deleted.`);
+  if (what === 'clear-all') {
+    const all = active();
+    if (!all.length) return toast('Nothing to clear.');
+    return removeMany(all, `Cleared ${all.length} receipt${all.length === 1 ? '' : 's'}. Archived ones are kept.`);
+  }
+  reassessAll();
+  render();
+}
+
+function selectAll(rows) {
+  const on = !rows.every((i) => i.selected);
+  rows.forEach((i) => { i.selected = on; });
+  render();
+}
+
+function bulkBar(where) {
+  const n = selected().length;
+  if (!n) return '';
+  const archiving = where === 'list' && S.tab === 'archived';
+  return `<div class="bulk-bar"><b>${n} selected</b>
+    <button class="btn sm" data-act="bulk" data-field="review">${ICON.warn}Review later</button>
+    <button class="btn sm" data-act="bulk" data-field="${archiving ? 'unarchive' : 'archive'}">${ICON.folder}${archiving ? 'Unarchive' : 'Archive'}</button>
+    <button class="btn sm danger" data-act="bulk" data-field="delete">${ICON.trash}Delete</button>
+    <button class="link" data-act="bulk" data-field="cancel">Cancel</button></div>`;
+}
+
+const checkbox = (it) => `<input type="checkbox" class="sel" data-act="select" data-id="${it.id}" ${it.selected ? 'checked' : ''} aria-label="Select ${esc(label(it))}">`;
 
 // ---------- rendering ----------
 
@@ -988,12 +1131,25 @@ function fixButtons(it) {
   return all ? `<div class="rbtns">${all}</div>` : '';
 }
 
+// The rows the app list shows for the current tab, newest first.
+function listRows() {
+  const rows = S.tab === 'archived' ? S.items.filter((i) => i.archived) : S.tab === 'all' ? active() : active().filter((i) => followUpOf(i) === S.tab);
+  return rows.sort((a, b) => b.id - a.id);
+}
+
+// The rows the drop box shows: not archived, not cleared from it.
+const boxRows = () => S.items.filter((i) => !i.boxDone && !i.archived).sort((a, b) => b.id - a.id);
+
 function renderList() {
   const list = $('#list');
-  const inTab = (t) => S.items.filter((i) => followUpOf(i) === t);
-  const items = (S.tab === 'all' ? [...S.items] : inTab(S.tab)).sort((a, b) => b.id - a.id);
-  $('#listTabs').innerHTML = [['all', 'All', S.items.length], ['review', FOLLOW_UP.review, inTab('review').length], ['refund', FOLLOW_UP.refund, inTab('refund').length]]
+  const inTab = (t) => active().filter((i) => followUpOf(i) === t);
+  const items = listRows();
+  const archived = S.items.filter((i) => i.archived).length;
+  $('#listTabs').innerHTML = [['all', 'All', active().length], ['review', FOLLOW_UP.review, inTab('review').length], ['refund', FOLLOW_UP.refund, inTab('refund').length], ['archived', 'Archived', archived]]
     .map(([t, name, n]) => `<button class="list-tab ${S.tab === t ? 'on' : ''}" role="tab" aria-selected="${S.tab === t}" data-act="tab" data-field="${t}">${name}<span>${n}</span></button>`).join('');
+  $('#bulkList').innerHTML = items.length
+    ? `<label class="select-all"><input type="checkbox" data-act="select-all" data-field="list" ${items.every((i) => i.selected) ? 'checked' : ''}> Select all</label>${bulkBar('list')}`
+    : '';
   list.innerHTML = S.tab !== 'all' && !items.length ? `<p class="tab-empty">Nothing here yet.</p>` : items.map((it) => {
     const x = it.extraction;
     const first = it.images[0];
@@ -1009,7 +1165,8 @@ function renderList() {
     const why = issue ? `<div class="why">${esc(issue.text)}${issue.detail ? `. ${esc(issue.detail)}` : ''}${more}</div>` : '';
     const total = x && cents(x.total) !== null ? `${money(signedCents(it), x.currency)}<small>${esc(x.currency || '')}</small>` : '';
     const name = it.status === 'reading' ? '<span class="muted">Reading…</span>' : esc(x?.vendor || it.name || 'Unknown vendor');
-    return `<div class="row ${it.level || ''}" data-act="open" data-id="${it.id}">
+    return `<div class="row ${it.level || ''} ${it.selected ? 'selected' : ''}" data-act="open" data-id="${it.id}">
+      ${checkbox(it)}
       <div class="st">${statusIcon(it)}</div>
       ${thumb}
       <div style="min-width:0"><div class="v">${name}${pill(it)}</div><div class="d">${detailLine(it)}</div>${why}${fixButtons(it)}</div>
@@ -1019,14 +1176,14 @@ function renderList() {
   }).join('');
 
   const counts = { green: 0, yellow: 0, red: 0, grey: 0, reading: 0 };
-  S.items.forEach((i) => { counts[i.status === 'reading' ? 'reading' : i.level || 'reading']++; });
-  $('#countLabel').textContent = S.items.length
-    ? [`${S.items.length} total`, counts.green && `${counts.green} ready`, counts.yellow && `${counts.yellow} to check`, counts.red && `${counts.red} to fix`, counts.grey && `${counts.grey} not counted`, counts.reading && `${counts.reading} reading`].filter(Boolean).join(' · ')
+  active().forEach((i) => { counts[i.status === 'reading' ? 'reading' : i.level || 'reading']++; });
+  $('#countLabel').textContent = active().length
+    ? [`${active().length} total`, counts.green && `${counts.green} ready`, counts.yellow && `${counts.yellow} to check`, counts.red && `${counts.red} to fix`, counts.grey && `${counts.grey} not counted`, counts.reading && `${counts.reading} reading`].filter(Boolean).join(' · ')
     : 'Nothing yet';
 
   // "Your total": green rows only, one line per currency, never mixed. A follow-up tab totals its own rows.
   const byCur = new Map();
-  for (const it of S.items) {
+  for (const it of active()) {
     if (S.tab === 'all' ? it.level !== 'green' : followUpOf(it) !== S.tab || !it.extraction) continue;
     const cur = (it.extraction.currency || 'CAD').toUpperCase();
     const t = byCur.get(cur) || { n: 0, total: 0, tax: 0 };
@@ -1063,7 +1220,7 @@ function partNote(it, lineOf) {
 // The drop box: one big place to drop emails and files, and a list of everything scanned with
 // what happened to it. Done (✓) clears a line from here; it stays in the full list.
 function renderBox() {
-  const shown = S.items.filter((i) => !i.boxDone).sort((a, b) => b.id - a.id);
+  const shown = boxRows();
   const skipped = S.attach.flatMap((g) => g.files.map((f, i) => ({ g, f, i })).filter(({ f }) => f.skipped && !f.hidden));
   const lineOf = (id) => shown.findIndex((i) => i.id === id) + 1;
   const word = { green: 'Done', yellow: 'Review', grey: 'Not counted', red: 'Failed' };
@@ -1079,8 +1236,8 @@ function renderBox() {
     const acts = reading ? '' : `<div class="scan-btns">
         <button class="mini" data-act="review" data-id="${it.id}">${ICON.eye}Review</button>
         ${canKeep ? `<button class="mini keep" data-act="keep" data-id="${it.id}">${ICON.check}Keep</button>` : ''}</div>`;
-    return `<li class="scan ${reading ? 'reading' : it.level}"><span class="att-n">${n + 1}.</span>${statusIcon(it)}
-      <div class="att-text"><span class="att-main">${main}</span>
+    return `<li class="scan ${reading ? 'reading' : it.level} ${it.selected ? 'selected' : ''}">${checkbox(it)}${statusIcon(it)}
+      <div class="att-text"><span class="att-main"><span class="att-num">${n + 1}.</span> ${main}</span>
         <span class="att-note">${reading ? '' : `<b class="tag ${it.level}">${word[it.level] || ''}</b> `}${esc(note)}</span>
         ${from(it) && from(it) !== it.name ? `<span class="att-from">${esc(from(it))}</span>` : x?.is_receipt && from(it) ? `<span class="att-from">${esc(from(it))}</span>` : ''}
         ${reading ? `<span class="progress ${it.queued ? 'queued' : ''}"></span>` : acts}</div>
@@ -1109,15 +1266,19 @@ function renderBox() {
       <button class="btn" data-act="pick">${ICON.file}Upload files</button>
       <button class="btn" data-act="pick-folder">${ICON.folder}Upload folder</button>
     </div>
-    <div class="scan-head"><b>Scanned</b>${rows ? '<button class="link" data-act="box-done-all" title="Clear counted and not-read lines; ones to review stay">Clear counted</button>' : ''}</div>
+    <div class="scan-head">${shown.length ? `<label class="select-all"><input type="checkbox" data-act="select-all" data-field="box" ${shown.every((i) => i.selected) ? 'checked' : ''}> <b>Scanned</b></label>` : '<b>Scanned</b>'}
+      ${rows ? '<span><button class="link" data-act="box-done-all" title="Clear counted and not-read lines; ones to review stay">Clear counted</button> · <button class="link" data-act="bulk" data-field="clear-all">Clear all</button></span>' : ''}</div>
+    ${bulkBar('box')}
     ${rows ? `<ul class="scan-list">${rows}</ul>` : '<p class="scan-empty">Nothing yet. Each email and file you drop shows up here: Done, Review or Failed, with the reason.</p>'}
     ${S.pip ? `<button class="btn primary open-app" data-act="open-app">Open the app to review and export</button>
-      <p class="box-note">Closing this box keeps everything: your list stays in the Receipt Parser tab. Only closing that tab clears it.</p>` : ''}`;
+      <p class="box-note">Closing this box keeps everything: your list is saved on this computer. <button class="link" data-act="save">Save now</button> <span class="saved-note"></span></p>` : ''}`;
 }
 
 function render() {
   renderBox();
   renderList();
+  renderSaved();
+  saveSoon();
   $('#dropBoxBtn').hidden = !!S.pip || !('documentPictureInPicture' in window);
   $('#modeNote').innerHTML = S.code
     ? '<b>Live:</b> receipts are read by Claude, well under a cent each.'
@@ -1260,7 +1421,7 @@ const EXPORT_COLUMNS = [
   ['File', (it) => it.name || ''],
 ];
 
-const exportRows = () => [...S.items].filter((i) => i.extraction).sort((a, b) => a.id - b.id);
+const exportRows = () => active().filter((i) => i.extraction).sort((a, b) => a.id - b.id);
 
 function cleanFileName(name) {
   const clean = String(name).replace(/\.xlsx$/i, '').replace(/[\\/:*?"<>|]/g, '-').trim();
@@ -1361,7 +1522,7 @@ const TOUR = [
   { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Doesn\'t pop out? Use the drop box on this page and keep this window beside Outlook.</p>' },
   { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p><b>Review</b> opens the document next to what was read, so you can check it and fix anything. <b>Keep</b> says it\'s right: the line turns green and counts. The trash deletes it. <b>Clear counted</b> tidies the drop box (lines stay in your full list), and <b>Open the app</b> takes you back here to export.</p>' },
   { target: '#dropZone', title: 'Files and Gmail', html: '<p>Drop PDFs or pictures here or on the drop box, or use <b>Upload files</b>. <b>Upload folder</b> reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and click <b>Paste copied email</b> (or press Ctrl+V here). For a Gmail attachment, download it, then drag it in.</p>' },
-  { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p>' },
+  { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p><p>Tick the boxes to act on several at once: <b>Review later</b>, <b>Archive</b> (out of your list and total, kept under Archived) or <b>Delete</b>. Your list is saved on this computer, so it\'s still here when you come back. <b>Clear all</b> starts fresh.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The row shows a <b>+</b> button, like <b>+ Subtotal</b>: click it and type what the receipt says. Its source then says <b>manual input</b>.</p><p><b>Paid twice?</b> The same vendor and amount within 30 minutes gets a warning. Send it to <b>For refund</b>, and when the refund arrives it shows as <b>Refunded</b>. An invoice that was never paid goes to <b>Needs review</b> and isn\'t counted.</p>' },
   { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, minus refunds, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
 ];
@@ -1478,8 +1639,9 @@ window.addEventListener('drop', (e) => {
 drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('#fileInput').click(); } });
 
 window.addEventListener('beforeunload', (e) => {
-  if (S.items.length) { e.preventDefault(); e.returnValue = ''; }
+  if (S.items.some((i) => i.status === 'reading')) { e.preventDefault(); e.returnValue = ''; }
 });
 
 render();
+restoreSaved();
 if (!store.get('rp.toured', false)) setTimeout(() => openTour(0), 500);

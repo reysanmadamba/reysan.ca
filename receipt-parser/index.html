@@ -67,11 +67,15 @@
       <div class="list-head">
         <h3>Your receipts</h3>
         <span class="muted" id="countLabel">Nothing yet</span>
+        <span class="list-tools"><span class="muted" id="savedNote"></span>
+          <button class="btn sm" data-act="save">Save for later</button>
+          <button class="btn sm" data-act="bulk" data-field="clear-all">Clear all</button></span>
       </div>
       <div class="list-tabs" id="listTabs" role="tablist" aria-label="Filter receipts"></div>
+      <div id="bulkList" class="bulk-wrap"></div>
       <div id="list" class="list"></div>
       <div class="empty" id="empty">
-        <p><strong>Your captures show up here.</strong></p>
+        <p><strong>Your receipts show up here.</strong></p>
         <p class="muted">Each one gets a green check when it's good, or a note telling you what to fix.</p>
       </div>
       <div class="list-foot">
@@ -83,7 +87,7 @@
       </div>
     </section>
 
-    <p class="fine">Trial build. Captures are sent to Claude to be read and aren't stored on a server; your list lives in this tab only. Close the tab and it's gone.</p>
+    <p class="fine">Trial build. Receipts are sent to Claude to be read and aren't stored on a server; your list is saved in this browser on this computer until you clear it.</p>
   </main>
 
   <div class="toast" id="toast" role="status" hidden></div>
