@@ -516,7 +516,7 @@ async function callApi(it) {
     });
     const body = await res.json().catch(() => ({}));
     if (res.status === 401) { $('#codeInput').focus(); throw new Error('Wrong access code'); }
-    if (res.status === 429) throw new Error('Reading limit reached (30 every 10 minutes). Click Try again in a few minutes');
+    if (res.status === 429) throw new Error('Reading limit reached (150 every 10 minutes). Click Try again in a few minutes');
     if (!res.ok) throw new Error(body.error || `Server error ${res.status}`);
     return body;
   } catch (e) {
@@ -713,8 +713,8 @@ async function handleFiles(fileList, folderName) {
   toast(folder
     ? `Reading ${files.length} file${files.length === 1 ? '' : 's'} from “${folder}”${unreadable.length ? `. ${unreadable.length} can't be read (not a PDF, picture or email)` : ''}.`
     : `Got ${all.length} file${all.length > 1 ? 's' : ''}: ${all.map((f) => f.name).join(', ')}`);
-  if (S.code && files.length > 30) {
-    toast(`That's ${files.length} files. The trial reads up to 30 every 10 minutes, so some may need Try again after a few minutes.`);
+  if (S.code && files.length > 150) {
+    toast(`That's ${files.length} files. The trial reads up to 150 every 10 minutes, so some may need Try again after a few minutes.`);
   }
   if (unreadable.length) {
     S.attach.push({
