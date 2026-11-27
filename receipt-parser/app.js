@@ -21,6 +21,7 @@ const S = {
   pip: null,         // the floating drop box, when it's open
   replaceId: null,   // upload row waiting for a replacement file
   code: store.get('rp.code', ''),
+  codeState: '',     // the access code: '' (none), 'checking', 'ok', 'wrong' or 'unknown'
   demoTick: 0,
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
   totalScope: store.get('rp.totalScope', 'ready'), // the total: 'ready' receipts only, or 'all' including ones to review
@@ -621,7 +622,7 @@ async function callApi(it) {
       signal: ctrl.signal,
     });
     const body = await res.json().catch(() => ({}));
-    if (res.status === 401) { $('#codeInput').focus(); throw new Error('Wrong access code'); }
+    if (res.status === 401) { S.codeState = 'wrong'; renderCode(); $('#codeInput').focus(); throw new Error('Wrong access code'); }
     if (res.status === 429) throw new Error('Reading limit reached (150 every 10 minutes). Click Try again in a few minutes');
     if (!res.ok) throw new Error(body.error || `Server error ${res.status}`);
     return body;
@@ -1517,9 +1518,15 @@ function render() {
   $('#floatNote').innerHTML = !canFloat
     ? "<b>This browser can't float the drop box.</b> It works in Chrome or Edge. Here, put this window beside Outlook (on Windows: Windows key + Left arrow) and drag emails onto the big area below."
     : S.pip ? 'The drop box is floating on your screen. Your list is below.' : '';
-  $('#modeNote').innerHTML = S.code
-    ? '<b>Live:</b> receipts are read by Claude and converted into Excel.'
-    : '<b>Demo mode:</b> results are sample data, so you can practise the flow. Enter an access code to read real receipts.';
+  renderModeNote();
+}
+
+function renderModeNote() {
+  $('#modeNote').innerHTML = !S.code
+    ? '<b>Demo mode:</b> results are sample data, so you can practise the flow. Enter an access code to read real receipts.'
+    : S.codeState === 'wrong'
+      ? "<b>Wrong access code:</b> receipts can't be read until it's fixed. Check the code at the top of the page."
+      : '<b>Live:</b> receipts are read by Claude and converted into Excel.';
 }
 
 // ---------- detail / edit ----------
@@ -1982,12 +1989,58 @@ $('#fileInput').addEventListener('change', (e) => { handleFiles(e.target.files);
 
 const codeInput = $('#codeInput');
 codeInput.value = S.code;
+
+// The badge beside the access code: Verified, Wrong code, or Checking.
+const EYE_OFF = '<svg class="i" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.6M6.6 6.6A17 17 0 0 0 2.5 12S6 18 12 18a9.6 9.6 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+function renderCode() {
+  const el = $('#codeStatus');
+  const state = S.code ? S.codeState : '';
+  el.hidden = !state || state === 'unknown';
+  el.className = `code-status ${state}`;
+  el.innerHTML = state === 'ok' ? `${ICON.check}Verified` : state === 'wrong' ? `${ICON.x}Wrong code` : state === 'checking' ? 'Checking…' : '';
+  const shown = codeInput.type === 'text';
+  const eye = $('#codeEye');
+  eye.hidden = !codeInput.value;
+  eye.innerHTML = shown ? EYE_OFF : ICON.eye;
+  eye.setAttribute('aria-label', shown ? 'Hide the code' : 'Show the code');
+  eye.title = eye.getAttribute('aria-label');
+  renderModeNote();
+}
+
+// Checks the code without reading anything: the reader turns a wrong code away (401) before it looks
+// for a receipt, so a right code with nothing attached comes back as "no files sent" (400). Claude is
+// never called, so it costs nothing.
+let codeCheck = 0;
+async function checkCode(announce) {
+  const mine = ++codeCheck;
+  if (!S.code) { S.codeState = ''; return renderCode(); }
+  S.codeState = 'checking';
+  renderCode();
+  let state = 'unknown';
+  try {
+    const res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: S.code }) });
+    state = res.status === 401 ? 'wrong' : res.status === 400 ? 'ok' : 'unknown';
+  } catch { /* offline: say nothing */ }
+  if (mine !== codeCheck) return;
+  S.codeState = state;
+  renderCode();
+  if (announce) toast(state === 'ok' ? 'Access code verified. Receipts are read live.' : state === 'wrong' ? "That access code isn't right. Check it and try again." : 'Access code saved.');
+}
+
+codeInput.addEventListener('input', () => { $('#codeEye').hidden = !codeInput.value; });
 codeInput.addEventListener('change', () => {
   S.code = codeInput.value.trim();
   store.set('rp.code', S.code);
   render();
-  toast(S.code ? 'Access code saved. New captures are read live.' : 'Demo mode on.');
+  checkCode(!!S.code);
+  if (!S.code) toast('Demo mode on.');
 });
+$('#codeEye').addEventListener('click', (e) => {
+  e.preventDefault();
+  codeInput.type = codeInput.type === 'password' ? 'text' : 'password';
+  renderCode();
+});
+checkCode(false);
 
 const drop = $('#dropZone');
 let dragDepth = 0;
