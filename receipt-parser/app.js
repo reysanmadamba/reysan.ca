@@ -9,9 +9,10 @@ const LOW_CONFIDENCE = 0.7;
 const DOUBLE_CHARGE_MINUTES = 30;
 const MOTION_GAP_MS = 250;
 const MOVING_SHARE = 0.01;
-const AUTO_STILL_MS = 1200;   // how long the email must sit still before auto-capture takes it
+const AUTO_STILL_MS = 700;    // how long the email must sit still before auto-capture takes it
 const AUTO_NEW_SHARE = 0.03;  // how different from the last capture a screen must be to count as a new email
-const AUTO_GAP_MS = 2000;
+const AUTO_GAP_MS = 1000;
+const MAX_PARTS = 5;          // the reader takes up to 5 images of one receipt
 
 const store = {
   get(k, d = null) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -166,7 +167,9 @@ function assess(it) {
       issues.push({
         level: 'red',
         text: x.total === null ? "Can't see the total" : 'Part of the receipt is cut off',
-        detail: (x.cut_off_detail ? `${x.cut_off_detail} ` : '') + (it.source === 'capture' ? 'Scroll down in the email, then capture the rest.' : 'Try the full PDF, or enter the total.'),
+        detail: (x.cut_off_detail ? `${x.cut_off_detail} ` : '') + (it.source !== 'capture' ? 'Try the full PDF, or enter the total.'
+          : S.auto ? 'Scroll down a little at a time and hold still: each part joins this receipt. Very long? Zoom out in Outlook (Ctrl and minus) to fit more in each shot.'
+            : 'Scroll down in the email, then capture the rest. Very long? Zoom out in Outlook (Ctrl and minus) to fit more in each shot.'),
       });
     }
   }
@@ -467,7 +470,9 @@ async function grabStill(force) {
 
 async function capture(mode, force, auto) {
   if (!S.stream) { if (!auto) await startCapture(); return; }
-  if (isBusy()) return;
+  // A person's click waits for the last read, so a double click can't make two rows. Auto-capture has
+  // already waited for a still, new screen, so it goes straight away.
+  if (S.grabbing || (!auto && isBusy())) return;
   S.grabbing = true;
   S.moving = null;
   S.adding = null;
@@ -494,6 +499,11 @@ async function capture(mode, force, auto) {
   S.target = null;
   if (target) {
     const it = S.items.find((i) => i.id === target.id);
+    if (it && target.mode === 'append' && it.images.length >= MAX_PARTS) {
+      toast(`That's ${MAX_PARTS} parts already. Zoom out in Outlook (Ctrl and minus), then Recapture all.`);
+      render();
+      return;
+    }
     if (it) {
       it.snapshot = { images: it.images, extraction: it.extraction };
       it.images = target.mode === 'append' ? [...it.images, img] : [img];
@@ -725,7 +735,7 @@ function scrollShift(a, b) {
   }
   if (inked.length < 16) return 0;
   let best = 0, bestScore = 0;
-  for (let dy = -200; dy <= 200; dy++) {
+  for (let dy = -240; dy <= 240; dy++) {
     if (Math.abs(dy) < 3) continue;
     let rows = 0, match = 0;
     for (const y of inked) {
@@ -736,13 +746,13 @@ function scrollShift(a, b) {
       for (let x = 0; x < N; x += 4) d += Math.abs(b[y * N + x] - a[yo * N + x]);
       if (d / 64 < 8) match++;
     }
-    if (rows >= 12 && match / rows > bestScore) { bestScore = match / rows; best = dy; }
+    if (rows >= 8 && match / rows > bestScore) { bestScore = match / rows; best = dy; }
   }
   return bestScore >= 0.6 ? best : 0;
 }
 
 async function autoTick() {
-  if (!S.auto || !S.stream || S.autoBusy || isBusy() || S.adding) return;
+  if (!S.auto || !S.stream || S.autoBusy || S.grabbing || S.adding) return;
   S.autoBusy = true;
   try {
     const frame = await autoFrame();
@@ -757,18 +767,20 @@ async function autoTick() {
     }
     if (now - S.autoStill < AUTO_STILL_MS || now - S.autoLast < AUTO_GAP_MS || sig.std < 3) return;
     if (S.lastSig && changedShare(S.lastSig, sig) < AUTO_NEW_SHARE) return;
-    S.autoLast = now;
     if (S.lastSig && !S.target && scrollShift(S.lastSig.grey, sig.grey)) {
       // Scrolled within the same email: finish a cut-off receipt with it, otherwise there's nothing new.
       const latest = S.items.filter((i) => i.source === 'capture').sort((a, b) => b.id - a.id)[0];
+      if (latest?.status === 'reading') return; // wait to hear whether it was cut off
       if (latest?.status === 'done' && latest.level === 'red' && latest.action === 'append') {
-        await capture({ id: latest.id, mode: 'append' }, false, true);
+        S.autoLast = now;
+        await capture({ id: latest.id, mode: 'append' }, true, true);
       } else {
         S.lastSig = sig;
       }
       return;
     }
-    await capture(undefined, false, true);
+    S.autoLast = now;
+    await capture(undefined, true, true);
   } catch {
     // A missed look is fine; the next tick tries again.
   } finally {
