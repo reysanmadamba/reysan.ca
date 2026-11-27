@@ -230,7 +230,8 @@ function assess(it) {
       const other = S.items.find((o) => o.id === it.dupOf);
       if (other) {
         const dateNote = other.extraction.date === x.date ? '' : `, but the dates were read differently (${shortDate(x.date)} and ${shortDate(other.extraction.date)}). Check which is right`;
-        issues.push({ level: 'yellow', text: `Looks like the same receipt as ${label(other)}${dateNote}`, dup: true });
+        const pair = [x.document_type, other.extraction.document_type].includes('invoice');
+        issues.push({ level: 'yellow', text: pair ? `Same payment as ${label(other)}: one is the invoice, the other the receipt. Keep one${dateNote}` : `Looks like the same receipt as ${label(other)}${dateNote}`, dup: true });
       }
     }
   }
@@ -276,19 +277,22 @@ function findDuplicates() {
     const t = cents(x.total);
     if (!v || !x.date || t === null) continue;
     const rn = String(x.receipt_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const inv = String(x.invoice_number || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const swapped = swappedDate(x.date);
     const at = paidAt(x);
     // Same receipt number means the same receipt; otherwise two payments minutes apart may be a double charge.
     // Not when both came from one email, like a ticket for each passenger on one booking.
     const charge = at === null ? null : seen.find((s) => s.v === v && s.t === t && s.at !== null
       && Math.abs(s.at - at) <= DOUBLE_CHARGE_MINUTES && !(s.rn && s.rn === rn) && (s.at !== at || (s.rn && rn))
-      && !(it.groupId && s.group === it.groupId));
-    const hit = seen.find((s) => s.v === v && (s.date === x.date || s.date === swapped) && s.t === t && (!s.rn || !rn || s.rn === rn));
+      && !(it.groupId && s.group === it.groupId) && !(inv && s.inv === inv));
+    // An invoice and its receipt carry different numbers but the same invoice number: one payment, not two.
+    const hit = seen.find((s) => s.v === v && (s.date === x.date || s.date === swapped) && s.t === t
+      && (!s.rn || !rn || s.rn === rn || (inv && s.inv === inv)));
     if (!it.dupOk) {
       if (charge) it.chargeOf = charge.id;
       else if (hit) it.dupOf = hit.id;
     }
-    seen.push({ id: it.id, v, date: x.date, t, rn, at, group: it.groupId });
+    seen.push({ id: it.id, v, date: x.date, t, rn, inv, at, group: it.groupId });
   }
 }
 
@@ -827,7 +831,7 @@ const BLANK = {
   is_receipt: true, vendor: null, date: null, receipt_number: null, subtotal: null, gst: null, pst: null, hst: null,
   other_tax: null, tip: null, total: null, currency: 'CAD', payment_method: 'credit_card', category: null,
   image_quality: 'clear', cut_off: false, cut_off_detail: null, receipt_count: 1, email_sender: null,
-  email_subject: null, email_date: null, confidence: 0.95, notes: null, time: null, date_ambiguous: false, attachments: [],
+  email_subject: null, email_date: null, confidence: 0.95, notes: null, time: null, date_ambiguous: false, attachments: [], invoice_number: null, document_type: 'receipt',
 };
 const DEMO = [
   () => ({ vendor: 'Staples #2045', date: daysAgo(3), receipt_number: '2045-118832', subtotal: 43.04, gst: 2.15, pst: 3.01, total: 48.2, category: 'office_supplies', email_sender: 'Staples Canada', email_subject: 'Your Staples receipt' }),
@@ -1405,7 +1409,7 @@ function render() {
 // ---------- detail / edit ----------
 
 const FIELDS = [
-  ['vendor', 'Vendor', 'text', true], ['date', 'Date', 'date'], ['time', 'Time', 'time'], ['receipt_number', 'Receipt #', 'text'],
+  ['vendor', 'Vendor', 'text', true], ['date', 'Date', 'date'], ['time', 'Time', 'time'], ['receipt_number', 'Receipt #', 'text'], ['invoice_number', 'Invoice #', 'text'],
   ['subtotal', 'Subtotal', 'num'], ['gst', 'GST', 'num'], ['pst', 'PST', 'num'], ['hst', 'HST', 'num'],
   ['other_tax', 'Other tax', 'num'], ['tip', 'Tip', 'num'], ['total', 'Total', 'num'], ['currency', 'Currency', 'text'],
 ];
@@ -1567,7 +1571,7 @@ const EXPORT_COLUMNS = [
   ['Employee name', () => S.user.name], ['Employee email', () => S.user.email],
   ['Status', (it) => (it.level === 'green' ? 'Ready' : it.level === 'yellow' ? 'Check' : 'Fix')],
   ['Follow-up', (it) => FOLLOW_UP[it.followUp] || ''],
-  ['Vendor', (it, x) => x.vendor], ['Date', (it, x) => x.date], ['Time', (it, x) => x.time], ['Receipt #', (it, x) => x.receipt_number],
+  ['Vendor', (it, x) => x.vendor], ['Date', (it, x) => x.date], ['Time', (it, x) => x.time], ['Receipt #', (it, x) => x.receipt_number], ['Invoice #', (it, x) => x.invoice_number],
   ['Subtotal', (it, x) => x.subtotal], ['GST', (it, x) => x.gst], ['PST', (it, x) => x.pst], ['HST', (it, x) => x.hst],
   ['Other tax', (it, x) => x.other_tax], ['Tip', (it, x) => x.tip], ['Total', (it, x) => x.total], ['Currency', (it, x) => x.currency],
   ['Category', (it, x) => titleCase(x.category)], ['Payment', (it, x) => titleCase(x.payment_method)],
