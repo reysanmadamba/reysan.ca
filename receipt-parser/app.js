@@ -23,6 +23,7 @@ const S = {
   code: store.get('rp.code', ''),
   demoTick: 0,
   tab: 'all',        // which list shows: 'all', 'review' or 'refund'
+  mini: false,       // the floating drop box shrunk to a small bar
   attach: [],        // dropped emails: { id, title, sender, subject, files: [{ name, itemId, skipped, reason, hidden }] }
   nextGroup: 1,
   user: store.get('rp.user', { name: '', email: '' }), // typed in for now; comes from the login once accounts exist
@@ -360,7 +361,7 @@ async function openPip() {
   }
   if (S.pip) return true;
   try {
-    const pip = await window.documentPictureInPicture.requestWindow({ width: 380, height: 680 });
+    const pip = await window.documentPictureInPicture.requestWindow({ width: BOX_SIZE.full[0], height: BOX_SIZE.full[1] });
     for (const sheet of document.styleSheets) {
       try {
         const style = pip.document.createElement('style');
@@ -387,6 +388,7 @@ async function openPip() {
     pip.addEventListener('pagehide', () => {
       heroEl.append(boxEl);
       S.pip = null;
+      S.mini = false;
       render();
     });
     S.pip = pip;
@@ -396,6 +398,16 @@ async function openPip() {
     toast("Couldn't open the drop box. Click Open drop box again.");
     return false;
   }
+}
+
+// The browser's X closes the floating window, which people fear loses their list (it doesn't). Minimize
+// shrinks it to a small bar instead, still taking drops, and Expand brings it back.
+const BOX_SIZE = { full: [380, 680], mini: [380, 150] };
+
+function setMini(on) {
+  S.mini = on;
+  render();
+  try { S.pip?.resizeTo(...BOX_SIZE[on ? 'mini' : 'full']); } catch { /* the window keeps its size */ }
 }
 
 // What the browser's own "back to tab" button does, for anyone who doesn't spot it: closes the
@@ -829,6 +841,8 @@ function onAction(act, id, field) {
     case 'paste': return pasteFromButton();
     case 'pip': return openPip();
     case 'open-app': return openApp();
+    case 'minimize': return setMini(true);
+    case 'expand': return setMini(false);
     case 'box-done':
       if (it) it.boxDone = true;
       return render();
@@ -1076,7 +1090,16 @@ function renderBox() {
         <span class="att-from">${esc(g.folder ? `In “${g.subject}”` : `From “${g.subject || g.title}”`)}</span></div>
       <div class="scan-acts"><button class="icon-btn" data-act="skip-hide" data-id="${g.id}" data-field="${i}" title="Hide from the drop box" aria-label="Hide">${ICON.x}</button></div></li>`).join('');
 
-  boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned</span></div>
+  if (S.mini && S.pip) {
+    const count = (lvl) => S.items.filter((i) => i.level === lvl && !i.boxDone).length;
+    const busy = S.items.filter((i) => i.status === 'reading').length;
+    boxEl.innerHTML = `<div class="mini-bar">
+      <div class="mini-drop"><b>Drop here to scan</b>
+        <span>${[busy && `${busy} reading`, count('green') && `${count('green')} done`, count('yellow') && `${count('yellow')} to review`, count('red') && `${count('red')} failed`].filter(Boolean).join(' · ') || `${S.items.length} scanned`}</span></div>
+      <button class="btn sm" data-act="expand">Expand</button></div>`;
+    return;
+  }
+  boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned${S.pip ? ' <button class="link" data-act="minimize">Minimize</button>' : ''}</span></div>
     <button class="dropzone" data-act="pick">
       <svg class="i" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
       <b>Drop the email here to scan</b>
@@ -1088,7 +1111,8 @@ function renderBox() {
     </div>
     <div class="scan-head"><b>Scanned</b>${rows ? '<button class="link" data-act="box-done-all" title="Clear counted and not-read lines; ones to review stay">Clear counted</button>' : ''}</div>
     ${rows ? `<ul class="scan-list">${rows}</ul>` : '<p class="scan-empty">Nothing yet. Each email and file you drop shows up here: Done, Review or Failed, with the reason.</p>'}
-    ${S.pip ? '<button class="btn primary open-app" data-act="open-app">Open the app to review and export</button>' : ''}`;
+    ${S.pip ? `<button class="btn primary open-app" data-act="open-app">Open the app to review and export</button>
+      <p class="box-note">Closing this box keeps everything: your list stays in the Receipt Parser tab. Only closing that tab clears it.</p>` : ''}`;
 }
 
 function render() {

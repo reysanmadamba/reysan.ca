@@ -203,6 +203,15 @@ body.pip .box { border: 0; padding: 4px; }
 .scan.reading { background: var(--accent-bg); }
 .scan-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 4px; }
 .open-app { width: 100%; justify-content: center; }
+.box-head .link { margin-left: 10px; font-size: 12px; }
+.box-note { font-size: 11px; color: var(--muted); text-align: center; }
+.mini-bar { display: flex; align-items: center; gap: 10px; }
+.mini-drop { flex: 1; display: grid; gap: 2px; padding: 12px; border: 2px dashed var(--accent); border-radius: 10px; background: var(--accent-bg); }
+.mini-drop b { color: var(--accent); font-size: 14px; }
+.mini-drop span { font-size: 12px; color: var(--muted); }
+.box.over .mini-drop { background: var(--accent); }
+.box.over .mini-drop b, .box.over .mini-drop span { color: #fff; }
+body.pip .box:has(.mini-bar) { min-height: 0; }
 .upload-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .upload-btns .btn { justify-content: center; }
 body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
