@@ -408,3 +408,4 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
   * { animation: none !important; transition: none !important; }
 }
 .att-num { color: var(--muted); font-weight: 400; }
+.mini.viewed { color: var(--muted); border-style: dashed; }

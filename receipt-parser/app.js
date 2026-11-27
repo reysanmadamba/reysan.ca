@@ -807,6 +807,8 @@ function removeItem(id) {
 
 // Review opens the document beside what was read, in the app's tab, so the drop box stays open.
 function reviewItem(it) {
+  it.viewed = true;
+  render();
   if (S.pip) {
     window.focus();
     toast('Opened in the Receipt Parser tab.');
@@ -1234,7 +1236,7 @@ function renderBox() {
     const note = !reading ? partNote(it, lineOf) : it.queued ? `Waiting in line${ahead ? `, ${ahead} ahead` : ''}` : 'Reading…';
     const canKeep = !reading && (it.level === 'yellow' || it.level === 'red') && cents(x?.total) !== null;
     const acts = reading ? '' : `<div class="scan-btns">
-        <button class="mini" data-act="review" data-id="${it.id}">${ICON.eye}Review</button>
+        <button class="mini ${it.viewed ? 'viewed' : ''}" data-act="review" data-id="${it.id}" title="${it.viewed ? 'You opened this one. Click to open it again' : 'Open the document beside what was read'}">${it.viewed ? `${ICON.check}Reviewed` : `${ICON.eye}Review`}</button>
         ${canKeep ? `<button class="mini keep" data-act="keep" data-id="${it.id}">${ICON.check}Keep</button>` : ''}</div>`;
     return `<li class="scan ${reading ? 'reading' : it.level} ${it.selected ? 'selected' : ''}">${checkbox(it)}${statusIcon(it)}
       <div class="att-text"><span class="att-main"><span class="att-num">${n + 1}.</span> ${main}</span>
