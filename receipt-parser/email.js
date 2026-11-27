@@ -35,6 +35,8 @@ export function htmlToText(html) {
   return text.replace(/[ \t ]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
 }
 
+const isPicture = (name, type) => /^image\//i.test(type || '') || /\.(png|jpe?g|gif|webp|bmp|tiff?)$/i.test(name || '');
+
 // ---------- .msg: an OLE compound file holding MAPI properties ----------
 
 function readCompoundFile(u8) {
@@ -156,14 +158,11 @@ function readMsg(u8) {
   for (const e of cf.children(cf.root)) {
     if (e.type !== 1 || !e.name.startsWith('__attach_version1.0_')) continue;
     const a = propsOf(e);
-    const bytes = bin(a, '3701');
-    if (!bytes) continue; // an attached email or a link, not a file
-    attachments.push({
-      name: str(a, '3707') || str(a, '3704') || 'attachment',
-      type: str(a, '370E'),
-      bytes,
-      inline: !!str(a, '3712'), // has a content id: a picture shown inside the email, like a logo
-    });
+    const name = str(a, '3707') || str(a, '3704') || 'attachment';
+    const type = str(a, '370E');
+    // Outlook gives attachments of a forwarded email a content id too, so only a picture with one
+    // counts as shown inside the email (a logo); a PDF is always an attachment.
+    attachments.push({ name, type, bytes: bin(a, '3701'), inline: !!str(a, '3712') && isPicture(name, type) });
   }
   return {
     sender: senderName && senderEmail ? `${senderName} <${senderEmail}>` : senderName || senderEmail,
@@ -219,7 +218,7 @@ function walk(raw, out) {
   const disposition = headers['content-disposition'] || '';
   const filename = param(disposition, 'filename') || param(headers['content-type'], 'name');
   if (filename || /^attachment/i.test(disposition)) {
-    out.attachments.push({ name: filename || 'attachment', type, bytes, inline: /^inline/i.test(disposition) && !!headers['content-id'] });
+    out.attachments.push({ name: filename || 'attachment', type, bytes, inline: !!headers['content-id'] && isPicture(filename, type) });
   } else if (type === 'text/plain' && !out.plain) {
     out.plain = decodeText(bytes, param(headers['content-type'], 'charset'));
   } else if (type === 'text/html' && !out.html) {

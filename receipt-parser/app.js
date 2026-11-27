@@ -687,8 +687,9 @@ async function read(it) {
   reassessAll();
   if (it.auto && it.status === 'done') autoTidy(it);
   if (it.source === 'email' && it.emailHasFiles && it.status === 'done' && !it.extraction.is_receipt && S.items.includes(it)) {
+    // The email's own text just points to its attachments: off the receipt list, but still in the box's list.
     S.items.splice(S.items.indexOf(it), 1);
-    S.attach.forEach((g) => { g.files = g.files.filter((f) => f.itemId !== it.id); });
+    S.attach.forEach((g) => g.files.forEach((f) => { if (f.itemId === it.id) Object.assign(f, { itemId: null, skipped: true, reason: 'No receipt in the text' }); }));
     reassessAll();
   }
   render();
@@ -941,9 +942,15 @@ async function takeEmailFile(f) {
   } catch {
     return toast(`Couldn't open ${f.name}. Drag its attachment, or copy the email's text instead.`);
   }
-  // PDFs and the pictures a browser can open; logos shown inside the email are left out.
-  const files = mail.attachments.filter((a) => !a.inline && (/pdf|image\/(png|jpe?g|webp|gif)/i.test(a.type) || /\.(pdf|png|jpe?g|webp|gif)$/i.test(a.name)));
-  const group = { id: S.nextGroup++, fromId: -1, sig: '', title: mail.subject || f.name, sender: mail.sender, subject: mail.subject, dropped: true, email: true, files: [] };
+  // Every attachment is listed with what happened to it, so it's clear nothing was missed. PDFs and the
+  // pictures a browser can open are read; logos shown inside the email are only counted.
+  const readable = (a) => a.bytes && !a.inline && (/pdf|image\/(png|jpe?g|webp|gif)/i.test(a.type) || /\.(pdf|png|jpe?g|webp|gif)$/i.test(a.name));
+  const files = mail.attachments.filter(readable);
+  const logos = mail.attachments.filter((a) => a.inline).length;
+  const group = {
+    id: S.nextGroup++, fromId: -1, sig: '', title: mail.subject || f.name, sender: mail.sender, subject: mail.subject, dropped: true, email: true, files: [],
+    note: `${mail.attachments.length - logos} attachment${mail.attachments.length - logos === 1 ? '' : 's'} in this email${logos ? `, plus ${logos} picture${logos > 1 ? 's' : ''} shown inside it (left out)` : ''}.`,
+  };
   S.attach.push(group); // before the reads start, so a quick "see attached" answer can take itself off the list
   const fromEmail = { sender: mail.sender, subject: mail.subject };
   const text = [mail.sender && `From: ${mail.sender}`, mail.subject && `Subject: ${mail.subject}`, mail.date && `Date: ${mail.date}`]
@@ -964,7 +971,10 @@ async function takeEmailFile(f) {
     if (part.error) setLocal(it, part.error, part.detail, 'file');
     else read(it);
   }
-  if (!group.files.length) {
+  for (const a of mail.attachments.filter((x) => !x.inline && !readable(x))) {
+    group.files.push({ name: a.name, skipped: true, reason: a.bytes ? 'Not a PDF or picture' : 'Not a file' });
+  }
+  if (!group.files.some((x) => x.itemId)) {
     S.attach.splice(S.attach.indexOf(group), 1);
     return toast(`${f.name} has no text or PDF to read.`);
   }
@@ -1294,24 +1304,36 @@ function renderList() {
     : `<span>${S.tab === 'all' ? 'Your total shows here once receipts are ready.' : ''}</span>`;
 }
 
+// One short phrase per part of an email: its amount when it counts, otherwise why it doesn't.
+function partResult(it) {
+  const x = it.extraction;
+  const total = cents(x?.total);
+  const dup = it.issues?.find((i) => i.dup);
+  if (it.level === 'green') return total !== null ? money(total, x.currency) : 'Done';
+  if (dup) return dup.charge ? 'Paid twice?' : x?.document_type === 'invoice' || /invoice/.test(dup.text) ? 'Same payment, not counted' : 'Duplicate, not counted';
+  if (x && !x.is_receipt) return 'Not a receipt';
+  if (it.level === 'red') return 'Fix in your list';
+  return 'Check in your list';
+}
+
 function attachCard(group) {
   const shown = group.files.map((f, i) => [f, i]).filter(([f]) => !group.dropped || !isWaiting(f));
   const waiting = shown.filter(([f]) => isWaiting(f)).length;
   const rows = shown.map(([f, i]) => {
     const it = S.items.find((o) => o.id === f.itemId);
     let icon = '<span class="att-dot"></span>';
-    let result = f.skipped ? 'Skipped' : '';
+    let result = f.skipped ? f.reason || 'Skipped' : '';
     if (it?.status === 'reading') { icon = '<span class="spin"></span>'; result = 'Reading…'; }
     else if (it) {
       icon = it.level === 'green' ? ICON.check : it.level === 'yellow' ? ICON.warn : ICON.error;
-      const total = cents(it.extraction?.total);
-      result = it.level === 'red' ? 'Fix in your list' : total !== null ? money(total, it.extraction.currency) : 'Check in your list';
+      result = partResult(it);
     }
     return `<li class="att ${it?.level || ''}">${icon}<span class="att-name" title="${esc(f.name)}">${esc(f.name)}</span>
       ${waiting && isWaiting(f) ? `<button class="link" data-act="att-skip" data-id="${group.id}" data-field="${i}">Skip</button>` : `<span class="att-res">${esc(result)}</span>`}</li>`;
   }).join('');
   const title = group.email ? `From ${group.title}` : group.dropped ? 'Dropped files' : waiting ? `${waiting} attachment${waiting > 1 ? 's' : ''} not read yet` : 'All attachments done';
-  const hint = group.dropped ? '' : `<div class="d">${esc(group.title)}.${waiting ? ' Select them in Outlook and drag them onto this box.' : ''}</div>`;
+  const hint = group.note ? `<div class="d">${esc(group.note)}</div>`
+    : group.dropped ? '' : `<div class="d">${esc(group.title)}.${waiting ? ' Select them in Outlook and drag them onto this box.' : ''}</div>`;
   return `<div class="card attach"><div class="t">${ICON.file}${esc(title)}</div>${hint}<ul class="att-list">${rows}</ul>
     <div class="acts"><button class="btn sm" data-act="att-done" data-id="${group.id}">${waiting ? 'Skip the rest' : 'Done'}</button></div></div>`;
 }
