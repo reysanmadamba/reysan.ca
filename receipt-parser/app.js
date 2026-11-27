@@ -469,8 +469,11 @@ function pickFromBox(folder) {
     <div class="modal-head"><h3>Choose your files</h3><button class="trash" data-close aria-label="Close">${ICON.x}</button></div>
     <div class="pick-body">
       <p>Pick receipt files, or a whole folder of them, from your computer. They'll show up in the drop box.</p>
-      <p>Tip: you can also drag an email from Outlook straight onto the drop box. It's scanned right away, no browsing needed.</p>
       <div class="pick-btns">${btn(folder, true)}${btn(!folder, false)}</div>
+      <div class="pick-tip">
+        <span class="pick-tip-icon"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span>
+        <span><b>Quicker for emails</b>Drag an email from Outlook straight onto the drop box. It's scanned right away, no browsing needed.</span>
+      </div>
     </div></div></div>`;
   const root = $('#modalRoot .overlay');
   root.addEventListener('click', (e) => {

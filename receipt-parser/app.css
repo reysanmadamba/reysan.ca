@@ -459,4 +459,8 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .pick-body { padding: 16px 20px 20px; }
 .pick-body p { margin: 0 0 12px; color: var(--muted); }
 .pick-body p + .pick-btns { margin-top: 16px; }
+.pick-tip { display: flex; gap: 12px; align-items: flex-start; margin-top: 18px; padding: 12px 14px; border-radius: 12px; background: var(--green-bg); border: 1px solid color-mix(in srgb, var(--green) 35%, transparent); color: var(--text); font-size: 14px; line-height: 1.45; }
+.pick-tip b { display: block; color: var(--green); font-weight: 600; margin-bottom: 2px; }
+.pick-tip-icon { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: var(--surface); }
+.pick-tip-icon .i { width: 17px; height: 17px; }
 .pick-btns { display: flex; gap: 10px; flex-wrap: wrap; }
