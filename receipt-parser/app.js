@@ -1288,7 +1288,10 @@ function render() {
   btn.hidden = !canFloat;
   btn.disabled = !!S.pip;
   btn.lastChild.textContent = S.pip ? ' Drop box is open' : ' Open drop box';
-  $('#floatNote').textContent = !canFloat ? "This browser can't float the drop box: drop emails and files on the area below, or use Edge or Chrome."
+  // Firefox and Safari can't float a window: the page's own drop area takes over, with a clear alert.
+  document.body.classList.toggle('no-float', !canFloat);
+  $('#floatNote').innerHTML = !canFloat
+    ? "<b>This browser can't float the drop box.</b> It works in Chrome or Edge. Here, put this window beside Outlook (on Windows: Windows key + Left arrow) and drag emails onto the big area below."
     : S.pip ? 'The drop box is floating on your screen. Your list is below.' : '';
   $('#modeNote').innerHTML = S.code
     ? '<b>Live:</b> receipts are read by Claude, well under a cent each.'

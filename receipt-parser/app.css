@@ -416,3 +416,7 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .mini.viewed { color: var(--muted); border-style: dashed; }
 .warn-kinds, .warn-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
 .warn-list { font-size: 13px; color: var(--muted); }
+.no-float .float-note { max-width: 60ch; margin: 14px auto 0; padding: 12px 14px; border-radius: 10px; background: var(--amber-bg); color: var(--text); text-align: left; }
+.no-float .float-note b { color: var(--amber); }
+.no-float .drop { min-height: 160px; justify-content: center; border-width: 2px; border-color: var(--accent); background: var(--accent-bg); color: var(--text); }
+.no-float .drop strong { font-size: 18px; }
