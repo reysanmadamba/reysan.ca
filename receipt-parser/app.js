@@ -1475,7 +1475,7 @@ function renderBox() {
     const count = (lvl) => S.items.filter((i) => i.level === lvl && !i.boxDone).length;
     const busy = S.items.filter((i) => i.status === 'reading').length;
     boxEl.innerHTML = `<div class="mini-bar">
-      <div class="mini-drop"><b>Drop here to scan</b>
+      <div class="mini-drop"><b>Drag and drop here to scan</b>
         <span>${[busy && `${busy} reading`, count('green') && `${count('green')} done`, count('yellow') && `${count('yellow')} to review`, count('red') && `${count('red')} failed`].filter(Boolean).join(' · ') || `${S.items.length} scanned`}</span></div>
       <button class="btn sm" data-act="expand">Expand</button></div>`;
     return;
@@ -1483,7 +1483,7 @@ function renderBox() {
   boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned${S.pip ? ' <button class="link" data-act="minimize" title="Makes the box a small bar. You can still drop emails on it.">Shrink</button>' : ''}</span></div>
     <button class="dropzone" data-act="pick">
       <svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-      <b>Drop the email here to scan</b>
+      <b>Drag and drop the email here to scan</b>
       <span>Drag a receipt email from Outlook, or PDFs, pictures or a whole folder. Or click here to browse your files.</span>
     </button>
     <label class="paste-area"><b>Or paste an email's text</b>
@@ -1875,7 +1875,7 @@ const ILL = {
     <div class="s" style="color:var(--green)">✓ Read<small>in seconds</small></div></div></div>`,
   box: `<div class="ill"><div class="box" style="max-width:250px;margin:0 auto">
     <div class="box-head"><span>Drop box</span><span>3 scanned</span></div>
-    <div class="dropzone pulse"><b>Drop the email here to scan</b></div>
+    <div class="dropzone pulse"><b>Drag and drop the email here to scan</b></div>
     <ul class="scan-list">
       <li class="scan green"><span class="att-n">1.</span>✓<div class="att-text"><span class="att-main"><b>$132.24</b> Anthropic</span><span class="att-note"><b class="tag green">Done</b> Receipt, counted</span></div></li>
       <li class="scan yellow"><span class="att-n">2.</span>!<div class="att-text"><span class="att-main"><b>$132.24</b> Anthropic</span><span class="att-note"><b class="tag yellow">Review</b> Invoice for the receipt #1, possible duplicate</span></div></li>
@@ -1886,7 +1886,7 @@ const TOUR = [
   { title: 'Drop your receipts, that\'s it', html: '<p>Drag a receipt email from Outlook onto the drop box. Its text and every PDF attached are read, the math is checked, and duplicates are flagged. Nothing to download or save first.</p>' + ILL.flow },
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
   { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Using Firefox or Safari? They can\'t float it: drop emails and files on the area under the heading instead.</p>' },
-  { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p><b>Review</b> opens the document next to what was read, so you can check it and fix anything. <b>Keep</b> says it\'s right: the line turns green and counts. The trash deletes it. <b>Hide done</b> tidies the drop box (those lines stay in your list), and <b>Open the app</b> takes you back here to export.</p>' },
+  { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drag and drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p><b>Review</b> opens the document next to what was read, so you can check it and fix anything. <b>Keep</b> says it\'s right: the line turns green and counts. The trash deletes it. <b>Hide done</b> tidies the drop box (those lines stay in your list), and <b>Open the app</b> takes you back here to export.</p>' },
   { title: 'Files, folders and Gmail', html: '<p>Drop PDFs or pictures on the drop box or anywhere on this page, or click the drop box to <b>Browse files</b> or <b>Browse folder</b>. A folder reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and paste it into the <b>Or paste an email\'s text</b> box in the drop box (or press Ctrl+V on this page). For a Gmail attachment, download it, then drag it in.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p><p>Tick the boxes to act on several at once: <b>Review later</b>, <b>Archive</b> (out of your list and total, kept under Archived) or <b>Delete</b>. Your list is saved on this computer, so it\'s still here when you come back. <b>Delete all</b> starts fresh.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The row shows a <b>+</b> button, like <b>+ Subtotal</b>: click it and type what the receipt says. Its source then says <b>manual input</b>.</p><p><b>Paid twice?</b> The same vendor and amount within 30 minutes gets a warning. Send it to <b>For refund</b>, and when the refund arrives it shows as <b>Refunded</b>. An invoice that was never paid goes to <b>Needs review</b> and isn\'t counted.</p>' },
