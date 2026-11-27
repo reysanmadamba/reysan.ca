@@ -379,12 +379,15 @@ function reassessAll() {
 // ---------- the floating drop box ----------
 
 // A small window that stays on top of every other window, Outlook included, to drop emails onto.
-async function openPip() {
+// auto: opened by itself because the person left the tab or switched apps, so failures stay quiet.
+let pipOpening = false;
+async function openPip(auto = false) {
   if (!('documentPictureInPicture' in window)) {
-    toast("This browser can't float the drop box. Drop emails and files on this page instead, or use Edge or Chrome.");
+    if (!auto) toast("This browser can't float the drop box. Drop emails and files on this page instead, or use Edge or Chrome.");
     return false;
   }
-  if (S.pip) return true;
+  if (S.pip || pipOpening) return true;
+  pipOpening = true;
   try {
     const pip = await window.documentPictureInPicture.requestWindow({ width: BOX_SIZE.full[0], height: BOX_SIZE.full[1] });
     for (const sheet of document.styleSheets) {
@@ -414,17 +417,39 @@ async function openPip() {
       heroEl.append(boxEl);
       S.pip = null;
       S.mini = false;
+      // Closed with its X: don't keep popping it up. Open the app (or Open drop box) turns it back on.
+      if (!closingForApp) autoPipOff = true;
+      closingForApp = false;
       render();
     });
     S.pip = pip;
     render();
     return true;
   } catch (e) {
-    console.error('Drop box failed to open', e);
-    toast("Couldn't open the drop box. Click Open drop box again.");
+    if (auto) console.info('Drop box did not open by itself', e.message);
+    else {
+      console.error('Drop box failed to open', e);
+      toast("Couldn't open the drop box. Click Open drop box again.");
+    }
     return false;
+  } finally {
+    pipOpening = false;
   }
 }
+
+// Like the Dakota chat: leaving this tab, or switching to another app like Outlook, pops the drop box
+// out by itself, so there are two ways to get it: the button, or just going to the other app.
+// Chrome only allows this within a few seconds of a click or keypress on this page; otherwise it
+// quietly doesn't open, and the Open drop box button is still there.
+let autoPipOff = false;
+let closingForApp = false;
+function autoPip() {
+  if (S.pip || pipOpening || autoPipOff || !('documentPictureInPicture' in window)) return;
+  if (navigator.userActivation && !navigator.userActivation.isActive) return; // Chrome would say no
+  openPip(true);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoPip(); });
+window.addEventListener('blur', () => { if (!document.querySelector('body > input[type=file]')) autoPip(); });
 
 // The browser's X closes the floating window, which people fear loses their list (it doesn't). Shrink
 // shrinks it to a small bar instead, still taking drops, and Expand brings it back.
@@ -439,6 +464,7 @@ function setMini(on) {
 // What the browser's own "back to tab" button does, for anyone who doesn't spot it: closes the
 // drop box and shows the full list, where receipts are reviewed and exported.
 function openApp() {
+  closingForApp = true;
   S.pip?.close();
   window.focus();
   $('.list-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1024,7 +1050,7 @@ function onAction(act, id, field) {
     case 'pick': return S.pip ? pickFromBox(false) : pickFiles();
     case 'pick-folder': return S.pip ? pickFromBox(true) : pickFiles(true);
     case 'paste': return pasteFromButton();
-    case 'pip': return openPip();
+    case 'pip': autoPipOff = false; return openPip();
     case 'open-app': return openApp();
     case 'minimize': return setMini(true);
     case 'select':
@@ -1980,7 +2006,7 @@ document.addEventListener('keydown', (e) => {
 
 // ---------- wiring ----------
 
-$('#dropBoxBtn').addEventListener('click', () => openPip());
+$('#dropBoxBtn').addEventListener('click', () => { autoPipOff = false; openPip(); });
 $('#helpBtn').addEventListener('click', () => openTour(0));
 $('#exportBtn').addEventListener('click', confirmExport);
 $('#pickBtn').addEventListener('click', () => $('#fileInput').click());
