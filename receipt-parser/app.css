@@ -414,3 +414,5 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 }
 .att-num { color: var(--muted); font-weight: 400; }
 .mini.viewed { color: var(--muted); border-style: dashed; }
+.warn-kinds, .warn-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.warn-list { font-size: 13px; color: var(--muted); }

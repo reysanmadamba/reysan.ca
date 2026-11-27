@@ -1431,7 +1431,47 @@ const EXPORT_COLUMNS = [
   ['File', (it) => it.name || ''],
 ];
 
-const exportRows = () => active().filter((i) => i.extraction).sort((a, b) => a.id - b.id);
+// What goes in the Excel: everything, or only the ready (green) receipts if the person chose that.
+let exportScope = 'all';
+const exportRows = () => active().filter((i) => i.extraction && (exportScope === 'all' || i.level === 'green')).sort((a, b) => a.id - b.id);
+
+// Before a download that would include receipts still needing a look, say which and ask. All green: no question.
+function confirmExport() {
+  exportScope = 'all';
+  const rows = exportRows();
+  if (!rows.length) return toast('Nothing to export yet.');
+  const flagged = rows.filter((i) => i.level !== 'green');
+  if (!flagged.length) return openExport();
+  const ready = rows.length - flagged.length;
+  const kinds = [
+    [flagged.filter((i) => i.issues?.some((x) => x.dup && !x.charge)).length, 'might be a duplicate', 'might be duplicates'],
+    [flagged.filter((i) => i.issues?.some((x) => x.charge)).length, 'might be paid twice', 'might be paid twice'],
+    [flagged.filter((i) => i.level === 'yellow' && !i.issues?.some((x) => x.dup)).length, 'has a warning to check', 'have a warning to check'],
+    [flagged.filter((i) => i.level === 'red').length, 'is invalid or failed', 'are invalid or failed'],
+    [flagged.filter((i) => i.level === 'grey').length, "isn't counted (linked to another row)", "aren't counted (linked to another row)"],
+  ].filter(([n]) => n).map(([n, one, many]) => `<li><b>${n}</b> ${n === 1 ? one : many}</li>`).join('');
+  const names = flagged.slice(0, 6).map((i) => `<li>${esc(label(i))}${cents(i.extraction?.total) !== null ? ` · ${money(signedCents(i), i.extraction.currency)}` : ''}: ${esc(i.issues?.[0]?.text || '')}</li>`).join('');
+  $('#modalRoot').innerHTML = `<div class="overlay" data-close><div class="modal export" role="dialog" aria-modal="true" aria-label="Some receipts need a look">
+    <div class="modal-head"><h3>Download including receipts that need a look?</h3><button class="trash" data-close aria-label="Close">${ICON.x}</button></div>
+    <div class="export-body">
+      <p>${flagged.length} of your ${rows.length} receipts aren't ready:</p>
+      <ul class="warn-kinds">${kinds}</ul>
+      <ul class="warn-list">${names}${flagged.length > 6 ? `<li class="muted">and ${flagged.length - 6} more</li>` : ''}</ul>
+      <p class="muted">Their Status column in Excel says Check, Fix or Not counted.</p>
+    </div>
+    <div class="modal-foot"><button class="btn" data-close>Cancel</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" data-x="all">Include them (${rows.length})</button>
+        <button class="btn primary" data-x="ready" ${ready ? '' : 'disabled'}>Only ready ones (${ready})</button></div></div>
+  </div></div>`;
+  $('#modalRoot .overlay').addEventListener('click', (e) => {
+    if (e.target.matches('[data-close]') || e.target.closest('button[data-close]')) return closeModal();
+    const x = e.target.closest('[data-x]')?.dataset.x;
+    if (!x) return;
+    exportScope = x;
+    openExport();
+  });
+}
 
 function cleanFileName(name) {
   const clean = String(name).replace(/\.xlsx$/i, '').replace(/[\\/:*?"<>|]/g, '-').trim();
@@ -1620,7 +1660,7 @@ document.addEventListener('keydown', (e) => {
 $('#dropBoxBtn').addEventListener('click', () => openPip());
 $('#chooseBtn').addEventListener('click', () => $('#fileInput').click());
 $('#helpBtn').addEventListener('click', () => openTour(0));
-$('#exportBtn').addEventListener('click', openExport);
+$('#exportBtn').addEventListener('click', confirmExport);
 $('#pickBtn').addEventListener('click', () => $('#fileInput').click());
 $('#pickFolderBtn').addEventListener('click', () => pickFiles(true, document));
 $('#fileInput').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
