@@ -1472,6 +1472,7 @@ const money2 = (it, field) => { const c = signedCents(it, field); return c === n
 
 const EXPORT_COLUMNS = [
   ['Employee name', () => S.user.name], ['Employee email', () => S.user.email],
+  ['Department', () => S.user.department || ''], ['Employee ID', () => S.user.employeeId || ''],
   ['Status', (it) => ({ green: 'Ready', yellow: 'Check', grey: 'Not counted' }[it.level] || 'Fix')],
   ['Type', (it, x) => (it.payment ? 'Payment' : titleCase(x.document_type || 'receipt'))],
   ['Follow-up', (it) => FOLLOW_UP[it.followUp] || ''],
@@ -1487,6 +1488,39 @@ const EXPORT_COLUMNS = [
 
 // What goes in the Excel: everything, or only the ready (green) receipts if the person chose that.
 let exportScope = 'all';
+// Who submitted it always goes in, so finance can tell people's files apart.
+const REQUIRED_COLUMNS = ['Employee name', 'Employee email', 'Department'];
+
+// The (?) beside each column in the download window.
+const COLUMN_HELP = {
+  'Employee name': 'Your name, on every row, so finance knows whose receipts these are. Always included.',
+  'Employee email': 'Your email, on every row. Always included.',
+  Department: 'Your department, on every row, so receipts can be charged to the right budget. Always included.',
+  'Employee ID': 'Your employee number, if your company uses one. Optional: leave it empty if you don\'t have one.',
+  Status: 'Ready (checked and counted), Check (needs a look), Fix (invalid or failed) or Not counted. The row colour matches.',
+  Type: 'Receipt (proof of payment), Invoice (a bill), Payment (one installment on an invoice) or Refund (money back).',
+  'Follow-up': 'Needs review or For refund, if the receipt was sent to one of those tabs.',
+  Vendor: 'The business that was paid, as printed on the receipt.',
+  Date: 'The date of the purchase on the receipt, as year-month-day.',
+  Time: 'The time of the purchase, from the receipt or else the email it came in. Used to spot paying twice.',
+  'Receipt #': 'The receipt, transaction or order number printed on it.',
+  'Invoice #': 'The invoice number, if one is printed. An invoice and its receipt share it.',
+  Subtotal: 'The amount before tax and tip.',
+  GST: 'Goods and Services Tax (federal, 5%).',
+  PST: 'Provincial Sales Tax, including Quebec QST and Manitoba RST.',
+  HST: 'Harmonized Sales Tax: GST and PST combined, in provinces like Ontario and the Atlantic provinces.',
+  'Other tax': 'Any other tax or fee shown as a tax line, like a deposit or an environmental fee.',
+  Tip: 'The tip or gratuity, if any.',
+  Total: 'The total paid, as printed. Refunds show as a negative amount.',
+  Currency: 'The currency, like CAD or USD.',
+  Category: 'The kind of expense: meals, travel, lodging, fuel, office supplies, software and so on.',
+  Payment: 'How it was paid: credit card, debit, cash, e-transfer, cheque or other.',
+  Notes: 'What the checks found, like a possible duplicate, and how a row links to others.',
+  Source: 'How it got in: Upload (a dropped or chosen file), Email (a dragged email) or Paste, plus manual input if someone typed a value.',
+  'Manual fields': 'Which values a person typed or changed by hand.',
+  File: 'The file name the receipt came from.',
+};
+
 const exportRows = () => active().filter((i) => i.extraction && (exportScope === 'all' || i.level === 'green')).sort((a, b) => a.id - b.id);
 
 // Before a download that would include receipts still needing a look, say which and ask. All green: no question.
@@ -1543,13 +1577,19 @@ function openExport() {
         <span><input name="filename" type="text" value="receipts-${today()}" autocomplete="off" spellcheck="false"><b>.xlsx</b></span>
       </label>
       <div class="export-user">
-        <label>Your name<input name="username" type="text" value="${esc(S.user.name)}" autocomplete="name"></label>
-        <label>Your email<input name="useremail" type="email" value="${esc(S.user.email)}" autocomplete="email"></label>
+        <label>Your name <i>required</i><input name="username" type="text" value="${esc(S.user.name)}" autocomplete="name" required></label>
+        <label>Your email <i>required</i><input name="useremail" type="email" value="${esc(S.user.email)}" autocomplete="email" required></label>
+        <label>Department <i>required</i><input name="department" type="text" value="${esc(S.user.department || '')}" autocomplete="organization-title" required></label>
+        <label>Employee ID <i>optional</i><input name="employeeid" type="text" value="${esc(S.user.employeeId || '')}" autocomplete="off"></label>
       </div>
       <fieldset>
         <legend>Columns to include</legend>
         <div class="export-all"><button type="button" class="link" data-x="all">Tick all</button><button type="button" class="link" data-x="none">Untick all</button></div>
-        <div class="export-cols">${EXPORT_COLUMNS.map(([h]) => `<label><input type="checkbox" name="col" value="${esc(h)}" ${off.has(h) ? '' : 'checked'}>${esc(h)}</label>`).join('')}</div>
+        <div class="export-cols">${EXPORT_COLUMNS.map(([h]) => {
+          const required = REQUIRED_COLUMNS.includes(h);
+          return `<div class="col-opt"><label title="${required ? 'Always included' : ''}"><input type="checkbox" name="col" value="${esc(h)}" ${required || !off.has(h) ? 'checked' : ''} ${required ? 'disabled' : ''}>${esc(h)}</label><button type="button" class="col-q" data-x="help" data-col="${esc(h)}" aria-label="What is ${esc(h)}?" title="${esc(COLUMN_HELP[h] || '')}">?</button></div>`;
+        }).join('')}</div>
+        <p class="col-help" id="colHelp" hidden></p>
       </fieldset>
       <p class="add-err" id="exportErr" hidden></p>
     </form>
@@ -1563,14 +1603,14 @@ function openExport() {
   const showErr = (msg) => { $('#exportErr').textContent = msg; $('#exportErr').hidden = false; };
   const go = () => {
     const picked = boxes().filter((b) => b.checked).map((b) => b.value);
-    if (!picked.length) return showErr('Tick at least one column.');
-    const userName = root.querySelector('input[name="username"]').value.trim();
-    const userEmail = root.querySelector('input[name="useremail"]').value.trim();
-    if (picked.includes('Employee name') && !userName) return showErr('Type your name, or untick Employee name.');
-    if (picked.includes('Employee email') && !/^\S+@\S+\.\S+$/.test(userEmail)) return showErr('Type your email, or untick Employee email.');
-    S.user = { name: userName, email: userEmail };
+    const field = (n) => root.querySelector(`input[name="${n}"]`);
+    const user = { name: field('username').value.trim(), email: field('useremail').value.trim(), department: field('department').value.trim(), employeeId: field('employeeid').value.trim() };
+    if (!user.name) { field('username').focus(); return showErr('Type your name.'); }
+    if (!/^\S+@\S+\.\S+$/.test(user.email)) { field('useremail').focus(); return showErr('Type your email.'); }
+    if (!user.department) { field('department').focus(); return showErr('Type your department.'); }
+    S.user = user;
     store.set('rp.user', S.user);
-    store.set('rp.exportOff', boxes().filter((b) => !b.checked).map((b) => b.value));
+    store.set('rp.exportOff', boxes().filter((b) => !b.checked && !b.disabled).map((b) => b.value));
     const file = cleanFileName(name.value);
     closeModal();
     downloadExcel(file, picked);
@@ -1580,8 +1620,17 @@ function openExport() {
     if (e.target.matches('[data-close]') || e.target.closest('button[data-close]')) return closeModal();
     const x = e.target.closest('[data-x]')?.dataset.x;
     if (x === 'all' || x === 'none') {
-      boxes().forEach((b) => { b.checked = x === 'all'; });
+      boxes().forEach((b) => { if (!b.disabled) b.checked = x === 'all'; });
       $('#exportErr').hidden = true;
+    }
+    if (x === 'help') {
+      const col = e.target.closest('[data-col]').dataset.col;
+      const help = $('#colHelp');
+      const same = !help.hidden && help.dataset.col === col;
+      help.dataset.col = col;
+      help.innerHTML = `<b>${esc(col)}</b>: ${esc(COLUMN_HELP[col] || '')}`;
+      help.hidden = same;
+      root.querySelectorAll('.col-q').forEach((q) => q.classList.toggle('on', !same && q.dataset.col === col));
     }
     if (x === 'download') go();
   });
