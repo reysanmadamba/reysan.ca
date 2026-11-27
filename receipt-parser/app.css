@@ -441,3 +441,7 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .total-toggle button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
 .total-note { font-size: 12px; }
 .drop[hidden] { display: none; }
+.paste-area { display: grid; gap: 4px; font-size: 13px; }
+.paste-area span { font-size: 12px; color: var(--muted); }
+.paste-area textarea { width: 100%; box-sizing: border-box; min-height: 64px; padding: 8px 10px; border: 1.5px dashed var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; resize: vertical; }
+.paste-area textarea:focus { outline: none; border-color: var(--accent); border-style: solid; }
