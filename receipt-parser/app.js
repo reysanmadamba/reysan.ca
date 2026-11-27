@@ -43,6 +43,7 @@ const ICON = {
   file: '<svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
   x: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   folder: '<svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  eye: '<svg class="i" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
 };
 
 // ---------- small helpers ----------
@@ -137,7 +138,7 @@ function assess(it) {
   if (it.local) return finish(it, [{ level: 'red', text: it.local.title, detail: it.local.detail }], it.local.action);
   if (!x) return finish(it, [], null);
 
-  if (!it.reviewed) {
+  if (!it.reviewed && !it.kept) {
     if (!x.is_receipt) {
       issues.push({ level: 'red', text: "This doesn't look like a receipt", detail: x.notes || 'Drop the receipt email or its PDF instead.' });
     } else if (x.image_quality !== 'clear') {
@@ -227,6 +228,8 @@ function assess(it) {
       }
     }
   }
+  // Kept: a person checked it and says it's right. Only "linked to another row" notes stay.
+  if (it.kept) return finish(it, issues.filter((i) => i.level === 'grey'), action);
   if (it.followUp && !issues.length) issues.push({ level: 'yellow', text: 'Flagged by you' });
   return finish(it, issues, action);
 }
@@ -492,7 +495,13 @@ let readsRunning = 0;
 const readQueue = [];
 
 async function readOne(it) {
-  if (readsRunning >= READS_AT_ONCE) await new Promise((resolve) => readQueue.push(resolve));
+  if (readsRunning >= READS_AT_ONCE) {
+    it.queued = true;
+    render();
+    await new Promise((resolve) => readQueue.push(resolve));
+    it.queued = false;
+    render();
+  }
   readsRunning++;
   try {
     return S.code ? await callApi(it) : await mockExtract(it);
@@ -783,6 +792,30 @@ function removeItem(id) {
   });
 }
 
+// Review opens the document beside what was read, in the app's tab, so the drop box stays open.
+function reviewItem(it) {
+  if (S.pip) {
+    window.focus();
+    toast('Opened in the Receipt Parser tab.');
+  }
+  openDetail(it);
+}
+
+function keepItem(it) {
+  if (!it.extraction || cents(it.extraction.total) === null) {
+    toast('Add the total first, then Keep.');
+    return reviewItem(it);
+  }
+  Object.assign(it, { kept: true, dupOk: true, softOk: true });
+  reassessAll();
+  render();
+  toast(`Kept: ${label(it)} is counted.`, () => {
+    Object.assign(it, { kept: false, dupOk: false, softOk: false });
+    reassessAll();
+    render();
+  });
+}
+
 function startFix(it) {
   S.replaceId = it.id;
   $('#fileInput').click();
@@ -800,7 +833,8 @@ function onAction(act, id, field) {
       if (it) it.boxDone = true;
       return render();
     case 'box-done-all':
-      S.items.forEach((i) => { if (i.status !== 'reading') i.boxDone = true; });
+      // Clears what's settled; anything still to review or fix stays.
+      S.items.forEach((i) => { if (i.status !== 'reading' && (i.level === 'green' || i.level === 'grey')) i.boxDone = true; });
       S.attach.forEach((g) => g.files.forEach((f) => { if (f.skipped) f.hidden = true; }));
       return render();
     case 'skip-hide': {
@@ -823,9 +857,8 @@ function onAction(act, id, field) {
     case 'tab': S.tab = field; return render();
     case 'fix': return it && startFix(it);
     case 'retry': return it && read(it);
-    case 'keep':
-      if (!it) return;
-      it.keep = true; assess(it); return render();
+    case 'keep': return it && keepItem(it);
+    case 'review': return it && reviewItem(it);
     case 'delete':
     case 'trash': return it && removeItem(it.id);
     case 'open': return it && openDetail(it, field);
@@ -1009,8 +1042,8 @@ function partNote(it, lineOf) {
   if (dup && dup.pair) return `Receipt for ${amount}invoice ${ref}, possible duplicate, not counted`;
   if (dup) return `Same as ${ref}, possible duplicate, not counted`;
   if (x && !x.is_receipt) return 'Not a receipt';
-  if (it.level === 'red') return `${it.issues[0]?.text || 'Needs fixing'}, fix in your list`;
-  return `${it.issues[0]?.text || 'Check it'}, check in your list`;
+  if (it.level === 'red') return it.issues[0]?.text || 'Needs fixing';
+  return it.issues[0]?.text || 'Check it';
 }
 
 // The drop box: one big place to drop emails and files, and a list of everything scanned with
@@ -1026,17 +1059,22 @@ function renderBox() {
     const total = signedCents(it);
     const reading = it.status === 'reading';
     const main = x?.is_receipt ? `${total !== null ? `<b>${money(total, x.currency)}</b> ` : ''}${esc(x.vendor || it.name || 'Receipt')}` : esc(it.name || label(it));
-    const note = reading ? 'Reading…' : partNote(it, lineOf);
+    const ahead = it.queued ? S.items.filter((o) => o.queued && o.id < it.id).length : 0;
+    const note = !reading ? partNote(it, lineOf) : it.queued ? `Waiting in line${ahead ? `, ${ahead} ahead` : ''}` : 'Reading…';
+    const canKeep = !reading && (it.level === 'yellow' || it.level === 'red') && cents(x?.total) !== null;
+    const acts = reading ? '' : `<div class="scan-btns">
+        <button class="mini" data-act="review" data-id="${it.id}">${ICON.eye}Review</button>
+        ${canKeep ? `<button class="mini keep" data-act="keep" data-id="${it.id}">${ICON.check}Keep</button>` : ''}</div>`;
     return `<li class="scan ${reading ? 'reading' : it.level}"><span class="att-n">${n + 1}.</span>${statusIcon(it)}
       <div class="att-text"><span class="att-main">${main}</span>
         <span class="att-note">${reading ? '' : `<b class="tag ${it.level}">${word[it.level] || ''}</b> `}${esc(note)}</span>
-        ${from(it) ? `<span class="att-from">${esc(from(it))}</span>` : ''}</div>
-      <div class="scan-acts">${reading ? '' : `<button class="icon-btn" data-act="box-done" data-id="${it.id}" title="Done: clear from the drop box" aria-label="Done">${ICON.check}</button>`}
-        <button class="icon-btn" data-act="trash" data-id="${it.id}" title="Delete" aria-label="Delete">${ICON.trash}</button></div></li>`;
+        ${from(it) && from(it) !== it.name ? `<span class="att-from">${esc(from(it))}</span>` : x?.is_receipt && from(it) ? `<span class="att-from">${esc(from(it))}</span>` : ''}
+        ${reading ? `<span class="progress ${it.queued ? 'queued' : ''}"></span>` : acts}</div>
+      <div class="scan-acts"><button class="icon-btn" data-act="trash" data-id="${it.id}" title="Delete" aria-label="Delete">${ICON.trash}</button></div></li>`;
   }).join('') + skipped.map(({ g, f, i }) => `<li class="scan grey"><span class="att-n">–</span><span class="not-counted">–</span>
       <div class="att-text"><span class="att-main">${esc(f.name)}</span><span class="att-note"><b class="tag grey">Not read</b> ${esc(f.reason || 'Skipped')}</span>
         <span class="att-from">${esc(g.folder ? `In “${g.subject}”` : `From “${g.subject || g.title}”`)}</span></div>
-      <div class="scan-acts"><button class="icon-btn" data-act="skip-hide" data-id="${g.id}" data-field="${i}" title="Done: clear from the drop box" aria-label="Done">${ICON.check}</button></div></li>`).join('');
+      <div class="scan-acts"><button class="icon-btn" data-act="skip-hide" data-id="${g.id}" data-field="${i}" title="Hide from the drop box" aria-label="Hide">${ICON.x}</button></div></li>`).join('');
 
   boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned</span></div>
     <button class="dropzone" data-act="pick">
@@ -1048,7 +1086,7 @@ function renderBox() {
       <button class="btn" data-act="pick">${ICON.file}Upload files</button>
       <button class="btn" data-act="pick-folder">${ICON.folder}Upload folder</button>
     </div>
-    <div class="scan-head"><b>Scanned</b>${rows ? '<button class="link" data-act="box-done-all">Clear all done</button>' : ''}</div>
+    <div class="scan-head"><b>Scanned</b>${rows ? '<button class="link" data-act="box-done-all" title="Clear counted and not-read lines; ones to review stay">Clear counted</button>' : ''}</div>
     ${rows ? `<ul class="scan-list">${rows}</ul>` : '<p class="scan-empty">Nothing yet. Each email and file you drop shows up here: Done, Review or Failed, with the reason.</p>'}
     ${S.pip ? '<button class="btn primary open-app" data-act="open-app">Open the app to review and export</button>' : ''}`;
 }
@@ -1073,10 +1111,19 @@ const CATEGORIES = ['meals', 'travel', 'lodging', 'fuel', 'office_supplies', 'so
 
 function closeModal() { $('#modalRoot').innerHTML = ''; }
 
+// A PDF shown in the review window: a blob link, since browsers won't show a data: PDF in a frame.
+function pdfUrl(part) {
+  if (!part.blobUrl) {
+    const bytes = Uint8Array.from(atob(part.data), (c) => c.charCodeAt(0));
+    part.blobUrl = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+  }
+  return part.blobUrl;
+}
+
 function openDetail(it, focusField) {
   const x = it.extraction || { ...BLANK, currency: 'CAD' };
   const imgs = it.images.map((p, i) => (p.pdf
-    ? `<div class="pdfbox">${ICON.file}<p>PDF receipt</p><a href="${p.dataUrl}" target="_blank" rel="noopener" download="${esc(it.name || 'receipt.pdf')}">Open PDF</a></div>`
+    ? `<iframe class="pdf-view" src="${pdfUrl(p)}" title="${esc(it.name || 'Receipt PDF')}"></iframe><a class="pdf-open" href="${pdfUrl(p)}" target="_blank" rel="noopener">Open the PDF in a new tab</a>`
     : `<img src="${p.dataUrl}" alt="Receipt image ${i + 1}">`)).join('') || (it.text ? `<pre class="pasted">${esc(it.text)}</pre>` : '<div class="pdfbox">No image</div>');
   const issues = (it.issues?.length ? it.issues : [{ level: 'green', text: 'Looks good. Nothing to fix.' }])
     .map((i) => `<div class="issue ${i.level}">${esc(i.text)}${i.detail ? `. ${esc(i.detail)}` : ''}</div>`).join('');
@@ -1112,7 +1159,9 @@ function openDetail(it, focusField) {
           <button class="btn danger" data-m="delete">${ICON.trash}Delete</button>
           ${it.source === 'upload' ? `<button class="btn" data-m="fix">${ICON.file}Replace file</button>` : ''}
         </div>
-        <div style="display:flex;gap:8px"><button class="btn" data-close>Cancel</button><button class="btn primary" data-m="save">Save</button></div>
+        <div style="display:flex;gap:8px"><button class="btn" data-close>Cancel</button>
+          ${(it.level === 'yellow' || it.level === 'red') && cents(x.total) !== null ? `<button class="btn keep" data-m="keep">${ICON.check}Keep, it's right</button>` : ''}
+          <button class="btn primary" data-m="save">Save changes</button></div>
       </div>
     </div></div>`;
 
@@ -1122,6 +1171,7 @@ function openDetail(it, focusField) {
     if (e.target.matches('[data-close]') || e.target.closest('button[data-close]')) return closeModal();
     const m = e.target.closest('[data-m]')?.dataset.m;
     if (m === 'delete') { closeModal(); removeItem(it.id); }
+    if (m === 'keep') { closeModal(); keepItem(it); }
     if (m === 'fix') { closeModal(); startFix(it); }
     if (m === 'save') {
       const form = new FormData($('#editForm'));
@@ -1285,7 +1335,7 @@ const TOUR = [
   { title: 'Drop your receipts, that\'s it', html: '<p>Drag a receipt email from Outlook onto the drop box. Its text and every PDF attached are read, the math is checked, and duplicates are flagged. Nothing to download or save first.</p>' + ILL.flow },
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
   { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Doesn\'t pop out? Use the drop box on this page and keep this window beside Outlook.</p>' },
-  { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p>Click ✓ to clear a line from the drop box (it stays in your list), or the trash to delete it. <b>Open the app</b> takes you back here to review and export.</p>' },
+  { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p><b>Review</b> opens the document next to what was read, so you can check it and fix anything. <b>Keep</b> says it\'s right: the line turns green and counts. The trash deletes it. <b>Clear counted</b> tidies the drop box (lines stay in your full list), and <b>Open the app</b> takes you back here to export.</p>' },
   { target: '#dropZone', title: 'Files and Gmail', html: '<p>Drop PDFs or pictures here or on the drop box, or use <b>Upload files</b>. <b>Upload folder</b> reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and click <b>Paste copied email</b> (or press Ctrl+V here). For a Gmail attachment, download it, then drag it in.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The row shows a <b>+</b> button, like <b>+ Subtotal</b>: click it and type what the receipt says. Its source then says <b>manual input</b>.</p><p><b>Paid twice?</b> The same vendor and amount within 30 minutes gets a warning. Send it to <b>For refund</b>, and when the refund arrives it shows as <b>Refunded</b>. An invoice that was never paid goes to <b>Needs review</b> and isn\'t counted.</p>' },

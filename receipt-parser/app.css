@@ -192,6 +192,15 @@ body.pip .box { border: 0; padding: 4px; }
 .icon-btn { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
 .icon-btn:hover { background: var(--surface); color: var(--text); }
 .icon-btn .i { width: 16px; height: 16px; margin: 0; color: inherit; }
+.scan-btns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.mini { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 9px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.mini .i { width: 14px; height: 14px; margin: 0; color: inherit; }
+.mini.keep, .btn.keep { border-color: var(--green); color: var(--green); }
+.progress { display: block; height: 3px; margin-top: 6px; border-radius: 3px; background: var(--border); overflow: hidden; position: relative; }
+.progress::after { content: ''; position: absolute; inset: 0; width: 40%; border-radius: 3px; background: var(--accent); animation: progress 1.1s ease-in-out infinite; }
+.progress.queued::after { background: var(--muted); animation-duration: 2.2s; }
+@keyframes progress { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+.scan.reading { background: var(--accent-bg); }
 .scan-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 4px; }
 .open-app { width: 100%; justify-content: center; }
 .upload-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -287,6 +296,8 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .modal-foot { display: flex; justify-content: space-between; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); flex-wrap: wrap; }
 .imgs { display: grid; gap: 8px; align-content: start; }
 .imgs img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+.pdf-view { width: 100%; height: min(70vh, 720px); border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.pdf-open { font-size: 13px; }
 .imgs .pdfbox { padding: 40px; text-align: center; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); }
 .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; align-content: start; }
 .fields label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
