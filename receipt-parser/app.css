@@ -217,8 +217,6 @@ body.pip .box { border: 0; padding: 4px; }
 .box.over .mini-drop { background: var(--accent); }
 .box.over .mini-drop b, .box.over .mini-drop span { color: #fff; }
 body.pip .box:has(.mini-bar) { min-height: 0; }
-.upload-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.upload-btns .btn { justify-content: center; }
 body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .auto-switch { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 2px; border: 0; background: none; color: var(--text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; }
 .auto-switch .knob { position: relative; flex: none; width: 34px; height: 20px; border-radius: 999px; background: var(--border); transition: background 0.15s; }
@@ -459,5 +457,6 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .more-text { display: block; margin-top: 4px; color: var(--text); font-weight: 400; line-height: 1.45; }
 .modal.pick { width: min(460px, 100%); }
 .pick-body { padding: 16px 20px 20px; }
-.pick-body p { margin: 0 0 14px; color: var(--muted); }
+.pick-body p { margin: 0 0 12px; color: var(--muted); }
+.pick-body p + .pick-btns { margin-top: 16px; }
 .pick-btns { display: flex; gap: 10px; flex-wrap: wrap; }

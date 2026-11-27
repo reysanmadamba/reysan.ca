@@ -468,7 +468,8 @@ function pickFromBox(folder) {
   $('#modalRoot').innerHTML = `<div class="overlay" data-close><div class="modal pick" role="dialog" aria-modal="true" aria-label="Choose your files">
     <div class="modal-head"><h3>Choose your files</h3><button class="trash" data-close aria-label="Close">${ICON.x}</button></div>
     <div class="pick-body">
-      <p>The floating drop box can't open your files, so pick them here. They'll show up in the drop box like a dropped email.</p>
+      <p>Pick receipt files, or a whole folder of them, from your computer. They'll show up in the drop box.</p>
+      <p>Tip: you can also drag an email from Outlook straight onto the drop box. It's scanned right away, no browsing needed.</p>
       <div class="pick-btns">${btn(folder, true)}${btn(!folder, false)}</div>
     </div></div></div>`;
   const root = $('#modalRoot .overlay');
@@ -1480,12 +1481,8 @@ function renderBox() {
     <button class="dropzone" data-act="pick">
       <svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
       <b>Drop the email here to scan</b>
-      <span>Drag a receipt email from Outlook, or PDFs, pictures or a whole folder.</span>
+      <span>Drag a receipt email from Outlook, or PDFs, pictures or a whole folder. Or click here to browse your files.</span>
     </button>
-    <div class="upload-btns">
-      <button class="btn" data-act="pick">${ICON.file}Browse files</button>
-      <button class="btn" data-act="pick-folder">${ICON.folder}Browse folder</button>
-    </div>
     <label class="paste-area"><b>Or paste an email's text</b>
       <span>For Gmail or any email: select all the email text (Ctrl+A), copy it (Ctrl+C), and paste it here (Ctrl+V). It's read as soon as you paste.</span>
       <textarea data-paste-box rows="3" placeholder="Paste the email text here"></textarea></label>
@@ -1887,7 +1884,7 @@ const TOUR = [
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
   { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Using Firefox or Safari? They can\'t float it: drop emails and files on the area under the heading instead.</p>' },
   { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p><b>Review</b> opens the document next to what was read, so you can check it and fix anything. <b>Keep</b> says it\'s right: the line turns green and counts. The trash deletes it. <b>Hide done</b> tidies the drop box (those lines stay in your list), and <b>Open the app</b> takes you back here to export.</p>' },
-  { title: 'Files, folders and Gmail', html: '<p>Drop PDFs or pictures on the drop box or anywhere on this page, or use <b>Browse files</b> in the drop box. <b>Browse folder</b> reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and paste it into the <b>Or paste an email\'s text</b> box in the drop box (or press Ctrl+V on this page). For a Gmail attachment, download it, then drag it in.</p>' },
+  { title: 'Files, folders and Gmail', html: '<p>Drop PDFs or pictures on the drop box or anywhere on this page, or click the drop box to <b>Browse files</b> or <b>Browse folder</b>. A folder reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and paste it into the <b>Or paste an email\'s text</b> box in the drop box (or press Ctrl+V on this page). For a Gmail attachment, download it, then drag it in.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p><p>Tick the boxes to act on several at once: <b>Review later</b>, <b>Archive</b> (out of your list and total, kept under Archived) or <b>Delete</b>. Your list is saved on this computer, so it\'s still here when you come back. <b>Delete all</b> starts fresh.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The row shows a <b>+</b> button, like <b>+ Subtotal</b>: click it and type what the receipt says. Its source then says <b>manual input</b>.</p><p><b>Paid twice?</b> The same vendor and amount within 30 minutes gets a warning. Send it to <b>For refund</b>, and when the refund arrives it shows as <b>Refunded</b>. An invoice that was never paid goes to <b>Needs review</b> and isn\'t counted.</p>' },
   { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, minus refunds, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
