@@ -1459,7 +1459,7 @@ function renderBox() {
   }
   boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned${S.pip ? ' <button class="link" data-act="minimize" title="Makes the box a small bar. You can still drop emails on it.">Shrink</button>' : ''}</span></div>
     <button class="dropzone" data-act="pick">
-      <svg class="i" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M8 11l4 4 4-4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
       <b>Drop the email here to scan</b>
       <span>Drag a receipt email from Outlook, or PDFs, pictures or a whole folder.</span>
     </button>
