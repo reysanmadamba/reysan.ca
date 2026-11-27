@@ -457,3 +457,7 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .user-note { color: var(--accent); font-style: normal; }
 .see-more { font-size: inherit; margin-left: 2px; }
 .more-text { display: block; margin-top: 4px; color: var(--text); font-weight: 400; line-height: 1.45; }
+.modal.pick { width: min(460px, 100%); }
+.pick-body { padding: 16px 20px 20px; }
+.pick-body p { margin: 0 0 14px; color: var(--muted); }
+.pick-btns { display: flex; gap: 10px; flex-wrap: wrap; }

@@ -445,9 +445,6 @@ function openApp() {
 
 // A file picker from whichever window was clicked, so it opens from the floating drop box too.
 // With folder, every file in the folder and its subfolders is picked.
-// Chrome won't open a file window from inside the floating drop box, so the page opens it. A click in
-// the box counts as a click on the page too, which is what lets the page do that. The page is brought
-// forward first, so the file window shows up in front instead of behind Outlook.
 function pickFiles(folder = false) {
   const input = document.createElement('input');
   input.type = 'file';
@@ -460,8 +457,30 @@ function pickFiles(folder = false) {
   input.addEventListener('change', () => { handleFiles(input.files); done(); });
   input.addEventListener('cancel', done);
   document.body.append(input);
-  if (S.pip) window.focus();
   input.click();
+}
+
+// Chrome won't open a file window from the floating drop box, not even through the page. So the
+// page comes forward and asks for one more click, which can open it. What's picked shows in the box.
+function pickFromBox(folder) {
+  window.focus();
+  const btn = (f, primary) => `<button class="btn ${primary ? 'primary' : ''}" data-pick="${f ? 'folder' : 'files'}">${f ? `${ICON.folder}Upload folder` : `${ICON.file}Upload files`}</button>`;
+  $('#modalRoot').innerHTML = `<div class="overlay" data-close><div class="modal pick" role="dialog" aria-modal="true" aria-label="Upload files">
+    <div class="modal-head"><h3>Choose what to upload</h3><button class="trash" data-close aria-label="Close">${ICON.x}</button></div>
+    <div class="pick-body">
+      <p>The floating drop box can't open your files, so pick them here. They'll show up in the drop box like a dropped email.</p>
+      <div class="pick-btns">${btn(folder, true)}${btn(!folder, false)}</div>
+    </div></div></div>`;
+  const root = $('#modalRoot .overlay');
+  root.addEventListener('click', (e) => {
+    const pick = e.target.closest('[data-pick]');
+    if (pick) {
+      closeModal();
+      return pickFiles(pick.dataset.pick === 'folder');
+    }
+    if (e.target.matches('[data-close]') || e.target.closest('button[data-close]')) closeModal();
+  });
+  root.querySelector('[data-pick]').focus();
 }
 
 // Shrinks a picture to a size that's plenty for receipt text, as a JPEG for the reader.
@@ -997,8 +1016,8 @@ function startFix(it) {
 function onAction(act, id, field) {
   const it = S.items.find((i) => i.id === id);
   switch (act) {
-    case 'pick': return pickFiles();
-    case 'pick-folder': return pickFiles(true);
+    case 'pick': return S.pip ? pickFromBox(false) : pickFiles();
+    case 'pick-folder': return S.pip ? pickFromBox(true) : pickFiles(true);
     case 'paste': return pasteFromButton();
     case 'pip': return openPip();
     case 'open-app': return openApp();
