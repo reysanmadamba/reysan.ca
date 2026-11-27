@@ -477,3 +477,5 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .code-status .i { width: 14px; height: 14px; }
 .code-status.ok { color: var(--green); background: var(--green-bg); }
 .code-status.wrong { color: var(--red); background: var(--red-bg); }
+.code-submit { height: 32px; }
+.code-submit[hidden] { display: none; }

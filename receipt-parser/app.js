@@ -1992,19 +1992,23 @@ codeInput.value = S.code;
 
 // The badge beside the access code: Verified, Wrong code, or Checking.
 const EYE_OFF = '<svg class="i" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3 3.6M6.6 6.6A17 17 0 0 0 2.5 12S6 18 12 18a9.6 9.6 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+// A browser can keep an older copy of the page for a few minutes after an update, without these
+// two spots, so each is skipped if it's missing rather than stopping the whole page.
 function renderCode() {
+  renderModeNote();
   const el = $('#codeStatus');
+  const eye = $('#codeEye');
+  if (!el || !eye) return;
   const state = S.code ? S.codeState : '';
-  el.hidden = !state || state === 'unknown';
+  // Hidden while a different code is typed and not submitted yet: the badge is about the saved one.
+  el.hidden = !state || state === 'unknown' || codeInput.value.trim() !== S.code;
   el.className = `code-status ${state}`;
   el.innerHTML = state === 'ok' ? `${ICON.check}Verified` : state === 'wrong' ? `${ICON.x}Wrong code` : state === 'checking' ? 'Checking…' : '';
   const shown = codeInput.type === 'text';
-  const eye = $('#codeEye');
   eye.hidden = !codeInput.value;
   eye.innerHTML = shown ? EYE_OFF : ICON.eye;
   eye.setAttribute('aria-label', shown ? 'Hide the code' : 'Show the code');
   eye.title = eye.getAttribute('aria-label');
-  renderModeNote();
 }
 
 // Checks the code without reading anything: the reader turns a wrong code away (401) before it looks
@@ -2027,15 +2031,32 @@ async function checkCode(announce) {
   if (announce) toast(state === 'ok' ? 'Access code verified. Receipts are read live.' : state === 'wrong' ? "That access code isn't right. Check it and try again." : 'Access code saved.');
 }
 
-codeInput.addEventListener('input', () => { $('#codeEye').hidden = !codeInput.value; });
-codeInput.addEventListener('change', () => {
-  S.code = codeInput.value.trim();
+// Submit shows while the box holds a code that isn't saved yet, so nobody assumes typing was enough.
+// Enter, or clicking away from the box, saves it too.
+function syncSubmit() {
+  const btn = $('#codeSubmit');
+  if (btn) btn.hidden = codeInput.value.trim() === S.code;
+  renderCode();
+}
+function saveCode() {
+  const next = codeInput.value.trim();
+  if (next === S.code) return syncSubmit();
+  S.code = next;
   store.set('rp.code', S.code);
+  syncSubmit();
   render();
   checkCode(!!S.code);
   if (!S.code) toast('Demo mode on.');
+}
+codeInput.addEventListener('input', () => {
+  const eye = $('#codeEye');
+  if (eye) eye.hidden = !codeInput.value;
+  syncSubmit();
 });
-$('#codeEye').addEventListener('click', (e) => {
+codeInput.addEventListener('change', saveCode);
+codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveCode(); } });
+$('#codeSubmit')?.addEventListener('click', (e) => { e.preventDefault(); saveCode(); });
+$('#codeEye')?.addEventListener('click', (e) => {
   e.preventDefault();
   codeInput.type = codeInput.type === 'password' ? 'text' : 'password';
   renderCode();
