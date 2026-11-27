@@ -42,6 +42,7 @@ const ICON = {
   plus: '<svg class="i" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1.5-2h6l1.5 2H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M12 10v5M9.5 12.5h5"/></svg>',
   file: '<svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
   x: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  folder: '<svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
 };
 
 // ---------- small helpers ----------
@@ -403,11 +404,13 @@ function openApp() {
 }
 
 // A file picker from whichever window was clicked, so it opens from the floating drop box too.
-function pickFiles() {
-  const input = boxEl.ownerDocument.createElement('input');
+// With folder, every file in the folder and its subfolders is picked.
+function pickFiles(folder = false, doc = boxEl.ownerDocument) {
+  const input = doc.createElement('input');
   input.type = 'file';
   input.multiple = true;
-  input.accept = 'application/pdf,image/*,.msg,.eml';
+  if (folder) input.webkitdirectory = true;
+  else input.accept = 'application/pdf,image/*,.msg,.eml';
   input.addEventListener('change', () => handleFiles(input.files));
   input.click();
 }
@@ -449,7 +452,7 @@ async function read(it) {
   assess(it);
   render();
   try {
-    const result = S.code ? await callApi(it) : await mockExtract(it);
+    const result = await readOne(it);
     it.extraction = result.extraction;
     if (it.fromEmail) {
       it.extraction.email_sender ||= it.fromEmail.sender;
@@ -483,6 +486,22 @@ async function read(it) {
   render();
 }
 
+// A folder can hold hundreds of files: read a few at a time and queue the rest.
+const READS_AT_ONCE = 3;
+let readsRunning = 0;
+const readQueue = [];
+
+async function readOne(it) {
+  if (readsRunning >= READS_AT_ONCE) await new Promise((resolve) => readQueue.push(resolve));
+  readsRunning++;
+  try {
+    return S.code ? await callApi(it) : await mockExtract(it);
+  } finally {
+    readsRunning--;
+    readQueue.shift()?.();
+  }
+}
+
 async function callApi(it) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 70_000);
@@ -497,6 +516,7 @@ async function callApi(it) {
     });
     const body = await res.json().catch(() => ({}));
     if (res.status === 401) { $('#codeInput').focus(); throw new Error('Wrong access code'); }
+    if (res.status === 429) throw new Error('Reading limit reached (30 every 10 minutes). Click Try again in a few minutes');
     if (!res.ok) throw new Error(body.error || `Server error ${res.status}`);
     return body;
   } catch (e) {
@@ -599,7 +619,29 @@ async function pasteFromButton() {
 
 document.addEventListener('paste', takePaste);
 
+// The browser only lets a dropped folder be read during the drop, so its entries are taken right away.
+async function filesInEntries(entries) {
+  const out = [];
+  const walk = async (entry) => {
+    if (entry.isFile) {
+      out.push(await new Promise((resolve, reject) => entry.file(resolve, reject)));
+      return;
+    }
+    const reader = entry.createReader();
+    for (;;) {
+      const batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+      if (!batch.length) break;
+      for (const child of batch) await walk(child);
+    }
+  };
+  for (const entry of entries) await walk(entry);
+  return out;
+}
+
 function takeDrop(e) {
+  const entries = [...(e.dataTransfer?.items || [])].map((i) => i.webkitGetAsEntry?.()).filter(Boolean);
+  const folder = entries.find((en) => en.isDirectory);
+  if (folder) return filesInEntries(entries).then((files) => handleFiles(files, folder.name));
   if (e.dataTransfer?.files?.length) return handleFiles(e.dataTransfer.files);
   // Gmail hands over a link to the file inside Gmail, which another site isn't allowed to open.
   const types = [...(e.dataTransfer?.types || [])];
@@ -659,11 +701,27 @@ async function takeEmailFile(f) {
   render();
 }
 
-async function handleFiles(fileList) {
-  const files = [...fileList];
-  if (!files.length) return;
-  const names = files.map((f) => `${f.name} (${f.type || 'unknown type'})`);
-  toast(`Got ${files.length} file${files.length > 1 ? 's' : ''}: ${names.join(', ')}`);
+const JUNK_FILE = /^(\.|~\$|desktop\.ini$|thumbs\.db$)/i;
+const READABLE_FILE = (f) => /^(application\/pdf|image\/)/i.test(f.type) || /\.(pdf|png|jpe?g|webp|gif|heic|msg|eml)$/i.test(f.name);
+
+async function handleFiles(fileList, folderName) {
+  const all = [...fileList].filter((f) => !JUNK_FILE.test(f.name));
+  if (!all.length) return toast(folderName ? `“${folderName}” has no files in it.` : 'Nothing to read in that.');
+  const folder = folderName || all[0].webkitRelativePath?.split('/')[0] || '';
+  const files = all.filter(READABLE_FILE);
+  const unreadable = all.filter((f) => !READABLE_FILE(f));
+  toast(folder
+    ? `Reading ${files.length} file${files.length === 1 ? '' : 's'} from “${folder}”${unreadable.length ? `. ${unreadable.length} can't be read (not a PDF, picture or email)` : ''}.`
+    : `Got ${all.length} file${all.length > 1 ? 's' : ''}: ${all.map((f) => f.name).join(', ')}`);
+  if (S.code && files.length > 30) {
+    toast(`That's ${files.length} files. The trial reads up to 30 every 10 minutes, so some may need Try again after a few minutes.`);
+  }
+  if (unreadable.length) {
+    S.attach.push({
+      id: S.nextGroup++, title: folder || 'Your upload', subject: folder || 'your upload', sender: '', folder: true,
+      files: unreadable.map((f) => ({ name: f.name, skipped: true, reason: 'Not a PDF, picture or email' })),
+    });
+  }
 
   if (S.replaceId) {
     const it = S.items.find((i) => i.id === S.replaceId);
@@ -680,7 +738,6 @@ async function handleFiles(fileList) {
     }
   }
 
-  const added = [];
   for (const f of files) {
     if (/\.(msg|eml)$/i.test(f.name)) {
       await takeEmailFile(f);
@@ -688,7 +745,7 @@ async function handleFiles(fileList) {
     }
     const part = await fileToPart(f);
     const it = addItem('upload', part.error ? [] : [part], f.name);
-    added.push(it);
+    if (folder) it.folder = folder;
     if (part.error) setLocal(it, part.error, part.detail, 'file');
     else read(it);
   }
@@ -698,7 +755,7 @@ async function handleFiles(fileList) {
 async function fileToPart(f) {
   const name = f.name.toLowerCase();
   if (f.type === 'application/pdf' || name.endsWith('.pdf')) {
-    if (f.size > MAX_PDF_BYTES) return { error: 'PDF is too large for the trial (3 MB max)', detail: 'Capture it from the screen instead.' };
+    if (f.size > MAX_PDF_BYTES) return { error: 'PDF is too large for the trial (3 MB max)', detail: 'Enter its details by hand, or ask for a smaller copy.' };
     const dataUrl = await readAsDataUrl(f);
     return { media_type: 'application/pdf', pdf: true, dataUrl, data: dataUrl.slice(dataUrl.indexOf(',') + 1) };
   }
@@ -735,6 +792,7 @@ function onAction(act, id, field) {
   const it = S.items.find((i) => i.id === id);
   switch (act) {
     case 'pick': return pickFiles();
+    case 'pick-folder': return pickFiles(true);
     case 'paste': return pasteFromButton();
     case 'pip': return openPip();
     case 'open-app': return openApp();
@@ -962,7 +1020,7 @@ function renderBox() {
   const skipped = S.attach.flatMap((g) => g.files.map((f, i) => ({ g, f, i })).filter(({ f }) => f.skipped && !f.hidden));
   const lineOf = (id) => shown.findIndex((i) => i.id === id) + 1;
   const word = { green: 'Done', yellow: 'Review', grey: 'Not counted', red: 'Failed' };
-  const from = (it) => (it.fromEmail?.subject ? `From “${it.fromEmail.subject}”` : it.source === 'upload' ? it.name : it.source === 'paste' ? 'Pasted text' : '');
+  const from = (it) => (it.fromEmail?.subject ? `From “${it.fromEmail.subject}”` : it.folder ? `${it.name} · in “${it.folder}”` : it.source === 'upload' ? it.name : it.source === 'paste' ? 'Pasted text' : '');
   const rows = shown.map((it, n) => {
     const x = it.extraction;
     const total = signedCents(it);
@@ -977,16 +1035,19 @@ function renderBox() {
         <button class="icon-btn" data-act="trash" data-id="${it.id}" title="Delete" aria-label="Delete">${ICON.trash}</button></div></li>`;
   }).join('') + skipped.map(({ g, f, i }) => `<li class="scan grey"><span class="att-n">–</span><span class="not-counted">–</span>
       <div class="att-text"><span class="att-main">${esc(f.name)}</span><span class="att-note"><b class="tag grey">Not read</b> ${esc(f.reason || 'Skipped')}</span>
-        <span class="att-from">${esc(`From “${g.subject || g.title}”`)}</span></div>
+        <span class="att-from">${esc(g.folder ? `In “${g.subject}”` : `From “${g.subject || g.title}”`)}</span></div>
       <div class="scan-acts"><button class="icon-btn" data-act="skip-hide" data-id="${g.id}" data-field="${i}" title="Done: clear from the drop box" aria-label="Done">${ICON.check}</button></div></li>`).join('');
 
   boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned</span></div>
     <button class="dropzone" data-act="pick">
       <svg class="i" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
       <b>Drop the email here to scan</b>
-      <span>Drag a receipt email from Outlook, or PDFs and pictures. Or click to choose files.</span>
+      <span>Drag a receipt email from Outlook, or PDFs, pictures or a whole folder. Gmail? Copy the email and press Ctrl+V here.</span>
     </button>
-    <button class="btn paste-btn" data-act="paste">${ICON.file}Paste copied email</button>
+    <div class="upload-btns">
+      <button class="btn" data-act="pick">${ICON.file}Upload files</button>
+      <button class="btn" data-act="pick-folder">${ICON.folder}Upload folder</button>
+    </div>
     <div class="scan-head"><b>Scanned</b>${rows ? '<button class="link" data-act="box-done-all">Clear all done</button>' : ''}</div>
     ${rows ? `<ul class="scan-list">${rows}</ul>` : '<p class="scan-empty">Nothing yet. Each email and file you drop shows up here: Done, Review or Failed, with the reason.</p>'}
     ${S.pip ? '<button class="btn primary open-app" data-act="open-app">Open the app to review and export</button>' : ''}`;
@@ -1225,7 +1286,7 @@ const TOUR = [
   { target: '#codeField', title: 'Your access code', html: "<p>Type the code you were given. No code? Leave it empty: everything works in demo mode with sample results, so you can practise first.</p>" },
   { target: '#dropBoxBtn', title: 'Open the drop box', html: '<p>Click <b>Open drop box</b>. A small window pops out and stays on top of every window, Outlook included. Drag it next to your inbox.</p><p>Doesn\'t pop out? Use the drop box on this page and keep this window beside Outlook.</p>' },
   { title: 'Drag an email onto it', html: ILL.box + '<ol><li>In your Outlook inbox, press and hold on a receipt email</li><li>Drag it onto <b>Drop the email here to scan</b> and let go</li><li>Each part gets a line: <b>Done</b> (counted), <b>Review</b> (needs a look, with the reason) or <b>Failed</b> (with the reason)</li></ol><p>Click ✓ to clear a line from the drop box (it stays in your list), or the trash to delete it. <b>Open the app</b> takes you back here to review and export.</p>' },
-  { target: '#dropZone', title: 'Files and Gmail', html: '<p>Drop PDFs or pictures here or on the drop box, or click to choose files.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and click <b>Paste copied email</b> (or press Ctrl+V here). For a Gmail attachment, download it, then drag it in.</p>' },
+  { target: '#dropZone', title: 'Files and Gmail', html: '<p>Drop PDFs or pictures here or on the drop box, or use <b>Upload files</b>. <b>Upload folder</b> reads every file in a folder: receipts, non-receipts, and files it can\'t read are all listed so you can see what happened to each.</p><p><b>Gmail?</b> Gmail can\'t drag emails out. Click in the email, press <b>Ctrl+A</b> then <b>Ctrl+C</b>, and click <b>Paste copied email</b> (or press Ctrl+V here). For a Gmail attachment, download it, then drag it in.</p>' },
   { target: '.list-card', title: 'Your receipts', html: '<p><b style="color:var(--green)">Green check</b>: counted. <b style="color:var(--amber)">Yellow</b>: check it. <b style="color:var(--red)">Red</b>: needs fixing. Grey: linked to another row and not counted, like an invoice whose payment is in the list.</p><p>Click any row to see it next to the fields and fix anything. <b>Needs review</b> and <b>For refund</b> collect the rows to come back to.</p>' },
   { title: 'Missing something? Paid twice?', html: '<p><b>Missing a detail?</b> The row shows a <b>+</b> button, like <b>+ Subtotal</b>: click it and type what the receipt says. Its source then says <b>manual input</b>.</p><p><b>Paid twice?</b> The same vendor and amount within 30 minutes gets a warning. Send it to <b>For refund</b>, and when the refund arrives it shows as <b>Refunded</b>. An invoice that was never paid goes to <b>Needs review</b> and isn\'t counted.</p>' },
   { target: '#exportBtn', title: 'Totals and Excel', html: '<p>Your total counts green receipts only, minus refunds, one line per currency. When you\'re done, click <b>Download Excel</b>, name the file, add your name and email, and untick any columns you don\'t need.</p><p>You can open this tour again any time with <b>Help</b>.</p>' },
@@ -1316,6 +1377,7 @@ $('#chooseBtn').addEventListener('click', () => $('#fileInput').click());
 $('#helpBtn').addEventListener('click', () => openTour(0));
 $('#exportBtn').addEventListener('click', openExport);
 $('#pickBtn').addEventListener('click', () => $('#fileInput').click());
+$('#pickFolderBtn').addEventListener('click', () => pickFiles(true, document));
 $('#fileInput').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
 
 const codeInput = $('#codeInput');
