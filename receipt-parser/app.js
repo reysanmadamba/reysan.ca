@@ -224,14 +224,14 @@ function assess(it) {
       if (other) {
         const gap = Math.abs(paidAt(x) - paidAt(other.extraction));
         const apart = gap === 0 ? 'at the same time' : `${gap} minute${gap === 1 ? '' : 's'} apart`;
-        issues.unshift({ level: 'yellow', text: `Same amount as ${other.extraction.vendor || 'another receipt'} at ${clockTime(other.extraction.time)}, ${apart}. Is this really a second purchase? If not, ask for a refund`, dup: true, charge: true });
+        issues.unshift({ level: 'yellow', text: `Same amount as ${other.extraction.vendor || 'another receipt'} at ${clockTime(other.extraction.time)}, ${apart}. Is this really a second purchase? If not, ask for a refund`, dup: true, charge: true, of: other.id });
       }
     } else if (it.dupOf) {
       const other = S.items.find((o) => o.id === it.dupOf);
       if (other) {
         const dateNote = other.extraction.date === x.date ? '' : `, but the dates were read differently (${shortDate(x.date)} and ${shortDate(other.extraction.date)}). Check which is right`;
         const pair = [x.document_type, other.extraction.document_type].includes('invoice');
-        issues.push({ level: 'yellow', text: pair ? `Same payment as ${label(other)}: one is the invoice, the other the receipt. Keep one${dateNote}` : `Looks like the same receipt as ${label(other)}${dateNote}`, dup: true });
+        issues.push({ level: 'yellow', text: pair ? `Same payment as ${label(other)}: one is the invoice, the other the receipt. Keep one${dateNote}` : `Looks like the same receipt as ${label(other)}${dateNote}`, dup: true, of: other.id, pair });
       }
     }
   }
@@ -1305,31 +1305,44 @@ function renderList() {
 }
 
 // One short phrase per part of an email: its amount when it counts, otherwise why it doesn't.
-function partResult(it) {
+// What one part of an email turned out to be, in a few words. Duplicates point at the line they repeat.
+function partNote(it, lineOf) {
   const x = it.extraction;
-  const total = cents(x?.total);
   const dup = it.issues?.find((i) => i.dup);
-  if (it.level === 'green') return total !== null ? money(total, x.currency) : 'Done';
-  if (dup) return dup.charge ? 'Paid twice?' : x?.document_type === 'invoice' || /invoice/.test(dup.text) ? 'Same payment, not counted' : 'Duplicate, not counted';
+  const other = dup && S.items.find((o) => o.id === dup.of);
+  const ref = other ? (lineOf(other.id) ? `#${lineOf(other.id)}` : label(other)) : 'another receipt';
+  const amount = other && cents(other.extraction?.total) !== null ? `the ${money(cents(other.extraction.total), other.extraction.currency)} ` : '';
+  if (it.level === 'green') return x?.document_type === 'invoice' ? 'Invoice, counted' : 'Receipt, counted';
+  if (dup?.charge) return `Paid twice? Same amount as ${ref}`;
+  if (dup && x?.document_type === 'invoice') return `Invoice for ${amount}receipt ${ref}, possible duplicate, not counted`;
+  if (dup && dup.pair) return `Receipt for ${amount}invoice ${ref}, possible duplicate, not counted`;
+  if (dup) return `Same as ${ref}, possible duplicate, not counted`;
   if (x && !x.is_receipt) return 'Not a receipt';
-  if (it.level === 'red') return 'Fix in your list';
-  return 'Check in your list';
+  if (it.level === 'red') return `${it.issues[0]?.text || 'Needs fixing'}, fix in your list`;
+  return `${it.issues[0]?.text || 'Check it'}, check in your list`;
 }
 
 function attachCard(group) {
   const shown = group.files.map((f, i) => [f, i]).filter(([f]) => !group.dropped || !isWaiting(f));
   const waiting = shown.filter(([f]) => isWaiting(f)).length;
-  const rows = shown.map(([f, i]) => {
+  const lineOf = (id) => shown.findIndex(([f]) => f.itemId === id) + 1;
+  const rows = shown.map(([f, i], n) => {
     const it = S.items.find((o) => o.id === f.itemId);
+    const x = it?.extraction;
+    const total = cents(x?.total);
     let icon = '<span class="att-dot"></span>';
-    let result = f.skipped ? f.reason || 'Skipped' : '';
-    if (it?.status === 'reading') { icon = '<span class="spin"></span>'; result = 'Reading…'; }
+    let main = esc(f.name);
+    let note = f.skipped ? f.reason || 'Skipped' : 'Not read yet';
+    if (it?.status === 'reading') { icon = '<span class="spin"></span>'; note = 'Reading…'; }
+    else if (it?.status === 'local' || it?.status === 'error') { icon = ICON.error; note = it.local?.title || it.error || 'Couldn\'t read it'; }
     else if (it) {
       icon = it.level === 'green' ? ICON.check : it.level === 'yellow' ? ICON.warn : ICON.error;
-      result = partResult(it);
+      if (x?.is_receipt) main = `${total !== null ? `<b>${money(total, x.currency)}</b> ` : ''}${esc(x.vendor || f.name)}`;
+      note = partNote(it, lineOf);
     }
-    return `<li class="att ${it?.level || ''}">${icon}<span class="att-name" title="${esc(f.name)}">${esc(f.name)}</span>
-      ${waiting && isWaiting(f) ? `<button class="link" data-act="att-skip" data-id="${group.id}" data-field="${i}">Skip</button>` : `<span class="att-res">${esc(result)}</span>`}</li>`;
+    const sub = main === esc(f.name) ? note : `${note} · ${f.name}`;
+    return `<li class="att ${it?.level || ''}"><span class="att-n">${n + 1}.</span>${icon}<div class="att-text"><span class="att-main" title="${esc(f.name)}">${main}</span><span class="att-note">${esc(sub)}</span></div>
+      ${waiting && isWaiting(f) ? `<button class="link" data-act="att-skip" data-id="${group.id}" data-field="${i}">Skip</button>` : ''}</li>`;
   }).join('');
   const title = group.email ? `From ${group.title}` : group.dropped ? 'Dropped files' : waiting ? `${waiting} attachment${waiting > 1 ? 's' : ''} not read yet` : 'All attachments done';
   const hint = group.note ? `<div class="d">${esc(group.note)}</div>`
