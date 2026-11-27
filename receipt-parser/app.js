@@ -445,13 +445,22 @@ function openApp() {
 
 // A file picker from whichever window was clicked, so it opens from the floating drop box too.
 // With folder, every file in the folder and its subfolders is picked.
-function pickFiles(folder = false, doc = boxEl.ownerDocument) {
-  const input = doc.createElement('input');
+// Chrome won't open a file window from inside the floating drop box, so the page opens it. A click in
+// the box counts as a click on the page too, which is what lets the page do that. The page is brought
+// forward first, so the file window shows up in front instead of behind Outlook.
+function pickFiles(folder = false) {
+  const input = document.createElement('input');
   input.type = 'file';
   input.multiple = true;
+  input.hidden = true;
   if (folder) input.webkitdirectory = true;
   else input.accept = 'application/pdf,image/*,.msg,.eml';
-  input.addEventListener('change', () => handleFiles(input.files));
+  // Kept on the page until it's used, so the browser can't throw it away while the file window is open.
+  const done = () => setTimeout(() => input.remove(), 0);
+  input.addEventListener('change', () => { handleFiles(input.files); done(); });
+  input.addEventListener('cancel', done);
+  document.body.append(input);
+  if (S.pip) window.focus();
   input.click();
 }
 
@@ -1949,7 +1958,7 @@ $('#dropBoxBtn').addEventListener('click', () => openPip());
 $('#helpBtn').addEventListener('click', () => openTour(0));
 $('#exportBtn').addEventListener('click', confirmExport);
 $('#pickBtn').addEventListener('click', () => $('#fileInput').click());
-$('#pickFolderBtn').addEventListener('click', () => pickFiles(true, document));
+$('#pickFolderBtn').addEventListener('click', () => pickFiles(true));
 $('#fileInput').addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
 
 const codeInput = $('#codeInput');
