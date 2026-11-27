@@ -96,7 +96,7 @@ function normVendor(v) {
     .replace(/\b(store|location|branch|unit)\s*#?\s*\d+\b/g, ' ')
     .replace(/#\s*\d+/g, ' ')
     .replace(/[^a-z0-9 ]/g, ' ')
-    .replace(/\b(inc|incorporated|ltd|limited|llc|llp|corp|corporation|co|company|ulc|the)\b/g, ' ')
+    .replace(/\b(inc|incorporated|ltd|limited|llc|llp|lp|pbc|plc|gmbh|pty|corp|corporation|co|company|ulc|the)\b/g, ' ')
     .replace(/\b\d+\b/g, ' ')
     .replace(/\s+/g, ' ').trim();
 }
@@ -286,8 +286,11 @@ function findDuplicates() {
       && Math.abs(s.at - at) <= DOUBLE_CHARGE_MINUTES && !(s.rn && s.rn === rn) && (s.at !== at || (s.rn && rn))
       && !(it.groupId && s.group === it.groupId) && !(inv && s.inv === inv));
     // An invoice and its receipt carry different numbers but the same invoice number: one payment, not two.
-    const hit = seen.find((s) => s.v === v && (s.date === x.date || s.date === swapped) && s.t === t
-      && (!s.rn || !rn || s.rn === rn || (inv && s.inv === inv)));
+    // A receipt or invoice number names one payment, so with the same total it's a match even when the
+    // vendor is written differently ("Claude" and "Anthropic, PBC"). Very short numbers are too common for that.
+    const sameNumber = (s) => (rn.length >= 4 && s.rn === rn) || (inv.length >= 4 && s.inv === inv);
+    const hit = seen.find((s) => s.t === t && (sameNumber(s)
+      || (s.v === v && (s.date === x.date || s.date === swapped) && (!s.rn || !rn || s.rn === rn || (inv && s.inv === inv)))));
     if (!it.dupOk) {
       if (charge) it.chargeOf = charge.id;
       else if (hit) it.dupOf = hit.id;
