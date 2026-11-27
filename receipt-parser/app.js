@@ -425,7 +425,7 @@ async function openPip() {
   }
 }
 
-// The browser's X closes the floating window, which people fear loses their list (it doesn't). Minimize
+// The browser's X closes the floating window, which people fear loses their list (it doesn't). Shrink
 // shrinks it to a small bar instead, still taking drops, and Expand brings it back.
 const BOX_SIZE = { full: [380, 680], mini: [380, 150] };
 
@@ -1448,7 +1448,7 @@ function renderBox() {
       <button class="btn sm" data-act="expand">Expand</button></div>`;
     return;
   }
-  boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned${S.pip ? ' <button class="link" data-act="minimize">Minimize</button>' : ''}</span></div>
+  boxEl.innerHTML = `<div class="box-head"><span>Drop box</span><span>${S.items.length} scanned${S.pip ? ' <button class="link" data-act="minimize" title="Makes the box a small bar. You can still drop emails on it.">Shrink</button>' : ''}</span></div>
     <button class="dropzone" data-act="pick">
       <svg class="i" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
       <b>Drop the email here to scan</b>
