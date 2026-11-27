@@ -46,6 +46,7 @@ const ICON = {
   x: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',
   folder: '<svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
   eye: '<svg class="i" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  expand: '<svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>',
 };
 
 // ---------- small helpers ----------
@@ -676,6 +677,21 @@ function takeDrop(e) {
 
 // An email dragged out of Outlook: its text is read like a paste, and each PDF or image attached to it
 // like a dropped file. They're listed together in the box, and count as one email for the paid-twice check.
+// Pictures inside an email (logos, banners) point at its attachments by content id; swap in the pictures
+// themselves so the email looks right when reviewed. Pictures on the internet stay blocked.
+function withInlinePictures(mail) {
+  if (!mail.html) return '';
+  let html = mail.html;
+  for (const a of mail.attachments) {
+    if (!a.cid || !a.bytes || !a.inline) continue;
+    let bin = '';
+    for (let i = 0; i < a.bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, a.bytes.subarray(i, i + 0x8000));
+    const url = `data:${a.type || 'image/png'};base64,${btoa(bin)}`;
+    html = html.split(`cid:${a.cid}`).join(url);
+  }
+  return html;
+}
+
 async function takeEmailFile(f) {
   let mail;
   try {
@@ -699,7 +715,7 @@ async function takeEmailFile(f) {
     .filter(Boolean).join('\n') + `\n\n${mail.text}`;
   if (mail.text.trim().length >= 20) {
     const it = addItem('email', [], f.name);
-    Object.assign(it, { text: text.slice(0, MAX_TEXT_CHARS), fromEmail, groupId: group.id, emailHasFiles: files.length > 0 });
+    Object.assign(it, { text: text.slice(0, MAX_TEXT_CHARS), fromEmail, groupId: group.id, emailHasFiles: files.length > 0, html: withInlinePictures(mail), emailDate: mail.date });
     group.files.push({ name: 'Email text', itemId: it.id });
     read(it);
   }
@@ -1318,11 +1334,52 @@ function pdfUrl(part) {
   return part.blobUrl;
 }
 
+// An email shown the way it was written, in a frame that can't run scripts, follow links or load
+// anything from the internet (which would tell the sender it was opened).
+function emailDoc(it) {
+  const x = it.extraction || {};
+  const head = [
+    ['From', it.fromEmail?.sender || x.email_sender],
+    ['Subject', it.fromEmail?.subject || x.email_subject],
+    ['Date', it.emailDate || x.email_date],
+  ].filter(([, v]) => v).map(([k, v]) => `<div><b>${k}:</b> ${esc(v)}</div>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:">
+    <style>body{margin:0;background:#fff;color:#111;font:14px/1.5 system-ui,sans-serif}.mail-head{padding:14px 18px;border-bottom:1px solid #ddd;background:#f6f6f4;font-size:13px}.mail-body{padding:16px 18px}img{max-width:100%;height:auto}</style>
+    </head><body><div class="mail-head">${head}</div><div class="mail-body">${it.html}</div></body></html>`;
+}
+
+// Expand: the document full screen, to read the email (or PDF, or picture) properly.
+function openViewer(it) {
+  const body = it.images.length
+    ? it.images.map((p, i) => (p.pdf ? `<iframe class="viewer-doc" src="${pdfUrl(p)}" title="${esc(it.name || 'PDF')}"></iframe>` : `<img class="viewer-img" src="${p.dataUrl}" alt="Receipt image ${i + 1}">`)).join('')
+    : it.html ? `<iframe class="viewer-doc" sandbox srcdoc="${esc(emailDoc(it))}" title="The email"></iframe>`
+      : `<pre class="viewer-text">${esc(it.text || '')}</pre>`;
+  let root = $('#viewerRoot');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'viewerRoot';
+    document.body.append(root);
+  }
+  root.innerHTML = `<div class="viewer" role="dialog" aria-modal="true" aria-label="${esc(label(it))}">
+    <div class="viewer-head"><b>${esc(label(it))}</b><button class="btn sm" data-viewer-close>${ICON.x}Close</button></div>
+    <div class="viewer-body">${body}</div></div>`;
+  root.querySelector('[data-viewer-close]').addEventListener('click', closeViewer);
+}
+
+function closeViewer() {
+  const root = $('#viewerRoot');
+  if (!root?.innerHTML) return false;
+  root.innerHTML = '';
+  return true;
+}
+
 function openDetail(it, focusField) {
   const x = it.extraction || { ...BLANK, currency: 'CAD' };
   const imgs = it.images.map((p, i) => (p.pdf
     ? `<iframe class="pdf-view" src="${pdfUrl(p)}" title="${esc(it.name || 'Receipt PDF')}"></iframe><a class="pdf-open" href="${pdfUrl(p)}" target="_blank" rel="noopener">Open the PDF in a new tab</a>`
-    : `<img src="${p.dataUrl}" alt="Receipt image ${i + 1}">`)).join('') || (it.text ? `<pre class="pasted">${esc(it.text)}</pre>` : '<div class="pdfbox">No image</div>');
+    : `<img src="${p.dataUrl}" alt="Receipt image ${i + 1}">`)).join('') || (it.html ? `<iframe class="email-view" sandbox srcdoc="${esc(emailDoc(it))}" title="The email"></iframe>` : it.text ? `<pre class="pasted">${esc(it.text)}</pre>` : '<div class="pdfbox">No image</div>');
+  const tools = it.images.length || it.html || it.text ? `<div class="doc-tools"><button type="button" class="btn sm" data-m="expand">${ICON.expand}Expand</button>${it.html ? '<span class="muted">Pictures from the internet are hidden for privacy.</span>' : ''}</div>` : '';
   const issues = (it.issues?.length ? it.issues : [{ level: 'green', text: 'Looks good. Nothing to fix.' }])
     .map((i) => `<div class="issue ${i.level}">${esc(i.text)}${i.detail ? `. ${esc(i.detail)}` : ''}</div>`).join('');
   const inputs = FIELDS.map(([f, name, type, wide]) => {
@@ -1343,7 +1400,7 @@ function openDetail(it, focusField) {
     <div class="modal" role="dialog" aria-modal="true" aria-label="Receipt details">
       <div class="modal-head"><h3>${esc(label(it))}</h3><button class="trash" data-close aria-label="Close">${ICON.x}</button></div>
       <form class="modal-body" id="editForm">
-        <div class="imgs">${imgs}</div>
+        <div class="imgs">${tools}${imgs}</div>
         <div class="fields">
           <div class="issues">${issues}</div>
           ${inputs}
@@ -1370,6 +1427,7 @@ function openDetail(it, focusField) {
     const m = e.target.closest('[data-m]')?.dataset.m;
     if (m === 'delete') { closeModal(); removeItem(it.id); }
     if (m === 'keep') { closeModal(); keepItem(it); }
+    if (m === 'expand') openViewer(it);
     if (m === 'fix') { closeModal(); startFix(it); }
     if (m === 'save') {
       const form = new FormData($('#editForm'));
@@ -1652,7 +1710,7 @@ $('#tourRoot').addEventListener('click', (e) => {
 });
 window.addEventListener('resize', () => { if (tourStep >= 0) drawTour.place?.(); });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { if (tourStep >= 0) closeTour(); else closeModal(); }
+  if (e.key === 'Escape') { if (tourStep >= 0) closeTour(); else if (!closeViewer()) closeModal(); }
   if (tourStep < 0) return;
   if (e.key === 'ArrowRight') { tourStep++; drawTour(); }
   if (e.key === 'ArrowLeft' && tourStep > 0) { tourStep--; drawTour(); }

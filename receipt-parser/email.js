@@ -1,5 +1,5 @@
 // Reads an email file dragged out of Outlook: .msg from Outlook for Windows, .eml from most others.
-// Returns { sender, subject, date, text, attachments: [{ name, type, bytes, inline }] }.
+// Returns { sender, subject, date, text, html, attachments: [{ name, type, bytes, inline, cid }] }.
 // Written here rather than pulled from a library, so no outside code runs on receipts.
 
 export function readEmailFile(bytes, name) {
@@ -162,13 +162,15 @@ function readMsg(u8) {
     const type = str(a, '370E');
     // Outlook gives attachments of a forwarded email a content id too, so only a picture with one
     // counts as shown inside the email (a logo); a PDF is always an attachment.
-    attachments.push({ name, type, bytes: bin(a, '3701'), inline: !!str(a, '3712') && isPicture(name, type) });
+    const cid = str(a, '3712');
+    attachments.push({ name, type, bytes: bin(a, '3701'), inline: !!cid && isPicture(name, type), cid });
   }
   return {
     sender: senderName && senderEmail ? `${senderName} <${senderEmail}>` : senderName || senderEmail,
     subject: str(top, '0037'),
     date: '',
     text: body,
+    html: html || '',
     attachments,
   };
 }
@@ -218,7 +220,8 @@ function walk(raw, out) {
   const disposition = headers['content-disposition'] || '';
   const filename = param(disposition, 'filename') || param(headers['content-type'], 'name');
   if (filename || /^attachment/i.test(disposition)) {
-    out.attachments.push({ name: filename || 'attachment', type, bytes, inline: !!headers['content-id'] && isPicture(filename, type) });
+    const cid = (headers['content-id'] || '').replace(/[<>]/g, '').trim();
+    out.attachments.push({ name: filename || 'attachment', type, bytes, inline: !!cid && isPicture(filename, type), cid });
   } else if (type === 'text/plain' && !out.plain) {
     out.plain = decodeText(bytes, param(headers['content-type'], 'charset'));
   } else if (type === 'text/html' && !out.html) {
@@ -236,6 +239,7 @@ function readEml(u8) {
     subject: decodeWords(headers.subject),
     date: headers.date || '',
     text: (out.plain || (out.html ? htmlToText(out.html) : '')).trim(),
+    html: out.html || '',
     attachments: out.attachments,
   };
 }

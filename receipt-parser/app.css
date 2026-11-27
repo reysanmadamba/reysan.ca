@@ -420,3 +420,11 @@ body.pip .box { min-height: calc(100vh - 20px); align-content: start; }
 .no-float .float-note b { color: var(--amber); }
 .no-float .drop { min-height: 160px; justify-content: center; border-width: 2px; border-color: var(--accent); background: var(--accent-bg); color: var(--text); }
 .no-float .drop strong { font-size: 18px; }
+.doc-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+.email-view { width: 100%; height: min(70vh, 720px); border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.viewer { position: fixed; inset: 0; z-index: 70; display: grid; grid-template-rows: auto 1fr; background: var(--bg); }
+.viewer-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.viewer-body { overflow: auto; padding: 16px; display: grid; gap: 12px; justify-items: center; }
+.viewer-doc { width: min(1000px, 100%); height: calc(100vh - 100px); border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+.viewer-img { max-width: min(1000px, 100%); border-radius: 8px; }
+.viewer-text { width: min(900px, 100%); margin: 0; white-space: pre-wrap; font: 14px/1.6 ui-monospace, Consolas, monospace; color: var(--text); }
