@@ -1466,13 +1466,6 @@ function openDetail(it, focusField) {
 
 // ---------- Excel export ----------
 
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = src; s.onload = resolve; s.onerror = reject;
-    document.head.append(s);
-  });
-}
 
 // Amounts as numbers for Excel, negative for a refund.
 const money2 = (it, field) => { const c = signedCents(it, field); return c === null ? null : c / 100; };
@@ -1595,19 +1588,45 @@ function openExport() {
   $('#exportForm').addEventListener('input', () => { $('#exportErr').hidden = true; });
 }
 
+// The download: one row per receipt, coloured by its status, and a sheet explaining the colours.
 async function downloadExcel(file, headers) {
+  let buildXlsx;
   try {
-    if (!window.XLSX) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    ({ buildXlsx } = await import('./xlsx.js'));
   } catch {
-    return toast("Couldn't load the Excel tool. Check your connection.");
+    return toast("Couldn't make the Excel file. Check your connection and try again.");
   }
   const columns = EXPORT_COLUMNS.filter(([h]) => headers.includes(h));
-  const data = exportRows().map((it) => Object.fromEntries(columns.map(([h, get]) => [h, get(it, it.extraction)])));
-  const ws = window.XLSX.utils.json_to_sheet(data, { header: columns.map(([h]) => h) });
-  ws['!cols'] = columns.map(([k]) => ({ wch: Math.max(k.length + 2, k === 'Vendor' || k === 'Notes' ? 28 : 12) }));
-  const wb = window.XLSX.utils.book_new();
-  window.XLSX.utils.book_append_sheet(wb, ws, 'Receipts');
-  window.XLSX.writeFile(wb, `${file}.xlsx`);
+  const rows = exportRows();
+  const blob = buildXlsx([
+    {
+      name: 'Receipts',
+      headers: columns.map(([h]) => h),
+      rows: rows.map((it) => columns.map(([, get]) => get(it, it.extraction) ?? null)),
+      levels: rows.map((it) => it.level),
+      widths: columns.map(([k]) => Math.max(k.length + 3, k === 'Vendor' || k === 'Notes' ? 30 : k === 'Employee email' || k === 'File' ? 26 : 12)),
+      filter: true,
+    },
+    {
+      name: 'Colour key',
+      headers: ['Colour', 'Status', 'What it means'],
+      rows: [
+        ['Green', 'Ready', 'Checked and counted.'],
+        ['Yellow', 'Check', 'Needs a look: a possible duplicate, paid twice, a warning, or an unpaid invoice.'],
+        ['Red', 'Fix', "Invalid or failed: not a receipt, unreadable, or the total couldn't be read."],
+        ['Grey', 'Not counted', 'Linked to another row, like an invoice whose payment is listed, or a refunded second charge.'],
+      ],
+      levels: ['green', 'yellow', 'red', 'grey'],
+      widths: [10, 14, 80],
+    },
+  ]);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${file}.xlsx`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
   toast(`Downloaded ${file}.xlsx`);
 }
 
